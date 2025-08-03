@@ -12,6 +12,10 @@
 #include "c_types.h"
 #include "c_debug.h"
 
+/* TODO:
+ * 1.) Array For Each
+ */
+
 /////////////////////////////
 // STATIC ARRAY
 /////////////////////////////
@@ -54,6 +58,7 @@ typedef struct dynamic_array
 #define c_dynamic_array_append_value(array, value) c_dynamic_array_append_value_(array, value, sizeof(*value))
 
 internal dynamic_array_t c_dynamic_array_create_(usize element_size, usize count);
+internal void            c_dynamic_array_destroy(dynamic_array_t *array);
 internal u32             c_dynamic_array_append_value_(dynamic_array_t *dynamic_array_t, void *value, usize element_size);
 internal void*           c_dynamic_array_get(dynamic_array_t *dynamic_array, u32 index);
 internal void            c_dynamic_array_remove(dynamic_array_t *dynamic_array, u32 index);

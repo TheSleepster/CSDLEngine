@@ -4,11 +4,15 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
-
-#include <stdio.h>
-
 #include <SDL3/SDL.h>
 #include <glad/glad.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#include <stb/stb_image.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "c_base.h"
 #include "c_types.h"
@@ -19,6 +23,7 @@
 #include "c_array.h"
 #include "c_file_api.h"
 #include "c_intrinsics.h"
+#include "c_hash_table.h"
 
 #include "os_platform_file.h"
 
@@ -26,11 +31,22 @@
 #include "c_string.c"
 #include "c_array.c"
 #include "c_file_api.c"
+#include "c_hash_table.c"
 
+#include "s_asset_manager.h"
 #include "r_renderer_data.h"
+#include "r_asset_shader.h"
+#include "r_asset_texture.h"
+//#include "r_asset_dynamic_font.h"
 
+#include "r_asset_shader.c"
+#include "r_asset_texture.c"
+//#include "r_asset_dynamic_font.c"
+#include "s_asset_manager.h"
 #include "r_render_API.c"
 #include "r_opengl.c"
+
+#include "g_main.c"
 
 global bool8 running;
 
@@ -62,17 +78,27 @@ main(int argc, char **argv)
     SDL_Window *window = SDL_CreateWindow("SDL Window", 1920, 1080, SDL_WINDOW_OPENGL);
     if(window)
     {
+        gc_setup();
+        
         render_state_t render_state = {};
         r_init_renderer_data(window, &render_state);
+
+        bool8 game_initialized = false;
 
         running = true;
         while(running)
         {
             c_process_window_events();
-            r_render_single_frame(window, &render_state);
+
+            g_update_and_render(game_initialized, &render_state);
+
+            r_render_single_frame(&render_state);
+            SDL_GL_SwapWindow(window);
 
             c_arena_reset(&render_state.draw_frame_arena);
             ZeroStruct(render_state.draw_frame);
+
+            gc_reset_temporary_data();
         }
     }
 

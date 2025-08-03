@@ -20,6 +20,8 @@ r_create_render_quad(vec2_t                position,
     float32 bottom = position.y + render_size.y;
     float32 right  = position.x + render_size.y;
 
+    result.options = render_options;
+
     if(rotation > 0)
     {
         result.top_left.vPosition     = vec2_rotate(vec2_create_float(left, top),     DegToRad(rotation));
@@ -53,7 +55,9 @@ r_draw_quad(render_state_t       *render_state,
             float32               rotation,
             render_quad_options_t render_options)
 {
-    render_quad_t *result;
+    Assert(render_state->draw_frame.active_render_group != null);
+    
+    render_quad_t  *result;
     render_group_t *active_render_group = render_state->draw_frame.active_render_group;
     active_render_group->buffer_quads[active_render_group->quad_count] = r_create_render_quad(position,
                                                                                               render_size,
@@ -61,9 +65,75 @@ r_draw_quad(render_state_t       *render_state,
                                                                                               rotation,
                                                                                               render_options);
     result = &active_render_group->buffer_quads[active_render_group->quad_count];
+    if(render_options & RQO_SHADOWCASTER)
+    {
+        if(!render_state->draw_frame.shadow_casters)
+        {
+            render_state->draw_frame.shadow_casters = c_arena_push_array(&render_state->draw_frame_arena, shadow_caster2D_t, MAX_QUADS);
+        }
+
+        shadow_caster2D_t caster = {};
+        caster.quad_data = active_render_group->buffer_quads[active_render_group->quad_count];
+
+        render_state->draw_frame.shadow_casters[render_state->draw_frame.shadow_caster_counter] = caster; 
+        render_state->draw_frame.shadow_caster_counter += 1;
+    }
+
     active_render_group->quad_count += 1;
+    return(result);
+}
+
+
+////////////////////
+// LIGHTING
+////////////////////
+internal point_light_t*
+r_create_point_light(render_state_t *render_state, vec2_t position, vec4_t color, float32 radius)
+{
+    point_light_t *result = null;
+    if(!render_state->draw_frame.point_lights)
+    {
+        render_state->draw_frame.point_lights = c_arena_push_array(&render_state->draw_frame_arena, point_light_t, MAX_LIGHTS);
+    }
+    Assert(render_state->draw_frame.point_lights);
+    result = render_state->draw_frame.point_lights + render_state->draw_frame.light_counter;
+
+    result->ws_position = position;
+    result->light_color = color;
+    result->radius      = radius;
 
     return(result);
+}
+
+internal void
+r_handle_lighting_data(render_state_t *render_state)
+{
+/*
+  What do we want this function to do?
+  LIGHTING:
+  - Compute the correct UVs into the light atlas for all the lights in the current scene
+  - Convert a light_atlas_cell_index -> UV coords
+  - Assign a vector4 light mask for the channel the light occupies
+  - Channel index 0 = .{1, 0, 0, 0}. Channel index 1 = .{0, 1, 0, 0}...
+  - Create clip space geometry to store the lighting information in the atlas
+  - Create a quad that is made in world space coordinates, bring them to clip space
+  - Add this quad to the light quads vertex buffer 
+  SHADOWS: 
+  - For each light, loop over each occluder to figure out if it is within the influence of the light
+  - If the occluder IS within range, set it's cell_index and it's channel_index to that of the light's
+  - If the occluder ISN'T then skip it
+  - For each occluder generate a shadow quad and bring it's transformation space to that of clip space. 
+  - Add the quad to the occluder shadow quads vertex buffer.
+  DRAWING:
+  - Render the light mask (occluder) geometry into the light map,
+  using the cell_index (which converts to UV coords in the
+  bigger lightmap) and color_mask to render it correctly the
+  glColorMask() is set to to only write alpha.
+
+  - Render all lights using their lightmap geometry into the
+  light map, again using the cell_index and color mask to
+  ensure proper writing.
+*/
 }
 
 /////////////////////////////////
@@ -74,7 +144,6 @@ r_draw_quad(render_state_t       *render_state,
 internal inline render_group_desc_t
 r_build_renderpass_desc(GPU_shader_t          *desired_shader,
                          u32                    render_layer,
-                         u32                    layer_priority,
                          mat4_t                 view_matrix,
                          mat4_t                 projection_matrix,
                          render_group_effects_t render_effects)
@@ -82,7 +151,6 @@ r_build_renderpass_desc(GPU_shader_t          *desired_shader,
     render_group_desc_t result;
     result.shader            = desired_shader;
     result.render_layer      = render_layer;
-    result.layer_priority    = layer_priority;
     result.view_matrix       = view_matrix;
     result.projection_matrix = projection_matrix;
     result.render_effects    = render_effects;
@@ -99,7 +167,6 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
     hash_value = c_fnv_hash_value((u8*)render_pass_desc->shader,             sizeof(GPU_shader_t*),          hash_value);
     hash_value = c_fnv_hash_value((u8*)&render_pass_desc->render_effects,    sizeof(render_group_effects_t), hash_value);
     hash_value = c_fnv_hash_value((u8*)&render_pass_desc->render_layer,      sizeof(u32),                    hash_value);
-    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->layer_priority,    sizeof(u32),                    hash_value);
     hash_value = c_fnv_hash_value((u8*)&render_pass_desc->view_matrix,       sizeof(mat4_t),                 hash_value);
     hash_value = c_fnv_hash_value((u8*)&render_pass_desc->projection_matrix, sizeof(mat4_t),                 hash_value);
 
@@ -138,38 +205,24 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
         active_group->render_desc   = *render_pass_desc;
         active_group->buffer_quads  = c_arena_push_array(&render_state->draw_frame_arena, render_quad_t, MAX_QUADS);
         active_group->vertex_buffer = c_arena_push_array(&render_state->draw_frame_arena, vertex_t,      MAX_VERTICES);
-    }
-    Assert(active_group != null);
+        Assert(active_group != null);
 
-    u32 old_layer_mask = render_state->draw_frame.render_layer_mask;
-    render_state->draw_frame.render_layer_mask |= 1 << render_pass_desc->render_layer;
-    if(old_layer_mask != render_state->draw_frame.render_layer_mask)
-    {
-        render_state->draw_frame.used_render_layers[render_state->draw_frame.used_render_layer_count] = render_pass_desc->render_layer;
-        render_state->draw_frame.used_render_layer_count++;
-    }
+        u32 old_layer_mask = render_state->draw_frame.render_layer_mask;
+        render_state->draw_frame.render_layer_mask |= 1 << render_pass_desc->render_layer;
+        if(old_layer_mask != render_state->draw_frame.render_layer_mask)
+        {
+            render_state->draw_frame.used_render_layers[render_state->draw_frame.used_render_layer_count] = render_pass_desc->render_layer;
+            render_state->draw_frame.used_render_layer_count++;
+        }
 
-    render_layer_data_t *layer_data = &render_state->draw_frame.render_layer_data[render_pass_desc->render_layer];
-    u32 old_pass_mask = layer_data->layer_pass_mask;
+        render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter] = active_group;
+        Assert(render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter] != null);
 
-    layer_data->layer_pass_mask |= 1 << render_pass_desc->layer_priority;
-    if(old_pass_mask != layer_data->layer_pass_mask)
-    {
-        layer_data->layer_passes[layer_data->layer_pass_count] = render_pass_desc->layer_priority;
-        layer_data->layer_pass_count += 1;
+        render_state->draw_frame.render_group_counter += 1;
     }
 
-    render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter] = active_group;
     render_state->draw_frame.active_render_group = active_group;
-
     Assert(render_state->draw_frame.active_render_group != null);
-    Assert(render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter] != null);
-    Assert(render_state->draw_frame.render_group_counter <= 3);
-
-    render_group_t test = *render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter];
-    test.render_desc.render_layer = 16;
-
-    render_state->draw_frame.render_group_counter += 1;
 }
 
 internal inline void
@@ -191,27 +244,6 @@ r_handle_renderpass_data(render_state_t *render_state)
                  sizeof(render_group_t*),
                  IntFromPtr(OffsetOf(render_group_t, render_desc.render_layer)),
                  8);
-    
-    memset(sorted_layer_buffer, 0, render_state->draw_frame.render_group_counter * sizeof(render_group_t*));
-
-    u32 group_offset = 0;
-    for(u32 group_index = 0;
-        group_index < render_state->draw_frame.render_group_counter;
-        ++group_index)
-    {
-        render_group_t      *render_group =  render_state->draw_frame.render_groups[group_index];
-        render_layer_data_t *layer_data   = &render_state->draw_frame.render_layer_data[render_group->render_desc.render_layer];
-        
-        usize layer_offset = group_offset * sizeof(render_group_t*);
-        c_radix_sort(render_state->draw_frame.render_groups + layer_offset,
-                     sorted_layer_buffer,
-                     layer_data->layer_pass_count,
-                     sizeof(render_group_t*),
-                     IntFromPtr(OffsetOf(render_group_t, render_desc.layer_priority)),
-                     8);
-
-        group_offset += layer_data->layer_pass_count;
-    }
     
     // TODO(Sleepster): MULTITHREAD THIS
     for(u32 render_group_idx = 0;

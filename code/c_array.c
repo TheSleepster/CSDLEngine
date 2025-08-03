@@ -90,6 +90,13 @@ c_dynamic_array_create_(usize element_size, usize count)
     return(result);
 }
 
+internal void
+c_dynamic_array_destroy(dynamic_array_t *array)
+{
+    free(array->data);
+    memset(array, 0, sizeof(dynamic_array_t));
+}
+
 internal u32
 c_dynamic_array_append_value_(dynamic_array_t *dynamic_array, void *value, usize element_size)
 {
@@ -143,4 +150,5 @@ c_dynamic_array_remove(dynamic_array_t *dynamic_array, u32 index)
     
     memcpy(offset_ptr, end_ptr, dynamic_array->element_size);
 }
+
 /////////////////////////////////////

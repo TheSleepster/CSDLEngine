@@ -196,4 +196,30 @@ typedef enum system_architecture
     SA_COUNT
 }system_architecture_t;
 
+#include "c_memory.h"
+#include "c_string.h"
+#include "c_array.h"
+
+// USE ARENAS NOT MALLOC
+typedef struct global_context
+{
+    memory_arena_t context_arena;
+    memory_arena_t temporary_arena;
+}global_context_t;
+
+global global_context_t global_context;
+
+internal inline void
+gc_setup()
+{
+    global_context.context_arena   = c_arena_create(MB(100));
+    global_context.temporary_arena = c_arena_create(MB(10));
+}
+
+internal inline void
+gc_reset_temporary_data()
+{
+    c_arena_reset(&global_context.temporary_arena);
+}
+
 #endif

@@ -16,6 +16,10 @@ typedef struct string
     u32  count;
 }string_t;
 
+typedef struct string_builder
+{
+}string_builder_t;
+
 //////////// API DEFINITIONS //////////////
 internal        s32         c_string_length(const char *c_string);
 internal inline string_t    c_string_create(const char *c_string);
@@ -36,7 +40,7 @@ internal inline string_t    c_get_file_ext_from_path(string_t filepath);
 
 // MACROS
 #define STR(x)   (string_t){.data = (u8 *)x, .count = c_string_length(x)}
-#define C_STR(x) ((const char *)x.data);
+#define C_STR(x) ((const char *)x.data)
 ///////////////////////////////////////////
 
 #endif

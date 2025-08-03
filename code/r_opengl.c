@@ -378,148 +378,6 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
 }
 
 internal void
-r_update_shader_SSBO_data(GPU_shader_t *shader, string_t name, void *data, s64 size)
-{
-    shader_storage_buffer_t *buffer = null;
-    for(u32 buffer_index = 0;
-        buffer_index < shader->shader_storage_buffers.capacity;
-        ++buffer_index)
-    {
-        shader_storage_buffer_t *found = (shader_storage_buffer_t *)shader->shader_storage_buffers.data + buffer_index;
-        if(c_string_compare(found->name, name))
-        {
-            buffer = found;
-            break;
-        }
-    }
-
-    if(buffer)
-    {
-        buffer->data = data;
-        buffer->size = size;
-    }
-    else
-    {
-        log_error("Attempted to pass data to shader buffer '%s', but could not find it...\n", name.data);
-    }
-}
-
-internal void
-r_update_shader_UBO_data(GPU_shader_t *shader, string_t name, void *data)
-{
-    shader_storage_buffer_t *buffer = null;
-    for(u32 buffer_index = 0;
-        buffer_index < shader->shader_uniform_buffers.capacity;
-        ++buffer_index)
-    {
-        shader_storage_buffer_t *found = (shader_storage_buffer_t *)shader->shader_uniform_buffers.data + buffer_index;
-        if(c_string_compare(found->name, name))
-        {
-            buffer = found;
-            break;
-        }
-    }
-
-    if(buffer)
-    {
-        buffer->data = data;
-    }
-    else
-    {
-        log_error("Attempted to update data for UBO '%s', but failed to find a UBO with that name...\n");
-    }
-}
-
-internal void
-r_update_shader_uniform_data(GPU_shader_t *shader, string_t name, void *data)
-{
-    shader_uniform_t *uniform = null;
-    for(u32 uniform_index = 0;
-        uniform_index < shader->shader_uniforms.capacity;
-        ++uniform_index)
-    {
-        shader_uniform_t *found = (shader_uniform_t *)shader->shader_uniforms.data + uniform_index;
-        if(c_string_compare(found->name, name))
-        {
-            uniform = found;
-            break;
-        }
-    }
-
-    if(uniform)
-    {
-        uniform->data = data;
-    }
-    else
-    {
-        log_error("Attempted to supply data to uniform with name '%s', but could not find it...\n");
-    }
-}
-
-internal void
-r_update_shader_gpu_data(GPU_shader_t *shader)
-{
-    for(u32 uniform_index = 0;
-        uniform_index < shader->shader_uniforms.capacity;
-        ++uniform_index)
-    {
-        shader_uniform_t *uniform_data = (shader_uniform_t *)shader->shader_uniforms.data + uniform_index;
-        if((uniform_data->update != null) && (uniform_data->data != null))
-        {
-            uniform_data->update(uniform_data->location_id, uniform_data->data);
-        }
-        else
-        {
-            log_error("shader uniform '%s' has an 'update' pointer of '%ull' and a 'data' pointer of '%ull'... cannot update...\n",
-                      uniform_data->name.data,
-                      uniform_data->update,
-                      uniform_data->data);
-        }
-    }
-
-    for(u32 uniform_buffer_index = 0;
-        uniform_buffer_index < shader->shader_uniform_buffers.capacity;
-        ++uniform_buffer_index)
-    {
-        shader_storage_buffer_t *buffer = (shader_storage_buffer_t*)shader->shader_uniform_buffers.data + uniform_buffer_index;
-        if((buffer->update != null) && (buffer->data != null))
-        {
-            buffer->update(buffer->location_id, buffer->size, buffer->data);
-        }
-        else
-        {
-            log_error("shader uniform buffer object '%s' has an 'update' pointer of '%ull' and a 'data' pointer of '%ull'... cannot update...\n",
-                      buffer->name.data,
-                      buffer->update,
-                      buffer->data);
-        }
-    }
-
-    for(u32 ssbo_index = 0;
-        ssbo_index < shader->shader_storage_buffers.capacity;
-        ++ssbo_index)
-    {
-        shader_storage_buffer_t *buffer = (shader_storage_buffer_t *)shader->shader_storage_buffers.data + ssbo_index;
-        if((buffer->update != null) && (buffer->data != null))
-        {
-            if(buffer->old_size != buffer->size)
-            {
-                r_resize_SSBO(buffer->location_id, buffer->size);
-                buffer->old_size = buffer->size;
-            }
-            buffer->update(buffer->location_id, buffer->size, buffer->data);
-        }
-        else
-        {
-            log_error("shader storage buffer object '%s' has an 'update' pointer of '%ull' and a 'data' pointer of '%ull'... cannot update...\n",
-                      buffer->name.data,
-                      buffer->update,
-                      buffer->data);
-        }
-    }
-}
-
-internal void
 r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 {
     render_state->draw_frame_arena = c_arena_create(MB(100));
@@ -573,13 +431,23 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * MAX_INDICES, index_buffer, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)OffsetOf(vertex_t, vPosition));
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)OffsetOf(vertex_t, vColor));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)OffsetOf(vertex_t, vUVData));
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)OffsetOf(vertex_t, vColor));
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)OffsetOf(vertex_t, vVSNormals));
+
+    glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT,   sizeof(vertex_t), (void*)OffsetOf(vertex_t, vTextureIndex));
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    string_t lighting_shader  = c_read_entire_file(STR("../code/shaders/lighting.glsl"));
+    render_state->lighting_data.lighting_shader = r_create_shader_program(lighting_shader, ST_PIXEL_SHADER);
 
     string_t shader_source    = c_read_entire_file(STR("../code/shaders/basic.glsl"));
     render_state->test_shader = r_create_shader_program(shader_source, ST_PIXEL_SHADER);
@@ -613,61 +481,50 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 } 
 
 internal void
-r_DEBUG_test_render(render_state_t *render_state)
+r_render_single_frame(render_state_t *render_state)
 {
-    mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
-    mat4_t view_matrix       = mat4_identity();
+    glEnable(GL_BLEND);
 
-    render_group_desc_t test_group_desc = r_build_renderpass_desc(&render_state->test_shader,
-                                                                  16,
-                                                                  0,
-                                                                  view_matrix,
-                                                                  projection_matrix,
-                                                                  RGE_None);
-    r_begin_renderpass(render_state, &test_group_desc);
-    r_draw_quad(render_state, (vec2_t){ 0,   0},  (vec2_t){20, 20}, (vec4_t){1, 0, 0, 1}, 45,   RQO_None);
-    r_draw_quad(render_state, (vec2_t){ 20,  0},  (vec2_t){20, 20}, (vec4_t){1, 0, 1, 1}, 20,   RQO_None);
-    r_draw_quad(render_state, (vec2_t){ 40,  0},  (vec2_t){20, 20}, (vec4_t){0, 0, 1, 1}, 15,   RQO_None);
-    r_draw_quad(render_state, (vec2_t){-20,  0},  (vec2_t){20, 20}, (vec4_t){0, 1, 0, 1}, 10,   RQO_None);
-    r_end_renderpass(render_state);
+    r_handle_lighting_data(render_state);
+    // LIGHTING
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, render_state->lighting_data.framebuffer_id);
+        glDisable(GL_DEPTH_TEST);
 
-    render_group_desc_t test_group2 = test_group_desc;
-    test_group2.render_layer   = 16;
-    test_group2.layer_priority = 2;
+        glBlendFunc(GL_ONE, GL_ONE);
+        glBlendEquation(GL_FUNC_ADD);
+    
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    
+        glUseProgram(render_state->lighting_data.lighting_shader.program_id);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
-    r_begin_renderpass(render_state, &test_group2);
-    r_draw_quad(render_state, (vec2_t){0,  20}, (vec2_t){20, 20}, (vec4_t){1, 1, 1, 1}, 33, RQO_None);
-    r_end_renderpass(render_state);
+    // SHADOWS
+    {
+        glBlendFunc(GL_ONE, GL_ONE);
+        glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+    }
 
-    render_group_desc_t test_group3 = test_group_desc;
-    test_group3.render_layer   = 17;
-    test_group3.layer_priority = 0;
-    test_group3.render_effects = RGE_Lighting;
-
-    r_begin_renderpass(render_state, &test_group3);
-    r_draw_quad(render_state, (vec2_t){0, -20}, (vec2_t){20, 20}, (vec4_t){0, 1, 1, 1}, 10, RQO_None);
-    r_end_renderpass(render_state);
-}
-
-internal void
-r_render_single_frame(SDL_Window *window, render_state_t *render_state)
-{
     glEnable(GL_DEPTH_TEST);
     glClearDepth(0.0f);
     glDepthFunc(GL_GREATER);
     glDepthMask(GL_TRUE);
+
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
     
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-    r_DEBUG_test_render(render_state);
     r_handle_renderpass_data(render_state);
 
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();
 
-    r_update_shader_uniform_data(&render_state->test_shader, STR("ProjectionMatrix"), &projection_matrix.values);
-    r_update_shader_uniform_data(&render_state->test_shader, STR("ViewMatrix"), &view_matrix.values);
+    r_update_shader_uniform_data(&render_state->test_shader, STR("uProjectionMatrix"), &projection_matrix.values);
+    r_update_shader_uniform_data(&render_state->test_shader, STR("uViewMatrix"), &view_matrix.values);
 
     glBindVertexArray(render_state->primary_vao_id);
     for(u32 group_index = 0;
@@ -687,17 +544,4 @@ r_render_single_frame(SDL_Window *window, render_state_t *render_state)
         glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
     }
 
-    for(u32 group_index = 0;
-        group_index < render_state->draw_frame.render_group_counter;
-        ++group_index)
-    {
-        render_group_t *group = render_state->draw_frame.render_groups[group_index];
-        Assert(group);
-
-        u32 layer_effects = group->render_desc.render_effects;
-        if(layer_effects & RGE_Lighting)
-        {
-        }
-    }
-    SDL_GL_SwapWindow(window);
 }

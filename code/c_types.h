@@ -31,6 +31,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 typedef size_t   usize;
+typedef u8       byte;
 
 typedef u8       bool8;
 typedef u32      bool32;
@@ -38,8 +39,8 @@ typedef u32      bool32;
 typedef float    float32;
 typedef double   float64;
 
-typedef  float   real32;
-typedef  double  real64;
+typedef float    real32;
+typedef double   real64;
 
 #define null NULL
 
