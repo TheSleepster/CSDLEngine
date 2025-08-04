@@ -37,7 +37,14 @@ ASSET_FILE_BUILDER_LIBS = $(PLATFORM_LIBS)
 ASSET_FILE_BUILDER_SRC = ../code/asset_builder/ab_main.c
 ASSET_FILE_BUILDER_OUT = ../build/asset_file_builder$(EXE_EXT)
 
-all: asset_file_builder engine
+TESTS_SRC  = $(wildcard ../code/tests/*.c)
+TESTS_OUT  = $(patsubst ../code/tests/%.c,../build/test_%.exe,$(TESTS_SRC))
+TESTS_LIBS = $(PLATFORM_LIBS)
+
+all: asset_file_builder engine 
+#tests 
+
+tests: $(TESTS_OUT)
 
 asset_file_builder: $(ASSET_FILE_BUILDER_OUT)
 
@@ -47,10 +54,16 @@ run_asset_file_builder: asset_file_builder
 	@echo Running Asset File Builder...
 	../build/asset_file_builder$(EXE_EXT)
 
+../build/test_%.exe: ../code/tests/%.c | ../build
+	@echo Building Test $(@F)...
+	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(TESTS_LIBS) -o $@ -MMD -MF ../build/test_$(*F).d
+
 $(ASSET_FILE_BUILDER_OUT): $(ASSET_FILE_BUILDER_SRC) | ../build
+	@echo Building Asset File Builder...
 	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ASSET_FILE_BUILDER_LIBS) -o $@ -MMD -MF ../build/asset_file_builder.d
 
 $(ENGINE_OUT): $(ENGINE_SRC) | ../build
+	@echo Building Engine...
 	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) -o $@ -MMD -MF ../build/engine.d
 
 ../build:
@@ -59,7 +72,8 @@ $(ENGINE_OUT): $(ENGINE_SRC) | ../build
 clean:
 	rm -rf ../build
 
-.PHONY: all engine asset_file_builder run_asset_file_builder clean
+.PHONY: all engine asset_file_builder run_asset_file_builder tests clean
 
 -include ../build/engine.d
 -include ../build/asset_file_builder.d
+-include $(patsubst ../code/tests/%.c,../build/test_%.d,$(TESTS_SRC))

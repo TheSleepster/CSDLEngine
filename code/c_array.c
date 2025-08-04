@@ -130,7 +130,7 @@ c_dynamic_array_append_value_(dynamic_array_t *dynamic_array, void *value, usize
 internal void*
 c_dynamic_array_get(dynamic_array_t *dynamic_array, u32 index)
 {
-    Assert(dynamic_array->indices_used <= index);
+    Assert(dynamic_array->indices_used >= index);
 
     void *result = null;
     result = (u8*)dynamic_array->data + (index * dynamic_array->element_size);

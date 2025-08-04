@@ -19,7 +19,7 @@
 typedef enum asset_type
 {
     AT_NONE,
-    AT_TEXTURE,
+    AT_BITMAP,
     AT_SHADER,
     AT_FONT,
     AT_SOUND,
@@ -74,7 +74,7 @@ typedef struct asset_manager
     zone_allocator_t *sound_allocator;
     zone_allocator_t *font_allocator;
     
-    memory_arena_t   *trash_arena; // draw_frame_arena;
+    memory_arena_t   *trash_arena;  // draw_frame_arena;
     memory_arena_t    manager_arena;
 
     hash_table_t      texture_hash;

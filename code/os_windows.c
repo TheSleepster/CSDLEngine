@@ -214,10 +214,11 @@ os_file_get_modtime_and_size(string_t filepath)
 {
     file_data_t result = {};
     
-    HANDLE file_handle = CreateFileA(C_STR(filepath), 0,
+    HANDLE file_handle = CreateFileA(C_STR(filepath),
+                                     FILE_GENERIC_READ,
                                      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                                      null,
-                                     FILE_ATTRIBUTE_READONLY|FILE_FLAG_BACKUP_SEMANTICS,
+                                     OPEN_ALWAYS,
                                      0,
                                      0);
     if(file_handle != INVALID_HANDLE_VALUE)
@@ -233,8 +234,14 @@ os_file_get_modtime_and_size(string_t filepath)
 
         result.file_size = file_size.QuadPart;
         result.last_modtime = filetime.QuadPart;
+        result.filepath     = filepath;
+        result.filename     = c_get_filename_from_path(filepath);
 
         CloseHandle(file_handle);
+    }
+    else
+    {
+        log_error("Cannot get data for file: '%s'...\n", C_STR(filepath));
     }
 
     return(result);
@@ -281,61 +288,71 @@ os_directory_exists(string_t filepath)
     return(result);
 }
 
-// TODO(Sleepster): TEST THIS 
 internal void
-os_directory_visit(string_t filepath, visit_file_data_t visit_file_data)
+os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
 {
-    WIN32_FIND_DATA find_data   = {};
+    Assert(visit_file_data);
+    
+    WIN32_FIND_DATA find_data;
     HANDLE          find_handle = INVALID_HANDLE_VALUE;
-
-    char wildcard_name[256];
-    sprintf(wildcard_name, "%s/*", C_STR(filepath));
-
-    string_t dir_name;
-    dir_name.count = c_string_length(&wildcard_name);
-    dir_name.data  = &wildcard_name;
-
-
-    find_handle = FindFirstFile(wildcard_name, &find_data);
-    if(find_handle == INVALID_HANDLE_VALUE)
-    {
-        log_error("Filepath: '%s' is invalid... returning...\n", C_STR(filepath));
-        return;
-    }
 
     u32 cursor = 0;
     dynamic_array_t directories = c_dynamic_array_create(string_t, 10);
-    c_dynamic_array_append_value(&directories, &dir_name);
+    c_dynamic_array_append(&directories, filepath);
 
     while(cursor < directories.indices_used)
     {
-        do
+        string_t *directory_name = c_dynamic_array_get(&directories, cursor);
+        cursor += 1;
+
+        char wildcard_name[256];
+        sprintf(wildcard_name, "%s/*", directory_name->data);
+
+        string_t dir_name;
+        dir_name.count = c_string_length(wildcard_name);
+        dir_name.data  = wildcard_name;
+
+        find_handle = FindFirstFileEx(dir_name.data, FindExInfoBasic, &find_data, FindExSearchNameMatch, null, FindExSearchNameMatch);
+        if(find_handle == INVALID_HANDLE_VALUE)
         {
+            log_error("Filepath: '%s' is invalid... returning...\n", C_STR(filepath));
+            return;
+        }
+
+        BOOL success = true;
+        while(true)
+        {
+            char *name = find_data.cFileName;
+            visit_file_data->filename = c_string_make_heap(&global_context.temporary_arena, STR(name));
+            string_t temp_name         = c_string_concat(&global_context.temporary_arena, *directory_name, STR("/"));
+            visit_file_data->fullname = c_string_concat(&global_context.temporary_arena, temp_name, visit_file_data->filename);
+
             bool8 is_directory = (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
             if(is_directory)
             {
-                if(strcmp(find_data.cFileName, ".") != 0 || strcmp(find_data.cFileName, "..") != 0)
+                if(strcmp(find_data.cFileName, ".") != 0 && strcmp(find_data.cFileName, "..") != 0)
                 {
-                    if(visit_file_data.function != null) visit_file_data.function(&visit_file_data, visit_file_data.user_data);
-
-                    if(visit_file_data.recursive)
+                    visit_file_data->is_directory = true;
+                    if(visit_file_data->recursive)
                     {
-                        char *name = find_data.cFileName;
-                        visit_file_data.file_name = STR(name);
-                        visit_file_data.full_name = c_string_concat(&global_context.temporary_arena, filepath, STR(name));
-
-                        c_dynamic_array_append_value(&directories, &visit_file_data.full_name);
+                        c_dynamic_array_append(&directories, visit_file_data->fullname);
                     }
                 }
             }
             else
             {
-                if(visit_file_data.function != null) visit_file_data.function(&visit_file_data, visit_file_data.user_data);
+                visit_file_data->is_directory = false;
+                if(visit_file_data->function != null)
+                    visit_file_data->function(visit_file_data, visit_file_data->user_data);
             }
-        }while(FindNextFile(find_handle, &find_data));
+            
+            success = FindNextFile(find_handle, &find_data);
+            if(!success) break;
+        }
+
+        FindClose(find_handle);
     }
 
-    CloseHandle(find_handle);
     c_dynamic_array_destroy(&directories);
 }
 

@@ -54,8 +54,13 @@ typedef struct dynamic_array
     void *data;
 }dynamic_array_t;
 
-#define c_dynamic_array_create(type, count)        c_dynamic_array_create_(sizeof(type), count)
-#define c_dynamic_array_append_value(array, value) c_dynamic_array_append_value_(array, value, sizeof(*value))
+#define c_dynamic_array_create(type, count)  c_dynamic_array_create_(sizeof(type), count)
+#define c_dynamic_array_append(array, value)                   \
+do{                                                            \
+    __typeof__(value) temp = value;                            \
+    c_dynamic_array_append_value_(array, &temp, sizeof(temp)); \
+}while(0)
+
 
 internal dynamic_array_t c_dynamic_array_create_(usize element_size, usize count);
 internal void            c_dynamic_array_destroy(dynamic_array_t *array);

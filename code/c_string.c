@@ -53,6 +53,9 @@ c_string_compare(string_t A, string_t B)
 internal string_t
 c_string_concat(memory_arena_t *arena, string_t A, string_t B)
 {
+    Assert(A.data != null);
+    Assert(B.data != null);
+    
     string_t result;
     result.count = A.count + B.count;
     result.data  = c_arena_push_size(arena, result.count * sizeof(u8));
@@ -180,4 +183,125 @@ internal inline const char *
 c_string_to_const_array(string_t string)
 {
     return((const char *)string.data);
+}
+
+
+///////////////////
+// STRING BUILDER
+///////////////////
+
+internal inline string_builder_buffer_t*
+c_string_builder_get_base_buffer(string_builder_t *builder)
+{
+    return((string_builder_buffer_t*)builder->initial_bytes);
+}
+
+internal void
+c_string_builder_init(string_builder_t *builder, usize new_buffer_size)
+{
+    builder->current_buffer  = null;
+    builder->buffer_count    = 0;
+    builder->new_buffer_size = new_buffer_size;
+    memset(builder->initial_bytes, 0, STRING_BUILDER_BUFFER_SIZE);
+
+    string_builder_buffer_t *buffer = c_string_builder_get_base_buffer(builder);
+    buffer->bytes_allocated         = STRING_BUILDER_BUFFER_SIZE;
+    buffer->bytes_used              = 0;
+    buffer->next_buffer             = null;
+
+    builder->is_initialized = true;
+}
+
+internal inline string_builder_buffer_t*
+c_string_builder_get_current_buffer(string_builder_t *builder)
+{
+    if(builder->current_buffer) return(builder->current_buffer);
+    return(c_string_builder_get_base_buffer(builder));
+}
+
+internal inline byte*
+c_string_builder_get_buffer_data(string_builder_buffer_t *buffer)
+{
+    return((byte*)buffer + sizeof(string_builder_buffer_t));
+}
+
+internal bool8
+c_string_builder_create_new_buffer(string_builder_t *builder)
+{
+    bool8 result = false;
+    usize new_size = builder->new_buffer_size > 0 ? builder->new_buffer_size : STRING_BUILDER_BUFFER_SIZE;
+
+    byte *bytes = malloc(new_size);
+    if(bytes)
+    {
+        ZeroMemory(bytes, new_size);
+
+        string_builder_buffer_t *buffer = bytes;
+        buffer->next_buffer     = null;
+        buffer->bytes_used      = 0;
+        buffer->bytes_allocated = new_size - sizeof(string_builder_buffer_t);
+
+        string_builder_buffer_t *last_buffer = c_string_builder_get_current_buffer(builder);
+        last_buffer->next_buffer = buffer;
+        builder->current_buffer  = buffer; 
+
+        result = true;
+    }
+
+    return(result);
+}
+
+internal void 
+c_string_builder_append(string_builder_t *builder, string_t data)
+{
+    if(!builder->is_initialized) c_string_builder_init(builder, STRING_BUILDER_BUFFER_SIZE);
+
+    u8 *bytes  = data.data;
+    u32 length = data.count;
+    while(length > 0)
+    {
+        string_builder_buffer_t *buffer = c_string_builder_get_current_buffer(builder);
+        u32 length_max = buffer->bytes_allocated - buffer->bytes_used;
+        if(length_max <= 0)
+        {
+            bool8 success = c_string_builder_create_new_buffer(builder);
+            if(!success)
+            {
+                log_error("Failure to expand the string builder...\n");
+                return;
+            }
+
+            buffer = builder->current_buffer;
+            Assert(buffer != null);
+
+            length_max = buffer->bytes_allocated - buffer->bytes_used;
+            Assert(length_max > 0);
+        }
+
+        u32 bytes_to_copy = Min(length, length_max);
+        memcpy(c_string_builder_get_buffer_data(buffer) + buffer->bytes_used, bytes, bytes_to_copy);
+
+        length -= bytes_to_copy;
+        bytes  += bytes_to_copy;
+    }
+}
+
+internal string_t
+c_string_builder_get_string(string_builder_t *builder)
+{
+    string_t result = {};
+    string_builder_buffer_t *buffer = c_string_builder_get_current_buffer(builder);
+
+    while(buffer)
+    {
+        string_t temp_string;
+        temp_string.data  = c_string_builder_get_buffer_data(buffer);
+        temp_string.count = buffer->bytes_used;
+
+        c_string_concat(&global_context.temporary_arena, result, temp_string);
+
+        buffer = buffer->next_buffer;
+    }
+
+    return(result);
 }

@@ -446,10 +446,10 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    string_t lighting_shader  = c_read_entire_file(STR("../code/shaders/lighting.glsl"));
+    string_t lighting_shader  = c_file_read(STR("../code/shaders/lighting.glsl"));
     render_state->lighting_data.lighting_shader = r_create_shader_program(lighting_shader, ST_PIXEL_SHADER);
 
-    string_t shader_source    = c_read_entire_file(STR("../code/shaders/basic.glsl"));
+    string_t shader_source    = c_file_read(STR("../code/shaders/basic.glsl"));
     render_state->test_shader = r_create_shader_program(shader_source, ST_PIXEL_SHADER);
 
     // LIGHTING FRAMEBUFFER SETUP
