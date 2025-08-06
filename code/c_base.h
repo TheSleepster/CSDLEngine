@@ -149,6 +149,8 @@
 #define MemoryCopy(dest, source, size) (memmove((dest), (source), (size)))
 #define MemoryCopyStruct(dest, source) (MemoryCopy((dest), (source), Min(sizeof(*(dest), sizeof(*(source))))))
 
+#define InvalidCodePath Assert(false)
+
 #include "c_types.h"
 
 global s8  min_s8  = (s8) 0x80;

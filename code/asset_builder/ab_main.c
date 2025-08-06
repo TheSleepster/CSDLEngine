@@ -52,7 +52,6 @@ typedef struct asset_file_header
 {
     u32 magic_value; 
     u32 file_version;
-
     u32 file_size;
 }asset_file_header_t;
 
@@ -73,6 +72,7 @@ typedef struct asset_file_TOC
 
 typedef struct asset_file_slot
 {
+    u32                asset_ID;
     asset_type_t       asset_type;
     union
     {
@@ -157,6 +157,47 @@ asset_iterate_and_fill_TOC(dynamic_array_t *asset_array, asset_file_TOC_t *table
     }
 }
 
+internal void
+asset_load_data_from_table(memory_arena_t    *arena,
+                           asset_file_TOC_t  *table_of_contents,
+                           asset_file_slot_t *asset_array,
+                           u32                starting_index,
+                           u32                ending_index)
+{
+    for(u32 asset_index = starting_index;
+        asset_index < ending_index;
+        ++asset_index)
+    {
+        string_t     filepath = table_of_contents->filepaths[asset_index];
+        u32          ID       = table_of_contents->IDs[asset_index];
+        asset_type_t type     = table_of_contents->type_table[asset_index];
+
+        asset_file_slot_t *asset = asset_array + asset_index;
+        asset->asset_ID          = ID;
+        asset->asset_type        = type;
+
+        switch(asset->asset_type)
+        {
+            case AT_BITMAP:
+            {
+                u32 *width         = &asset->texture.bitmap.width;
+                u32 *height        = &asset->texture.bitmap.height;
+                u32 *channels      = &asset->texture.bitmap.channels;
+                u32 *channel_count = &asset->texture.bitmap.format;
+
+                *channel_count     = 4;
+                asset->texture.bitmap.data = c_file_read_arena(arena, filepath);  
+
+                byte *data = stbi_load_from_memory(asset->texture.bitmap.data, );
+            }break;
+            default:
+            {
+                InvalidCodePath;
+            }break;
+        }
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -166,7 +207,8 @@ main(int argc, char **argv)
     packer_state.font_file_data   = c_dynamic_array_create(file_data_t, 30);
     packer_state.sound_file_data  = c_dynamic_array_create(file_data_t, 30);
 
-    packer_state.asset_file_data.header.magic_value  = ASSET_FILE_MAGIC_VALUE('R', 'Y', 'A', 'N');
+    // NOTE(Sleepster): In honor of DOOM(1993) 
+    packer_state.asset_file_data.header.magic_value  = ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' ');
     packer_state.asset_file_data.header.file_version = ASSET_FILE_VERSION;
     
     string_t resource_dir = STR("../run_tree/res");
@@ -193,6 +235,14 @@ main(int argc, char **argv)
     memory_arena_t shader_arena = c_arena_create(GB(1));
     memory_arena_t font_arena   = c_arena_create(GB(1));
     memory_arena_t sound_arena  = c_arena_create(GB(1));
+
+    u32 bitmap_starting_offset = 0;
+    u32 bitmap_ending_index    = packer_state.asset_file_data.table_of_contents.bitmap_count;
+    asset_load_data_from_table(&bitmap_arena,
+                               &packer_state.asset_file_data.table_of_contents,
+                                packer_state.asset_file_data.asset_table,
+                                bitmap_starting_offset,
+                                bitmap_ending_index);
 
     return(0);
 }
