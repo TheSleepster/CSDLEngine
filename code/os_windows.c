@@ -80,16 +80,23 @@ os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overla
     {
         log_error("Failed to open file: '%s' for reading... error: '%s'...\n",
                   C_STR(filepath), GetLastError());
+
+        ZeroStruct(result);
     }
 
     return(result);
 }
 
-internal void
+internal bool8 
 os_file_close(file_t *file_data)
 {
-    CloseHandle(file_data->handle);
-    file_data->handle = null;
+    bool8 result = CloseHandle(file_data->handle);
+    if(result)
+    {
+        file_data->handle = null;
+    }
+
+    return(result);
 }
 
 internal s64
@@ -103,27 +110,35 @@ os_file_get_size(file_t *file_data)
     {
         log_error("failed to get file size for file: '%s\n', error: '%s'...\n",
                   C_STR(file_data->file_name), GetLastError());
+        result = 0;
     }
 
     result = file_size.QuadPart;
     return(result);
 }
 
-internal void
+internal bool8 
 os_file_read(file_t *file_data, void *memory, usize bytes_to_read)
 {
+    bool8 result = true;
+    
     BOOL success = ReadFile(file_data->handle, memory, bytes_to_read, 0, 0);
     if(!success)
     {
         log_error("Error reading the file: '%s', message: '%s'...\n",
                   C_STR(file_data->filepath), GetLastError());
+        result = false;
     }
+
+    return(result);
 }
 
 // NOTE(Sleepster): This is blocking... It will block until the buffer has written everything 
-internal void
+internal bool8 
 os_file_write(file_t *file_data, void *memory, usize bytes_to_write)
 {
+    bool8 result = true;
+    
     u32 written = 0;
     BOOL success = WriteFile(file_data->handle, memory, bytes_to_write, &written, null);
     if(!success)
@@ -133,7 +148,11 @@ os_file_write(file_t *file_data, void *memory, usize bytes_to_write)
         {
             log_error("Failed to write '%d' bytes to file '%s'", bytes_to_write, file_data->file_name);
         }
+
+        result = false;
     }
+
+    return(result);
 }
 
 internal mapped_file_t

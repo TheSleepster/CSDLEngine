@@ -27,10 +27,10 @@ internal void  os_free_memory(void *data, usize free_size);
 //////////////////
 
 internal file_t        os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overlapping_io);
-internal void          os_file_close(file_t *file_data);
+internal bool8         os_file_close(file_t *file_data);
 internal s64           os_file_get_size(file_t *file_data);
-internal void          os_file_read(file_t *file_data, void *memory, usize bytes_to_read);
-internal void          os_file_write(file_t *file_data, void *memory, usize bytes_to_write);
+internal bool8         os_file_read(file_t *file_data, void *memory, usize bytes_to_read);
+internal bool8         os_file_write(file_t *file_data, void *memory, usize bytes_to_write);
 
 internal mapped_file_t os_file_map(string_t filepath);
 internal bool8         os_file_unmap(mapped_file_t *map_data);

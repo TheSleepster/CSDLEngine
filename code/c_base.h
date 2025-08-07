@@ -134,6 +134,9 @@
 
 #define Statement(x)                 do{x}while(0)
 
+#define GlueHelper(A, B)             A##B
+#define Glue(A, B)                   GlueHelper(A, B)
+
 #define ArrayCount(x)                (sizeof(x) / sizeof(*(x)))
 #define IntFromPtr(x)                ((u32)    ((char *)x - (char*)0))
 #define PtrFromInt(x)                ((void *) ((char *)0 + (x)))
@@ -150,6 +153,9 @@
 #define MemoryCopyStruct(dest, source) (MemoryCopy((dest), (source), Min(sizeof(*(dest), sizeof(*(source))))))
 
 #define InvalidCodePath Assert(false)
+
+// NOTE(Sleepster): Linux Kernel compile time assert! It unfortunately only tells you if the the condition fails... not how it fails... Unlucky!
+#define StaticAssert(condition) ((void)sizeof(char[2*!!(condition) - 1]))
 
 #include "c_types.h"
 

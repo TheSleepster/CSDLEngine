@@ -1,3 +1,5 @@
+# WE LITERALLY CANNOT SUPPORT MSVC. NOT THAT WE'D WANT TOO...
+
 CC=clang
 
 ifeq ($(OS),Windows_NT)
@@ -20,7 +22,7 @@ endif
 SILENT ?=
 
 COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/
-COMMON_C_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction
+COMMON_C_FLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction
 
 BUILD_TYPE ?= debug
 ifeq ($(BUILD_TYPE),release)

@@ -32,169 +32,81 @@
 
 //STBIDEF stbi_uc *stbi_load_from_memory   (stbi_uc const *buffer, int len, int *x, int *y, int *channels_in_file, int desired_channels);
 
-#define ASSET_FILE_MAGIC_VALUE(a, b, c, d) (((u32)(a) << 0) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(a) << 24))
-#define ASSET_FILE_VERSION 0
+#define ASSET_FILE_MAGIC_VALUE(a, b, c, d) (((u32)(a) << 0) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24))
+#define ASSET_FILE_VERSION 1UL
 
-typedef enum asset_type
-{
-    AT_NONE,
-    AT_BITMAP,
-    AT_SHADER,
-    AT_FONT,
-    AT_SOUND,
-    AT_ANIMATION,
-    AT_COUNT
-}asset_type_t;
+#define VERY_LARGE_NUMBER 4096
 
-// NOTE(Sleepster): Little Endian byte ordering 
 #pragma pack(push, 1)
 typedef struct asset_file_header
 {
-    u32 magic_value; 
-    u32 file_version;
-    u32 file_size;
+    u32 magic_value;
+    u32 version;
+    u32 flags;
+    u32 byte_offset_to_table_of_contents;
 }asset_file_header_t;
 
-typedef struct asset_file_TOC
+typedef struct asset_package_entry
 {
-    u32 asset_count;
+    string_t name;
+    string_t entry_data;
+    u32      ID;
 
-    u32 bitmap_count;
-    u32 shader_count;
-    u32 sound_count;
-    u32 font_count;
-
-    string_t     *names;
-    string_t     *filepaths;
-    u32          *IDs;
-    asset_type_t *type_table;
-}asset_file_TOC_t;
-
-typedef struct asset_file_slot
-{
-    u32                asset_ID;
-    asset_type_t       asset_type;
-    union
-    {
-        texture2D_t    texture;
-        GPU_shader_t   shader;
-        //loaded_sound_t sound;
-        //dynamic_font_t render_font;
-    };
-}asset_file_slot_t;
-
-typedef struct asset_file
-{
-    asset_file_header_t header;
-    asset_file_TOC_t    table_of_contents;
-
-    asset_file_slot_t  *asset_table;
-}asset_file_t;
+    u64      offset_from_start_of_file;
+}asset_package_entry_t;
 #pragma pack(pop)
 
-typedef struct packer_state
+typedef struct asset_packer
 {
-    u32 current_ID;
-
-    dynamic_array_t bitmap_file_data;
-    dynamic_array_t shader_file_data;
-    dynamic_array_t font_file_data;
-    dynamic_array_t sound_file_data;
+    file_t                 asset_file;
     
-    asset_file_t    asset_file_data;
-}packer_state_t;
+    string_builder_t       header;
+    string_builder_t       table_of_contents;
 
-global packer_state_t packer_state;
+    u32                    next_entry_ID;
+    u32                    next_entry_to_write;
+    asset_package_entry_t  entries[VERY_LARGE_NUMBER];
+}asset_packer_t;
 
-VISIT_FILES(get_file_from_dir)
+internal void
+afb_add_entry(asset_packer_t *packer, string_t name, string_t data)
 {
-    if(!visit_file_data->is_directory)
-    {
-        dynamic_array_t *array = &packer_state.bitmap_file_data;
-        file_data_t file_data  = c_file_get_data(visit_file_data->fullname);
-        string_t file_ext      = c_get_file_ext_from_path(file_data.filepath);
-
-        if(c_string_compare(file_ext, STR(".ttf")))
-        {
-            packer_state.asset_file_data.table_of_contents.font_count++;
-            array = &packer_state.font_file_data;
-        }
-        else if(c_string_compare(file_ext, STR(".png")))
-        {
-            packer_state.asset_file_data.table_of_contents.bitmap_count++;
-            array = &packer_state.bitmap_file_data;
-        }
-        else if(c_string_compare(file_ext, STR(".wav")))
-        {
-            packer_state.asset_file_data.table_of_contents.sound_count++;
-            array = &packer_state.sound_file_data;
-        }
-        else if(c_string_compare(file_ext, STR(".glsl")))
-        {
-            packer_state.asset_file_data.table_of_contents.shader_count++;
-            array = &packer_state.shader_file_data;
-        }
-
-        packer_state.asset_file_data.table_of_contents.asset_count++;
-        c_dynamic_array_append(array, file_data);
-    }
+    asset_package_entry_t *entry = &packer->entries[packer->next_entry_to_write++];
+    entry->name       = c_string_copy(&global_context.temporary_arena, name);
+    entry->entry_data = c_string_copy(&global_context.temporary_arena, data);
+    entry->ID         = packer->next_entry_ID++;
 }
 
 internal void
-asset_iterate_and_fill_TOC(dynamic_array_t *asset_array, asset_file_TOC_t *table, asset_type_t type)
+afb_file_write(asset_packer_t *packer)
 {
-    for(u32 index = 0;
-        index < asset_array->indices_used;
-        ++index)
+    StaticAssert(sizeof(asset_file_header_t) == 16);
+
+    const u32 FILE_MAGIC_VALUE = ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' ');
+    const u32 FILE_VERSION     = ASSET_FILE_VERSION;
+    const u32 FLAGS_DWORD      = 100;
+
+    c_string_builder_append_value(&packer->header, &FILE_MAGIC_VALUE, sizeof(u32));
+    c_string_builder_append_value(&packer->header, &FILE_VERSION,     sizeof(u32));
+    c_string_builder_append_value(&packer->header, &FLAGS_DWORD,      sizeof(u32));
+
+    c_string_builder_write_to_file(&packer->asset_file, &packer->header);
+    u32 offset_from_start_of_file = c_string_builder_get_string_length(&packer->header);
+    Assert(offset_from_start_of_file == sizeof(asset_file_header_t));
+
+    for(u32 packer_entry_index = 0;
+        packer_entry_index < packer->next_entry_to_write;
+        ++packer_entry_index)
     {
-        file_data_t *file_data = c_dynamic_array_get(asset_array, index);
-        table->names[packer_state.current_ID]      = file_data->filename;
-        table->filepaths[packer_state.current_ID]  = file_data->filepath;
-        table->IDs[packer_state.current_ID]        = packer_state.current_ID;
-        table->type_table[packer_state.current_ID] = type;
-
-        packer_state.current_ID++;
-    }
-}
-
-internal void
-asset_load_data_from_table(memory_arena_t    *arena,
-                           asset_file_TOC_t  *table_of_contents,
-                           asset_file_slot_t *asset_array,
-                           u32                starting_index,
-                           u32                ending_index)
-{
-    for(u32 asset_index = starting_index;
-        asset_index < ending_index;
-        ++asset_index)
-    {
-        string_t     filepath = table_of_contents->filepaths[asset_index];
-        u32          ID       = table_of_contents->IDs[asset_index];
-        asset_type_t type     = table_of_contents->type_table[asset_index];
-
-        asset_file_slot_t *asset = asset_array + asset_index;
-        asset->asset_ID          = ID;
-        asset->asset_type        = type;
-
-        switch(asset->asset_type)
+        asset_package_entry_t *entry = &packer->entries[packer_entry_index];
+        bool8 success = c_file_write_string(&packer->asset_file, entry->entry_data);
+        if(!success)
         {
-            case AT_BITMAP:
-            {
-                u32 *width         = &asset->texture.bitmap.width;
-                u32 *height        = &asset->texture.bitmap.height;
-                u32 *channels      = &asset->texture.bitmap.channels;
-                u32 *channel_count = &asset->texture.bitmap.format;
-
-                *channel_count     = 4;
-                asset->texture.bitmap.data = c_file_read_arena(arena, filepath);  
-
-                byte *data = stbi_load_from_memory(asset->texture.bitmap.data, );
-            }break;
-            default:
-            {
-                InvalidCodePath;
-            }break;
+            log_error("Failed to write entry: '%d'(%s) to the file...\n", packer_entry_index, entry->name);
         }
+
+        entry->offset_from_start_of_file = offset_from_start_of_file;
+        offset_from_start_of_file       += entry->entry_data.count;
     }
 }
 
@@ -202,47 +114,13 @@ int
 main(int argc, char **argv)
 {
     gc_setup();
-    packer_state.bitmap_file_data = c_dynamic_array_create(file_data_t, 30);
-    packer_state.shader_file_data = c_dynamic_array_create(file_data_t, 30);
-    packer_state.font_file_data   = c_dynamic_array_create(file_data_t, 30);
-    packer_state.sound_file_data  = c_dynamic_array_create(file_data_t, 30);
+    asset_packer_t packer;
+    c_string_builder_init(&packer.header, MB(100));
+    c_string_builder_init(&packer.header, MB(100));
 
-    // NOTE(Sleepster): In honor of DOOM(1993) 
-    packer_state.asset_file_data.header.magic_value  = ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' ');
-    packer_state.asset_file_data.header.file_version = ASSET_FILE_VERSION;
-    
+    packer.asset_file = c_file_open(STR("asset_file.wad"), true);
     string_t resource_dir = STR("../run_tree/res");
 
-    visit_file_data_t file_data = c_directory_create_visit_data(get_file_from_dir, true, null);
-    c_directory_visit(resource_dir, &file_data);
-
-    string_t     *names     = malloc(sizeof(string_t)     * packer_state.asset_file_data.table_of_contents.asset_count);
-    string_t     *filepaths = malloc(sizeof(string_t)     * packer_state.asset_file_data.table_of_contents.asset_count);
-    u32          *IDs       = malloc(sizeof(u32)          * packer_state.asset_file_data.table_of_contents.asset_count);
-    asset_type_t *types     = malloc(sizeof(asset_type_t) * packer_state.asset_file_data.table_of_contents.asset_count);
-
-    packer_state.asset_file_data.table_of_contents.names      = names;
-    packer_state.asset_file_data.table_of_contents.filepaths  = filepaths;
-    packer_state.asset_file_data.table_of_contents.IDs        = IDs;
-    packer_state.asset_file_data.table_of_contents.type_table = types;
-
-    asset_iterate_and_fill_TOC(&packer_state.bitmap_file_data, &packer_state.asset_file_data.table_of_contents, AT_BITMAP);
-    asset_iterate_and_fill_TOC(&packer_state.shader_file_data, &packer_state.asset_file_data.table_of_contents, AT_SHADER);
-    asset_iterate_and_fill_TOC(&packer_state.font_file_data,   &packer_state.asset_file_data.table_of_contents, AT_FONT);
-    asset_iterate_and_fill_TOC(&packer_state.sound_file_data,  &packer_state.asset_file_data.table_of_contents, AT_SOUND);
-
-    memory_arena_t bitmap_arena = c_arena_create(GB(1));
-    memory_arena_t shader_arena = c_arena_create(GB(1));
-    memory_arena_t font_arena   = c_arena_create(GB(1));
-    memory_arena_t sound_arena  = c_arena_create(GB(1));
-
-    u32 bitmap_starting_offset = 0;
-    u32 bitmap_ending_index    = packer_state.asset_file_data.table_of_contents.bitmap_count;
-    asset_load_data_from_table(&bitmap_arena,
-                               &packer_state.asset_file_data.table_of_contents,
-                                packer_state.asset_file_data.asset_table,
-                                bitmap_starting_offset,
-                                bitmap_ending_index);
-
-    return(0);
+    afb_file_write(&packer);
+    c_file_close(&packer.asset_file);
 }

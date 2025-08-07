@@ -6,6 +6,18 @@
    ======================================================================== */
 
 // NOTE(Sleepster): Errors from these calls are handled internally 
+internal inline file_t
+c_file_open(string_t filepath, bool8 create)
+{
+    return(os_file_open(filepath, create, false, false));
+}
+
+internal inline bool8 
+c_file_close(file_t *file)
+{
+    return(os_file_close(file));
+}
+
 internal string_t
 c_file_read(string_t filepath)
 {
@@ -66,14 +78,31 @@ c_file_read_za(zone_allocator_t *zone, string_t filepath, za_allocation_tag_t ta
     return(result);
 }
 
-internal void
-c_file_write(string_t filepath, void *data, s64 bytes_to_write, bool8 overwrite)
+internal bool8 
+c_file_open_and_write(string_t filepath, void *data, s64 bytes_to_write, bool8 overwrite)
 {
+    bool8 result = false;
+    
     file_t file = os_file_open(filepath, true, overwrite, false);
     if(file.handle != null)
     {
         os_file_write(&file, data, bytes_to_write);
+        result = true;
     }
+
+    return(result);
+}
+
+internal inline bool8 
+c_file_write(file_t *file, void *data, s64 bytes_to_write)
+{
+    return(os_file_write(file, data, bytes_to_write));
+}
+
+internal inline bool8 
+c_file_write_string(file_t *file, string_t data)
+{
+    return(c_file_write(file, data.data, data.count));
 }
 
 internal s64

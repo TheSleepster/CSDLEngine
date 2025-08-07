@@ -13,10 +13,14 @@
 #include "c_debug.h"
 #include "c_memory.h"
 
+typedef struct file file_t;
+
+// NOTE(Sleepster): A string is essentially just a byte array. The values in here of ASCII size,
+//                  but this could potentially be UTF-8 in the future.  
 typedef struct string
 {
-    u8  *data;
-    u32  count;
+    byte *data;
+    u32   count;
 }string_t;
 
 //////////// API DEFINITIONS //////////////
@@ -38,7 +42,7 @@ internal inline string_t    c_get_filename_from_path(string_t filepath);
 internal inline string_t    c_get_file_ext_from_path(string_t filepath);
 
 // MACROS
-#define STR(x)   (string_t){.data = (u8 *)x, .count = c_string_length(x)}
+#define STR(x)   (string_t){.data = (byte*)x, .count = c_string_length(x)}
 #define C_STR(x) ((const char *)x.data)
 ///////////////////////////////////////////
 
@@ -57,9 +61,9 @@ typedef struct string_builder
 
     usize                    new_buffer_size;
     string_builder_buffer_t *current_buffer;
-    s64                      buffer_count; 
+    s64                      total_allocated;
 
-    u8                       initial_bytes[STRING_BUILDER_BUFFER_SIZE];
+    byte                     initial_bytes[STRING_BUILDER_BUFFER_SIZE];
 }string_builder_t;
 
 //////////// API DEFINITIONS //////////////
@@ -69,6 +73,13 @@ internal inline string_builder_buffer_t* c_string_builder_get_current_buffer(str
 internal inline byte*                    c_string_builder_get_buffer_data(string_builder_buffer_t *buffer);
 internal        bool8                    c_string_builder_create_new_buffer(string_builder_t *builder);
 internal        void                     c_string_builder_append(string_builder_t *builder, string_t data);
+internal inline void                     c_string_builder_append_value(string_builder_t *builder, void *value_ptr, byte len);
+internal        string_t                 c_string_builder_get_string(string_builder_t *builder);
+internal        void                     c_string_builder_write_to_file(file_t *file, string_builder_t *builder);
+internal        s32                      c_string_builder_get_string_length(string_builder_t *builder);
+
+// TODO(Sleepster):
+internal void c_string_builder_ensure_contiguous_space(string_builder_t *builder, usize byte_count);
 ///////////////////////////////////////////
 
 #endif

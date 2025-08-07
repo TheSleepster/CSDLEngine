@@ -62,10 +62,14 @@ typedef struct visit_file_data
     bool8              is_directory;
 }visit_file_data_t;
 
+internal inline file_t            c_file_open(string_t filepath, bool8 create);
+internal inline bool8             c_file_close(file_t *file);
 internal        string_t          c_file_read(string_t filepath);
 internal        string_t          c_file_read_arena(memory_arena_t *arena, string_t filepath);
 internal        string_t          c_file_read_za(zone_allocator_t *zone, string_t filepath, za_allocation_tag_t tag);
-internal        void              c_file_write(string_t filepath, void *data, s64 bytes_to_write, bool8 overwrite);
+internal inline bool8             c_file_open_and_write(string_t filepath, void *data, s64 bytes_to_write, bool8 overwrite);
+internal inline bool8             c_file_write(file_t *file, void *data, s64 bytes_to_write);
+internal inline bool8             c_file_write_string(file_t *file, string_t data);
 
 internal        s64               c_file_get_size(string_t filepath);
 internal inline file_data_t       c_file_get_data(string_t filepath);

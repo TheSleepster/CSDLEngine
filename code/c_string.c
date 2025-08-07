@@ -27,7 +27,7 @@ c_string_create(const char *c_string)
 {
     string_t result;
     result.count = c_string_length(c_string);
-    result.data  = (u8 *)c_string;
+    result.data  = (byte*)c_string;
 
     return(result);
 }
@@ -37,9 +37,9 @@ c_string_make_heap(memory_arena_t *arena, string_t string)
 {
     string_t result;
     result.count = string.count;
-    result.data  = c_arena_push_array(arena, u8, string.count * sizeof(u8));
+    result.data  = c_arena_push_array(arena, byte, string.count * sizeof(byte));
 
-    MemoryCopy(result.data, string.data, string.count * sizeof(u8));
+    MemoryCopy(result.data, string.data, string.count * sizeof(byte));
     return(result);
 }
 
@@ -53,12 +53,9 @@ c_string_compare(string_t A, string_t B)
 internal string_t
 c_string_concat(memory_arena_t *arena, string_t A, string_t B)
 {
-    Assert(A.data != null);
-    Assert(B.data != null);
-    
     string_t result;
     result.count = A.count + B.count;
-    result.data  = c_arena_push_size(arena, result.count * sizeof(u8));
+    result.data  = c_arena_push_size(arena, result.count * sizeof(byte));
     Assert(result.data != null);
 
     memcpy(result.data,           A.data, A.count);
@@ -71,11 +68,11 @@ internal string_t
 c_string_copy(memory_arena_t *arena, string_t string)
 {
     string_t result;
-    result.data = c_arena_push_size(arena, string.count * sizeof(u8));
+    result.data = c_arena_push_size(arena, string.count * sizeof(byte));
     if(result.data)
     {
         result.count = string.count;
-        memcpy(result.data, string.data, string.count * sizeof(u8));
+        memcpy(result.data, string.data, string.count * sizeof(byte));
     }
     else
     {
@@ -190,6 +187,8 @@ c_string_to_const_array(string_t string)
 // STRING BUILDER
 ///////////////////
 
+// TODO(Sleepster): c_string_builder_deinit 
+
 internal inline string_builder_buffer_t*
 c_string_builder_get_base_buffer(string_builder_t *builder)
 {
@@ -199,8 +198,7 @@ c_string_builder_get_base_buffer(string_builder_t *builder)
 internal void
 c_string_builder_init(string_builder_t *builder, usize new_buffer_size)
 {
-    builder->current_buffer  = null;
-    builder->buffer_count    = 0;
+    builder->total_allocated = 0;
     builder->new_buffer_size = new_buffer_size;
     memset(builder->initial_bytes, 0, STRING_BUILDER_BUFFER_SIZE);
 
@@ -209,7 +207,10 @@ c_string_builder_init(string_builder_t *builder, usize new_buffer_size)
     buffer->bytes_used              = 0;
     buffer->next_buffer             = null;
 
-    builder->is_initialized = true;
+    builder->current_buffer   = buffer;
+    builder->total_allocated += buffer->bytes_allocated;
+
+    builder->is_initialized   = true;
 }
 
 internal inline string_builder_buffer_t*
@@ -242,8 +243,9 @@ c_string_builder_create_new_buffer(string_builder_t *builder)
         buffer->bytes_allocated = new_size - sizeof(string_builder_buffer_t);
 
         string_builder_buffer_t *last_buffer = c_string_builder_get_current_buffer(builder);
-        last_buffer->next_buffer = buffer;
-        builder->current_buffer  = buffer; 
+        last_buffer->next_buffer  = buffer;
+        builder->current_buffer   = buffer; 
+        builder->total_allocated += buffer->bytes_allocated;
 
         result = true;
     }
@@ -256,7 +258,7 @@ c_string_builder_append(string_builder_t *builder, string_t data)
 {
     if(!builder->is_initialized) c_string_builder_init(builder, STRING_BUILDER_BUFFER_SIZE);
 
-    u8 *bytes  = data.data;
+    byte *bytes  = data.data;
     u32 length = data.count;
     while(length > 0)
     {
@@ -283,7 +285,18 @@ c_string_builder_append(string_builder_t *builder, string_t data)
 
         length -= bytes_to_copy;
         bytes  += bytes_to_copy;
+
+        buffer->bytes_used += bytes_to_copy;
     }
+}
+
+internal inline void
+c_string_builder_append_value(string_builder_t *builder, void *value_ptr, byte len)
+{
+    string_t builder_string;
+    builder_string.data  = value_ptr;
+    builder_string.count = len;
+    c_string_builder_append(builder, builder_string);
 }
 
 internal string_t
@@ -298,8 +311,31 @@ c_string_builder_get_string(string_builder_t *builder)
         temp_string.data  = c_string_builder_get_buffer_data(buffer);
         temp_string.count = buffer->bytes_used;
 
-        c_string_concat(&global_context.temporary_arena, result, temp_string);
+        result = c_string_concat(&global_context.temporary_arena, result, temp_string);
 
+        buffer = buffer->next_buffer;
+    }
+
+    return(result);
+}
+
+internal void 
+c_string_builder_write_to_file(file_t *file, string_builder_t *builder)
+{
+    string_t string_to_write = c_string_builder_get_string(builder);
+    Assert(file->for_writing);
+
+    c_file_write_string(file, string_to_write);
+}
+
+internal s32
+c_string_builder_get_string_length(string_builder_t *builder)
+{
+    s32 result = 0;
+    string_builder_buffer_t *buffer = c_string_builder_get_base_buffer(builder);
+    while(buffer)
+    {
+        result += buffer->bytes_used;
         buffer = buffer->next_buffer;
     }
 
