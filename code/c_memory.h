@@ -18,9 +18,9 @@ internal void  os_free_memory(void *data, usize free_size);
 // TODO: GET RID OF MALLOC
 /////////////////////////////////
 
-#define KB(x) ((x)     * 1024)
-#define MB(x) (KB((x)) * 1024)
-#define GB(x) (MB((x)) * 1024)
+#define KB(x) ((u64)(x) * 1024ULL)
+#define MB(x) (KB((x))  * 1024ULL)
+#define GB(x) (MB((x))  * 1024ULL)
 
 typedef struct memory_arena_footer
 {
@@ -35,6 +35,8 @@ typedef struct memory_arena
     u64   block_size;
     u64   capacity;
     u64   used;
+
+    bool8 is_initialized;
 
     u32   block_counter;
     u32   scratch_counter;

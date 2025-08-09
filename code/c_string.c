@@ -65,7 +65,7 @@ c_string_concat(memory_arena_t *arena, string_t A, string_t B)
 }
 
 internal string_t
-c_string_copy(memory_arena_t *arena, string_t string)
+c_string_make_copy(memory_arena_t *arena, string_t string)
 {
     string_t result;
     result.data = c_arena_push_size(arena, string.count * sizeof(byte));
@@ -86,8 +86,8 @@ internal string_t
 c_string_sub_from_left(string_t string, u32 index)
 {
     string_t result;
-    result.data = string.data + index;
-    result.data = string.data - index;
+    result.data  = string.data + index;
+    result.count = string.count - index;
 
     return(result);
 }
@@ -112,8 +112,16 @@ c_string_substring(string_t string, u32 first_index, u32 last_index)
     return(result);
 }
 
+internal inline void
+c_string_advance_by(string_t *string, u32 amount)
+{
+    Assert(amount < string->count);
+    string->data  += amount;
+    string->count -= amount;
+}
+
 internal inline u32
-c_find_first_char_from_left(string_t string, char character)
+c_string_find_first_char_from_left(string_t string, char character)
 {
     u32 result = -1;
     for(u32 index = 0;
@@ -132,7 +140,7 @@ c_find_first_char_from_left(string_t string, char character)
 }
 
 internal inline u32
-c_find_first_char_from_right(string_t string, char character)
+c_string_find_first_char_from_right(string_t string, char character)
 {
     u32 result = -1;
     for(u32 index = string.count;
@@ -151,10 +159,10 @@ c_find_first_char_from_right(string_t string, char character)
 }
 
 internal inline string_t
-c_get_filename_from_path(string_t filepath)
+c_string_get_filename_from_path(string_t filepath)
 {
     string_t result = {};
-    s32 ext_start = c_find_first_char_from_right(filepath, '/');
+    s32 ext_start = c_string_find_first_char_from_right(filepath, '/');
     if(ext_start != -1)
     {
         result = c_string_substring(filepath, ext_start + 1, filepath.count);
@@ -164,10 +172,10 @@ c_get_filename_from_path(string_t filepath)
 }
 
 internal inline string_t
-c_get_file_ext_from_path(string_t filepath)
+c_string_get_file_ext_from_path(string_t filepath)
 {
     string_t result = {};
-    s32 ext_start = c_find_first_char_from_right(filepath, '.');
+    s32 ext_start = c_string_find_first_char_from_right(filepath, '.');
     if(ext_start != -1)
     {
         result = c_string_substring(filepath, ext_start, filepath.count);
@@ -198,6 +206,8 @@ c_string_builder_get_base_buffer(string_builder_t *builder)
 internal void
 c_string_builder_init(string_builder_t *builder, usize new_buffer_size)
 {
+    Assert(builder->is_initialized == false);
+    
     builder->total_allocated = 0;
     builder->new_buffer_size = new_buffer_size;
     memset(builder->initial_bytes, 0, STRING_BUILDER_BUFFER_SIZE);

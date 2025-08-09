@@ -15,6 +15,7 @@ c_arena_create(u64 block_size)
     result.scratch_counter = 0;
     result.used            = 0;
     result.base            = os_allocate_memory(block_size);
+    result.is_initialized  = true;
 
     return(result);
 }
@@ -31,6 +32,8 @@ c_arena_get_footer(memory_arena_t *arena)
 internal void*
 c_arena_push_size(memory_arena_t *arena, u64 size_init)
 {
+    Assert(arena->is_initialized == true);
+    
     void *result = null;
 
     u8 *offset_ptr = ((u8*)arena->base + arena->used);

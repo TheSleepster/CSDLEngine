@@ -21,7 +21,25 @@
 internal inline void*
 os_allocate_memory(usize allocation_size)
 {
-    return(VirtualAlloc(0, allocation_size, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE));
+    void *result = null;
+    result = VirtualAlloc(0, allocation_size, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+    if(!result)
+    {
+        DWORD error = GetLastError();
+        LPSTR message_buffer = null;
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       null,           
+                       error,          
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPSTR)&message_buffer, 
+                       0,              
+                       null);
+
+        log_fatal("Failed to allocate virtual memory: '%s'...\n", message_buffer);
+        LocalFree(message_buffer);
+    }
+
+    return(result);
 }
 
 internal inline void
@@ -39,7 +57,7 @@ internal file_t
 os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overlapping_io)
 {
     file_t result = {};
-    result.file_name = c_get_filename_from_path(filepath);
+    result.file_name = c_string_get_filename_from_path(filepath);
     result.filepath  = filepath;
 
     u32 overlapping = 0;
@@ -254,7 +272,7 @@ os_file_get_modtime_and_size(string_t filepath)
         result.file_size = file_size.QuadPart;
         result.last_modtime = filetime.QuadPart;
         result.filepath     = filepath;
-        result.filename     = c_get_filename_from_path(filepath);
+        result.filename     = c_string_get_filename_from_path(filepath);
 
         CloseHandle(file_handle);
     }

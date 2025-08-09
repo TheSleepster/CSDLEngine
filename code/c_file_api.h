@@ -62,6 +62,16 @@ typedef struct visit_file_data
     bool8              is_directory;
 }visit_file_data_t;
 
+/* TODO(Sleepster): c_file_write_overlapped()
+ *
+ * We just generally need async fileIO...
+ *
+ * We might want to be able to supply an offset to c_write_file_*
+ * functions for specific operating systems.  Windows keeps a write
+ * pointer for each file you create with CreateFile... But I don't
+ * know how Linux or Mac does it...
+ */
+
 internal inline file_t            c_file_open(string_t filepath, bool8 create);
 internal inline bool8             c_file_close(file_t *file);
 internal        string_t          c_file_read(string_t filepath);

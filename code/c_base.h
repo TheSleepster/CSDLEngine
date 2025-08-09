@@ -184,26 +184,6 @@ global float64 machine_epsilon_f64 = 2.220446e-16;
 
 typedef void void_func(void);
 
-typedef enum operating_system
-{
-    OS_Null,
-    OS_Windows,
-    OS_Linux,
-    OS_MacOSX,
-    OS_Web,
-    OS_COUNT
-}operating_system_t;
-
-typedef enum system_architecture
-{
-    SA_Null,
-    SA_X64,
-    SA_X86,
-    SA_Arm,
-    SA_ArmM64,
-    SA_COUNT
-}system_architecture_t;
-
 #include "c_memory.h"
 #include "c_string.h"
 #include "c_array.h"
