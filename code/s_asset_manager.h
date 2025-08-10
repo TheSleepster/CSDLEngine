@@ -15,7 +15,9 @@
 
 #include "r_asset_shader.h"
 #include "r_asset_texture.h"
+#include "r_asset_dynamic_render_font.h"
 
+#define MANAGER_HASH_TABLE_SIZE 1024
 typedef enum asset_type
 {
     AT_NONE,
@@ -27,6 +29,7 @@ typedef enum asset_type
     AT_COUNT
 }asset_type_t;
 
+// NOTE(Sleepster): Unfortunate naming 
 typedef enum asset_slot_state
 {
     ASS_INVALID,
@@ -44,16 +47,18 @@ typedef struct asset_slot
 {
     asset_slot_state_t slot_state;
     asset_type_t       asset_type;
+
+    string_t           filename;
     
     s32                asset_id;
+    s32                asset_file_id;
     u64                last_used_ts;
-    
     union
     {
-        texture2D_t    texture;
-        GPU_shader_t   shader;
-        //loaded_sound_t sound;
-        //dynamic_font_t render_font;
+        texture2D_t           texture;
+        GPU_shader_t          shader;
+        //loaded_sound_t        sound;
+        dynamic_render_font_t render_font;
     };
 }asset_slot_t;
 
@@ -79,6 +84,8 @@ typedef struct asset_manager
 
     hash_table_t      texture_hash;
     hash_table_t      shader_hash;
+    hash_table_t      font_hash;
+    hash_table_t      sound_hash;
 }asset_manager_t;
 
 #endif

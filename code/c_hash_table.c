@@ -24,12 +24,11 @@ c_fnv_hash_value(u8 *data, usize element_size, u64 hash_value)
 
 
 internal inline hash_table_t
-c_hash_table_create_(void *memory, u32 max_entries, usize key_size, usize value_size)
+c_hash_table_create_(void *memory, u32 max_entries, usize value_size)
 {
     hash_table_t result;
     result.entries       = memory;
     result.max_entries   = max_entries;
-    result.key_size      = key_size;
     result.value_size    = value_size;
     result.entry_counter = 0;
 
@@ -47,20 +46,17 @@ c_hash_create_key_index(hash_table_t *table, void *key, usize key_size)
 }
 
 internal void
-c_hash_insert_kv_pair_(hash_table_t *table, void *key, void *value, usize key_size, usize value_size)
+c_hash_insert_kv_pair_(hash_table_t *table, string_t key, void *value, usize value_size)
 {
-    Assert(table->key_size   == key_size);
-    Assert(table->value_size == value_size);
-
-    u64 hash_index = c_hash_create_key_index(table, key, key_size);
+    u64 hash_index = c_hash_create_key_index(table, key.data, key.count);
     Assert(hash_index >= 0);
 
     hash_table_entry_t *entry = &table->entries[hash_index];
     Assert(entry);
     
-    if(entry->key != null)
+    if(entry->key.data !=  null)
     {
-        if(memcmp(entry->key, key, table->key_size) == 0)
+        if(memcmp(entry->key.data, key.data, key.count) == 0)
         {
             entry->value = value;
             log_warning("hash table value at index: '%d' has been updated...\n");
@@ -75,18 +71,17 @@ c_hash_insert_kv_pair_(hash_table_t *table, void *key, void *value, usize key_si
 }
 
 internal void*
-c_hash_get_value_(hash_table_t *table, void *key, usize key_size)
+c_hash_get_value_(hash_table_t *table, string_t key)
 {
     void *result = null;
     
-    Assert(key_size == table->key_size);
-    u64 hash_index = c_hash_create_key_index(table, key, table->key_size);
+    u64 hash_index = c_hash_create_key_index(table, key.data, key.count);
     Assert(hash_index >= 0);
 
     hash_table_entry_t *entry = &table->entries[hash_index];
-    if(entry->key)
+    if(entry->key.data != null)
     {
-        if(memcmp(entry->key, key, table->key_size) == 0)
+        if(memcmp(entry->key.data, key.data, key.count) == 0)
         {
             result = entry->value;
         }
@@ -112,7 +107,7 @@ c_hash_clear_index(hash_table_t *table, s32 index)
     
     hash_table_entry_t *entry = &table->entries[index];
     entry->value = null;
-    entry->key   = null;
+    entry->key   = STR("");
 }
 
 internal void
@@ -124,6 +119,6 @@ c_hash_clear_table_entries(hash_table_t *table)
     {
         hash_table_entry_t *entry = &table->entries[hash_index];
         entry->value = null;
-        entry->key   = null;
+        entry->key   = STR("");
     }
 }

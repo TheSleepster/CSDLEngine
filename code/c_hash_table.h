@@ -14,10 +14,11 @@
 
 const u64 default_fnv_hash_value = 14695981039346656037ULL;
 
+// NOTE(Sleepster): The key is simply a string because at the end of the day a string is just a byte array anyway... 
 typedef struct hash_table_entry
 {
-    void *key;
-    void *value;
+    string_t key;
+    void    *value;
 }hash_table_entry_t;
 
 typedef struct hash_table
@@ -25,13 +26,16 @@ typedef struct hash_table
     hash_table_entry_t *entries;
     u32                 max_entries;
 
-    usize               key_size;
     usize               value_size;
     u32                 entry_counter;
 }hash_table_t;
 
-#define c_hash_table_create(memory, max_entries, key_type, data_type) c_hash_table_create_(memory, max_entries, sizeof(key_type), sizeof(data_type))
-#define c_hash_insert_kv_pair(table, key, value)                      c_insert_kv_pair_(table, (void*)key, (void*)value, sizeof(key), sizeof(value))
-#define c_hash_get_value(table, key)                                  c_hash_get_value(table, (void*)key, sizeof(key))
+internal inline hash_table_t c_hash_table_create_(void *memory, u32 max_entries, usize value_size);
+internal        void         c_hash_insert_kv_pair_(hash_table_t *table, string_t key, void *value, usize value_size);
+internal        void*        c_hash_get_value_(hash_table_t *table, string_t key);
+
+#define c_hash_table_create(memory, max_entries, data_type) c_hash_table_create_(memory, max_entries, sizeof(data_type))
+#define c_hash_insert_kv_pair(table, key, value)            c_hash_insert_kv_pair_(table, key, (void*)value, sizeof(value))
+#define c_hash_get_value(table, key)                        c_hash_get_value(table, (void*)key, sizeof(key))
 
 #endif

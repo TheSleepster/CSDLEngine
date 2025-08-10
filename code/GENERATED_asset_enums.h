@@ -2,7 +2,6 @@
 
 typedef enum asset_file_indices
 {
-	AFI_Invalid,
 	AFI_arial,
 	AFI_AtariClassic_gry3,
 	AFI_LiberationMono_Regular,
@@ -28,4 +27,6 @@ typedef enum asset_file_indices
 	AFI_textureless_sprite,
 	AFI_tree_00,
 	AFI_wood_chunk,
+	AFI_workbench,
+	AFI_Count
 }asset_file_indices_t;

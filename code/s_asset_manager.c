@@ -4,3 +4,99 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
+#include "s_asset_manager.h"
+#include "c_hash_table.h"
+
+#include "asset_builder/ab_packer_info.h"
+
+internal void
+s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filepath)
+{
+    asset_manager->manager_arena = c_arena_create(MB(200));
+    
+    void *memory  = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    void *memory2 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    void *memory3 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    void *memory4 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    
+    asset_manager->texture_hash = c_hash_table_create(memory , MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->shader_hash  = c_hash_table_create(memory2, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->font_hash    = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->sound_hash   = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+
+    string_t asset_file_data = c_file_read_arena(&asset_manager->manager_arena, packed_asset_filepath);
+
+    asset_file_header_t *header = asset_file_data.data;
+    Assert(header->magic_value == ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' '));
+
+    asset_file_table_of_contents_t *table_of_contents = asset_file_data.data + header->offset_to_table_of_contents;
+    Assert(table_of_contents->magic_value == ASSET_FILE_MAGIC_VALUE('t', 'o', 'c', 'd'));
+
+    byte *first_entry = (byte*)table_of_contents + sizeof(asset_file_table_of_contents_t);
+    for(u32 entry_index = 0;
+        entry_index < table_of_contents->entry_count;
+        ++entry_index)
+    {
+        asset_package_entry_t entry = {};
+
+        entry.name.count     = *first_entry;
+        first_entry          += sizeof(u32);
+
+        entry.name.data      = first_entry;
+        first_entry          += entry.name.count;
+
+        entry.filepath.count = *first_entry;
+        first_entry          += sizeof(u32);
+
+        entry.filepath.data  = first_entry;
+        first_entry          += entry.filepath.count + sizeof(s8);
+
+        entry.entry_data.count = *((u32*)first_entry);
+        first_entry            += sizeof(u32);
+
+        entry.ID      = *((u32*)first_entry);
+        first_entry   += sizeof(u32);
+
+        entry.file_ID = *((u32*)first_entry);
+        first_entry   += sizeof(u32);
+
+        entry.type    = *((asset_type_t*)first_entry);
+        first_entry   += sizeof(asset_type_t);
+
+        entry.data_offset_from_start_of_file = *((u64*)first_entry);
+        first_entry   += sizeof(u64);
+
+        asset_slot_t *slot_data = c_arena_push_struct(&asset_manager->manager_arena, asset_slot_t);
+        slot_data->asset_type    = entry.type;
+        slot_data->slot_state    = ASS_UNLOADED;
+        slot_data->asset_id      = entry.ID;
+        slot_data->asset_file_id = entry.file_ID;
+        slot_data->filename      = c_string_make_copy(&asset_manager->manager_arena, entry.name);
+
+        switch(slot_data->asset_type)
+        {
+            case AT_BITMAP:
+            {
+                c_hash_insert_kv_pair(&asset_manager->texture_hash, slot_data->filename, slot_data);
+            }break;
+            case AT_SHADER:
+            {
+                c_hash_insert_kv_pair(&asset_manager->shader_hash,  slot_data->filename, slot_data);
+            }break;
+            case AT_FONT:
+            {
+                c_hash_insert_kv_pair(&asset_manager->font_hash,  slot_data->filename, slot_data);
+            }break;
+            case AT_SOUND:
+            {
+                c_hash_insert_kv_pair(&asset_manager->sound_hash, slot_data->filename, slot_data);
+            }break;
+            default:
+            {
+                InvalidCodePath;
+            }break;
+        }
+    }
+
+    s32 x = 0;
+}

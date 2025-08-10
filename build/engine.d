@@ -81,6 +81,8 @@
   ..\code\c_string.c ..\code\c_array.c ..\code\c_file_api.c \
   ..\code\c_hash_table.c ..\code\s_asset_manager.h \
   ..\code\r_asset_shader.h ..\code\r_asset_texture.h \
-  ..\code\r_renderer_data.h ..\code\r_asset_shader.c \
-  ..\code\r_asset_texture.c ..\code\r_render_API.c ..\code\r_opengl.c \
-  ..\code\g_main.c
+  ..\code\r_asset_dynamic_render_font.h ..\code\r_renderer_data.h \
+  ..\code\r_asset_shader.c ..\code\r_asset_texture.c \
+  ..\code\s_asset_manager.c ..\code\asset_builder\ab_packer_info.h \
+  ..\code\asset_builder\..\s_asset_manager.h ..\code\r_render_API.c \
+  ..\code\r_opengl.c ..\code\g_main.c

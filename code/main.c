@@ -37,12 +37,14 @@
 #include "r_renderer_data.h"
 #include "r_asset_shader.h"
 #include "r_asset_texture.h"
-//#include "r_asset_dynamic_font.h"
+#include "r_asset_dynamic_render_font.h"
+//#include "r_asset_loaded_sound.h"
 
 #include "r_asset_shader.c"
 #include "r_asset_texture.c"
-//#include "r_asset_dynamic_font.c"
-#include "s_asset_manager.h"
+//#include "r_asset_dynamic_render_font.c"
+//#include "r_asset_loaded_sound.c"
+#include "s_asset_manager.c"
 #include "r_render_API.c"
 #include "r_opengl.c"
 
@@ -79,6 +81,9 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
+
+        asset_manager_t asset_manager = {};
+        s_asset_manager_init(&asset_manager, STR("../build/asset_file.wad"));
         
         render_state_t render_state = {};
         r_init_renderer_data(window, &render_state);

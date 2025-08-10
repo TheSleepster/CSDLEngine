@@ -304,7 +304,8 @@ internal inline void
 c_string_builder_append_value(string_builder_t *builder, void *value_ptr, byte len)
 {
     string_t builder_string;
-    builder_string.data  = value_ptr;
+    builder_string.data  = c_arena_push_size(&global_context.temporary_arena, sizeof(u8) * len);
+    memcpy(builder_string.data, value_ptr, len);
     builder_string.count = len;
     c_string_builder_append(builder, builder_string);
 }

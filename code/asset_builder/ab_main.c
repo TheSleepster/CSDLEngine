@@ -6,10 +6,6 @@
    ======================================================================== */
 #include <stdio.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#include <stb/stb_image.h>
-
 #include <c_types.h>
 #include <c_base.h>
 #include <c_types.h>
@@ -19,6 +15,7 @@
 #include <c_string.h>
 #include <c_array.h>
 #include <c_file_api.h>
+#include <c_hash_table.h>
 
 #include "../os_platform_file.h"
 
@@ -26,94 +23,35 @@
 #include <c_string.c>
 #include <c_array.c>
 #include <c_file_api.c>
+#include <c_hash_table.c>
 
 #include "../r_asset_texture.h"
 #include "../r_asset_shader.h"
 
+#include "ab_packer_info.h"
+#include "../s_asset_manager.h"
+
 //STBIDEF stbi_uc *stbi_load_from_memory   (stbi_uc const *buffer, int len, int *x, int *y, int *channels_in_file, int desired_channels);
 
-#define ASSET_FILE_MAGIC_VALUE(a, b, c, d) (((u32)(a) << 0) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24))
-#define ASSET_FILE_VERSION 1UL
-
-#define VERY_LARGE_NUMBER 4096
-
-string_t valid_arguments[] =
-{
-    {.data = "--resource_dir", .count = 13},
-    {.data = "--generate_enums", .count = 16},
-    {.data = "--codegen_file_name", .count = 19},
-    {.data = "--asset_file_name", .count = 17},
-    {.data = "--file_ext", .count = 10},
-    {.data = "--help", .count = 6},
-};
-
-global memory_arena_t packer_arena;
-
-typedef enum asset_type
-{
-    AT_NONE,
-    AT_BITMAP,
-    AT_SHADER,
-    AT_FONT,
-    AT_SOUND,
-    AT_ANIMATION,
-    AT_COUNT
-}asset_type_t;
-
-#pragma pack(push, 1)
-typedef struct asset_file_header
-{
-    u32 magic_value;
-    u32 version;
-    u32 flags;
-    u32 offset_to_table_of_contents;
-}asset_file_header_t;
-
-typedef struct asset_file_table_of_contents
-{
-    u32 magic_value;
-    u32 reserved0;
-
-    s64 entry_count;
-    u64 reserved[6];
-}asset_file_table_of_contents_t;
-
-typedef struct asset_package_entry
-{
-    string_t     name;
-    string_t     entry_data;
-    u32          ID;
-    asset_type_t type;
-
-    u64          offset_from_start_of_file;
-}asset_package_entry_t;
-#pragma pack(pop)
-
-typedef struct asset_packer
-{
-    file_t                 asset_file;
-    
-    string_builder_t       header;
-    string_builder_t       data_entry;
-    string_builder_t       table_of_contents;
-
-    u32                    entry_count;
-
-    u32                    next_entry_ID;
-    u32                    next_entry_to_write;
-    asset_package_entry_t  entries[VERY_LARGE_NUMBER];
-}asset_packer_t;
-
 internal void
-afb_add_entry(asset_packer_t *packer, string_t name, string_t data, asset_type_t type)
+afb_add_entry(asset_packer_t *packer,
+              string_t        name,
+              string_t        filepath,
+              string_t        data,
+              asset_type_t    type)
 {
     // NOTE(Sleepster): zeroth entry is null 
-    asset_package_entry_t *entry = &packer->entries[++packer->next_entry_to_write];
+    asset_package_entry_t *entry = &packer->entries[packer->next_entry_to_write];
+    u64 ID = c_fnv_hash_value(name.data, name.count, default_fnv_hash_value);
 
     entry->name       = c_string_make_copy(&packer_arena, name);
+    entry->filepath   = c_string_make_copy(&packer_arena, filepath);
     entry->entry_data = c_string_make_copy(&packer_arena, data);
-    entry->ID         = packer->next_entry_ID++;
+    entry->ID         = (ID % MANAGER_HASH_TABLE_SIZE + MANAGER_HASH_TABLE_SIZE) % MANAGER_HASH_TABLE_SIZE;
+    entry->file_ID    = packer->next_entry_to_write;
     entry->type       = type;
+
+    packer->next_entry_to_write++;
 }
 
 internal void
@@ -128,7 +66,7 @@ afb_file_write(asset_packer_t *packer)
     {
         asset_package_entry_t *entry = &packer->entries[packer_entry_index];
 
-        entry->offset_from_start_of_file = offset;
+        entry->data_offset_from_start_of_file = offset;
         offset += entry->entry_data.count;
     }
 
@@ -161,7 +99,39 @@ afb_file_write(asset_packer_t *packer)
     table_of_contents.entry_count = packer->next_entry_to_write;
 
     c_string_builder_append_value(&packer->table_of_contents, &table_of_contents, sizeof(asset_file_table_of_contents_t));
-    c_string_builder_append_value(&packer->table_of_contents,  packer->entries,   sizeof(asset_package_entry_t) * table_of_contents.entry_count);
+/* THE ENTRIES ARE CONSTRUCTED HERE:
+ *
+ * Entries should be read like so...
+ * - 4-byte value to indiciate the filename's length...
+ * - The file's name (zero terminated...)
+ * - 4-byte integer to indicate the filepath's length...
+ * - The file's path (again, zero terminated...)
+ * - 4-byte integer to indicate the entry's data length...
+ * - 4-byte integer to indicate the entry's ID....
+ * - 4-byte integer to indicate the entry's ID in the file...
+ * - 4-byte integer to indicate the entry's asset type...
+ * - 8-byte integer to indicate the entry's data offset...
+ */    
+    s8 null_term = 0;
+    for(u32 packer_entry_index = 0;
+        packer_entry_index < packer->next_entry_to_write;
+        ++packer_entry_index)
+    {
+        asset_package_entry_t *entry = &packer->entries[packer_entry_index];
+
+        c_string_builder_append_value(&packer->table_of_contents, &entry->name.count,                     sizeof(u32));
+        c_string_builder_append_value(&packer->table_of_contents,  entry->name.data,                      entry->name.count);
+
+        c_string_builder_append_value(&packer->table_of_contents, &entry->filepath.count,                 sizeof(u32));
+        c_string_builder_append_value(&packer->table_of_contents,  entry->filepath.data,                  entry->filepath.count);
+        c_string_builder_append_value(&packer->table_of_contents, &null_term,                             sizeof(s8));
+
+        c_string_builder_append_value(&packer->table_of_contents, &entry->entry_data.count,               sizeof(u32));
+        c_string_builder_append_value(&packer->table_of_contents, &entry->ID,                             sizeof(u32));
+        c_string_builder_append_value(&packer->table_of_contents, &entry->file_ID,                        sizeof(u32));
+        c_string_builder_append_value(&packer->table_of_contents, &entry->type,                           sizeof(asset_type_t));
+        c_string_builder_append_value(&packer->table_of_contents, &entry->data_offset_from_start_of_file, sizeof(u64));
+    }
 
     c_string_builder_write_to_file(&packer->asset_file, &packer->table_of_contents);
     packer->entry_count = packer->next_entry_to_write;
@@ -184,9 +154,7 @@ generate_asset_file_enums(asset_packer_t *packer, string_t filename)
     string_t enum_name   = STR("typedef enum asset_file_indices\n{\n");
     c_string_builder_append(&enum_builder, enum_name);
 
-    string_t first_package = c_string_concat(&packer_arena, enum_prefix, STR("Invalid,\n"));
-    c_string_builder_append(&enum_builder, first_package);
-    for(u32 enum_index   = 1;
+    for(u32 enum_index   = 0;
         enum_index < packer->next_entry_to_write;
         ++enum_index)
     {
@@ -195,6 +163,7 @@ generate_asset_file_enums(asset_packer_t *packer, string_t filename)
                  enum_member = c_string_concat(&packer_arena, enum_member, STR(",\n"));
         c_string_builder_append(&enum_builder, enum_member);
     }
+    c_string_builder_append(&enum_builder, STR("\tAFI_Count\n"));
     c_string_builder_append(&enum_builder, STR("}asset_file_indices_t;\n"));
 
     c_string_builder_write_to_file(&codegen_file, &enum_builder);
@@ -232,7 +201,7 @@ VISIT_FILES(get_resource_dir_files)
     if(type != AT_NONE)
     {
         string_t data = c_file_read(filepath);
-        afb_add_entry(packer, filename_no_ext, data, type);
+        afb_add_entry(packer, filename_no_ext, filepath, data, type);
     }
 }
 
@@ -269,6 +238,7 @@ main(int argc, char **argv)
         if(!c_string_compare(prefix, STR("--")))
         {
             log_error("Passed Command: '%s', is not valid... please append with '--' or use '--help' for more information...", next_argument);
+            continue;
         }
 
         command_name = c_string_make_copy(&packer_arena, arg_string);
@@ -342,7 +312,7 @@ main(int argc, char **argv)
                         printf("Argument: '--help'\nYou already know...\n\n");
                         printf("---------------------------------\n");
 
-                        goto break_out;
+                        return(0);
                     }break;
                 }
             }
