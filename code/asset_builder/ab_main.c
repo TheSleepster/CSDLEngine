@@ -121,6 +121,7 @@ afb_file_write(asset_packer_t *packer)
 
         c_string_builder_append_value(&packer->table_of_contents, &entry->name.count,                     sizeof(u32));
         c_string_builder_append_value(&packer->table_of_contents,  entry->name.data,                      entry->name.count);
+        c_string_builder_append_value(&packer->table_of_contents, &null_term,                             sizeof(s8));
 
         c_string_builder_append_value(&packer->table_of_contents, &entry->filepath.count,                 sizeof(u32));
         c_string_builder_append_value(&packer->table_of_contents,  entry->filepath.data,                  entry->filepath.count);

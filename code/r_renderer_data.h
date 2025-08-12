@@ -84,6 +84,8 @@ typedef struct shadow_caster2D
 #define MAX_RENDER_GROUPS 96
 #define MAX_RENDER_LAYERS 32
 
+#define MAX_TEXTURES      16
+
 typedef enum render_group_effects
 {
     RGE_None     = 0x00,
@@ -111,6 +113,10 @@ typedef struct render_group
 
     render_quad_t      *buffer_quads;
     u32                 quad_count;
+
+    u32                 textureIDs[MAX_TEXTURES];
+    u32                 texture_count;
+    u32                 bound_textures;
 }render_group_t;
 
 
@@ -163,6 +169,9 @@ typedef struct render_state
         mat4_t         projection_matrix;
     }lighting_data;
 }render_state_t;
+
+
+internal void r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
 
 ////////// JUNK MOVE THIS STUFF
 internal inline void

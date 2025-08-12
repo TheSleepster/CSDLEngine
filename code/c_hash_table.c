@@ -71,7 +71,7 @@ c_hash_insert_kv_pair_(hash_table_t *table, string_t key, void *value, usize val
 }
 
 internal void*
-c_hash_get_value_(hash_table_t *table, string_t key)
+c_hash_get_value(hash_table_t *table, string_t key)
 {
     void *result = null;
     

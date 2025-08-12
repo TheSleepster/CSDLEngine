@@ -86,23 +86,51 @@ r_update_shader_uniform_data(GPU_shader_t *shader, string_t name, void *data)
 }
 
 internal void
-r_update_shader_gpu_data(GPU_shader_t *shader)
+r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bool8 update_texture_bindings)
 {
     for(u32 uniform_index = 0;
         uniform_index < shader->shader_uniforms.capacity;
         ++uniform_index)
     {
         shader_uniform_t *uniform_data = (shader_uniform_t *)shader->shader_uniforms.data + uniform_index;
-        if((uniform_data->update != null) && (uniform_data->data != null))
+        if(uniform_data->type != SUT_TEXTURE_BINDING && uniform_data->type != SUT_TEXTURE_ARRAY)
         {
-            uniform_data->update(uniform_data->location_id, uniform_data->data);
+            if((uniform_data->update != null) && (uniform_data->data != null))
+            {
+                uniform_data->update(uniform_data->location_id, uniform_data->data);
+            }
+            else
+            {
+                log_error("shader uniform '%s' has an 'update' pointer of '%ull' and a 'data' pointer of '%ull'... cannot update...\n",
+                          uniform_data->name.data,
+                          uniform_data->update,
+                          uniform_data->data);
+            }
         }
         else
         {
-            log_error("shader uniform '%s' has an 'update' pointer of '%ull' and a 'data' pointer of '%ull'... cannot update...\n",
-                      uniform_data->name.data,
-                      uniform_data->update,
-                      uniform_data->data);
+            if(working_group != null && uniform_data->type == SUT_TEXTURE_BINDING && update_texture_bindings)
+            {
+                u32 texture_id = working_group->textureIDs[working_group->bound_textures];
+                glActiveTexture(GL_TEXTURE0 + working_group->bound_textures);
+                glBindTexture(GL_TEXTURE_2D, texture_id);
+                working_group->bound_textures++;
+
+                // TODO(Sleepster): This is redundant... please don't do it every time 
+                u32 sampler_data[MAX_TEXTURES];
+                for(u32 sampler_index = 0;
+                    sampler_index < MAX_TEXTURES;
+                    ++sampler_index)
+                {
+                    sampler_data[sampler_index] = sampler_index;
+                }
+                glUniform1iv(uniform_data->location_id, MAX_TEXTURES, sampler_data);
+            }
+            else
+            {
+                log_error("We do not currently suppor texture arrays...");
+                Assert(uniform_data->type == SUT_TEXTURE_ARRAY);
+            }
         }
     }
 

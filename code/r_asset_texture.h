@@ -12,15 +12,19 @@
 #include "c_memory.h"
 #include "c_file_api.h"
 
+typedef struct asset_slot   asset_slot_t;
+typedef struct asset_handle asset_handle_t;
+
 typedef enum bitmap_format
 {
-    BMF_R8     = 1,
-    BMF_B8     = 1,
-    BMF_G8     = 1,
-    BMF_RGB24  = 3,
-    BMF_BGR24  = 3,
-    BMF_RGBA32 = 4,
-    BMF_ABGR32 = 4,
+    BMF_INVALID = 0,
+    BMF_R8      = 1,
+    BMF_B8      = 1,
+    BMF_G8      = 1,
+    BMF_RGB24   = 3,
+    BMF_BGR24   = 3,
+    BMF_RGBA32  = 4,
+    BMF_ABGR32  = 4,
     BMF_COUNT
 }bitmap_format_t;
 
@@ -32,7 +36,8 @@ typedef struct bitmap
     s32             height;
     s32             stride;
     
-    u8             *data;
+    // NOTE(Sleepster): byte array essentially. 
+    string_t        data;
 }bitmap_t;
 
 typedef enum filter_type
@@ -43,19 +48,27 @@ typedef enum filter_type
     TAAFT_COUNT
 }filter_type_t;
 
+typedef struct texture_view
+{
+    u32           viewID;
+    u32           GPU_textureID;
+
+    vec2_t       *uv_min;
+    vec2_t       *uv_max;
+
+    asset_slot_t *asset_slot;
+}texture_view_t;
+
 typedef struct texture2D
 {
-    u32           gpu_texture_ID;
-    bitmap_t      bitmap;
+    texture_view_t *view;
+    bitmap_t        bitmap;
 
-    bool8         has_AA;
-    filter_type_t filter_type;
+    vec2_t          uv_min;
+    vec2_t          uv_max;
+
+    bool8           has_AA;
+    filter_type_t   filter_type;
 }texture2D_t;
-
-typedef struct sprite2D
-{
-    ivec2_t offset;
-    ivec2_t size;
-}sprite2D_t;
 
 #endif

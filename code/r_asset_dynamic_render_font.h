@@ -7,6 +7,8 @@
    ======================================================================== */
 
 #define ASSET_DYNAMIC_FONT_H
+#include "r_asset_texture.h"
+
 typedef struct dynamic_render_font
 {
     memory_arena_t  font_arena;

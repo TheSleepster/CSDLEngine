@@ -15,65 +15,98 @@ c_file_open(string_t filepath, bool8 create)
 internal inline bool8 
 c_file_close(file_t *file)
 {
-    return(os_file_close(file));
+    bool8 result = os_file_close(file);
+    if(!result)
+    {
+        log_error("Failed to close the file passed, filename: '%s'...", file->file_name.data);
+    }
+
+    file->handle = null;
+    return(result);
 }
 
+internal u32
+c_file_get_read_size(file_t *file, u32 bytes_to_read, u32 file_offset)
+{
+    u32 result = 0;
+
+    u32 file_size = os_file_get_size(file);
+    if(bytes_to_read == max_u32)
+    {
+        // read the whole file
+        result = file_size;
+    }
+    else if(bytes_to_read == 0)
+    {
+        // read what's left of the file from the offset
+        result = file_size - file_offset;
+    }
+    else
+    {
+        // read the amount desired from the file
+        result = bytes_to_read;
+    }
+
+    return(result);
+}
+
+// TODO(Sleepster): These should all call back to one routine and have the other memory methods call to this single call... this is stupid... 
 internal string_t
-c_file_read(string_t filepath)
+c_file_read(string_t filepath, u32 bytes_to_read, u32 file_offset)
 {
     string_t result = {};
-    
+
     file_t file = os_file_open(filepath, false, false, false);
     if(file.handle != null)
     {
-        s64 file_size = os_file_get_size(&file);
-        u8 *data = malloc(sizeof(u8) * file_size);
+        bytes_to_read = c_file_get_read_size(&file, bytes_to_read, file_offset);
+        u8 *data      = malloc(sizeof(u8) * bytes_to_read);
 
-        os_file_read(&file, data, file_size);
+        os_file_read(&file, data, file_offset, bytes_to_read);
         os_file_close(&file);
 
         result.data  = data;
-        result.count = file_size;
+        result.count = bytes_to_read;
     }
     return(result);
 }
 
 internal string_t
-c_file_read_arena(memory_arena_t *arena, string_t filepath)
+c_file_read_arena(memory_arena_t *arena, string_t filepath, u32 bytes_to_read, u32 file_offset)
 {
     string_t result = {};
     
     file_t file = os_file_open(filepath, false, false, false);
     if(file.handle != null)
     {
-        s64 file_size = os_file_get_size(&file);
-        u8 *data = c_arena_push_size(arena, sizeof(u8) * file_size);
+        bytes_to_read = c_file_get_read_size(&file, bytes_to_read, file_offset);
+        u8 *data      = c_arena_push_size(arena, sizeof(u8) * bytes_to_read);
 
-        os_file_read(&file, data, file_size);
+        os_file_read(&file, data, file_offset, bytes_to_read);
         os_file_close(&file);
 
         result.data  = data;
-        result.count = file_size;
+        result.count = bytes_to_read;
     }
     return(result);
 }
 
 internal string_t
-c_file_read_za(zone_allocator_t *zone, string_t filepath, za_allocation_tag_t tag)
+c_file_read_za(zone_allocator_t *zone, string_t filepath, u32 bytes_to_read, u32 file_offset, za_allocation_tag_t tag)
 {
     string_t result = {};
     
     file_t file = os_file_open(filepath, false, false, false);
     if(file.handle != null)
     {
-        s64 file_size = os_file_get_size(&file);
-        u8 *data = c_za_alloc(zone, sizeof(u8) * file_size, tag);
+        bytes_to_read = c_file_get_read_size(&file, bytes_to_read, file_offset);
+        u8 *data      = c_za_alloc(zone, sizeof(u8) * bytes_to_read, tag);
 
-        os_file_read(&file, data, file_size);
+        os_file_read(&file, data, file_offset, bytes_to_read);
         os_file_close(&file);
 
         result.data  = data;
-        result.count = file_size;
+        result.count = bytes_to_read;
     }
     return(result);
 }

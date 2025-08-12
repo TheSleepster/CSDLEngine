@@ -39,7 +39,6 @@ main()
 
     visit_file_data_t visit_info;
     visit_info.function  = get_the_files;
-    visit_info.recursive = true;
     os_directory_visit(STR("../run_tree/res"), visit_info);
 
     getchar();

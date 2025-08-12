@@ -30,7 +30,7 @@ typedef struct array
 }array_t;
 
 #define c_array_create(type, count)                         c_array_create_(sizeof(type), count)
-#define c_array_create_from_base(data, type, count)         c_array_create_from_base(data, sizeof(type), count)
+#define c_array_create_from_base(data, type, count)         c_array_create_from_base_(data, sizeof(type), count)
 #define c_array_set_value_at_index(array, index, value_ptr) c_array_set_value_at_index_(array, index, value_ptr, sizeof(*value_ptr))
 
 internal        array_t c_array_create_(u32 element_size, u32 count);

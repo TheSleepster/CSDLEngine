@@ -201,7 +201,7 @@ c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag)
     }
 
     zone_allocator_block_t *block_cursor   = base_block;
-    zone_allocator_block_t *starting_block = base_block;
+    zone_allocator_block_t *starting_block = base_block->prev_block;
 
     while(base_block->is_allocated || base_block->block_size < size)
     {
@@ -213,14 +213,14 @@ c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag)
                 base_block = base_block->prev_block;
                 c_za_free(zone, (byte *)block_cursor + sizeof(zone_allocator_block_t));
 
-                base_block  = base_block->next_block;
+                base_block   = base_block->next_block;
                 block_cursor = base_block->next_block;
             }
             else
             {
                 // NOTE(Sleepster): This block cannot be freed, go next 
                 block_cursor  = block_cursor->next_block;
-                base_block   = block_cursor;
+                base_block    = block_cursor;
             }
         }
         else
@@ -257,7 +257,7 @@ c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag)
     zone->cursor               = base_block->next_block;
 
     result = (byte*)base_block + sizeof(zone_allocator_block_t);
-    memset(result, 0, size);
+    //memset(result, 0, size);
 
     log_info("Zone Allocated: %d bytes...\n", size);
     return(result);

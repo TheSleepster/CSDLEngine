@@ -96,8 +96,8 @@ os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overla
 
     if(result.handle == INVALID_HANDLE_VALUE)
     {
-        log_error("Failed to open file: '%s' for reading... error: '%s'...\n",
-                  C_STR(filepath), GetLastError());
+        log_error("Failed to open file: '%s' for reading... error: '%d'...\n",
+                  filepath.data, GetLastError());
 
         ZeroStruct(result);
     }
@@ -136,11 +136,13 @@ os_file_get_size(file_t *file_data)
 }
 
 internal bool8 
-os_file_read(file_t *file_data, void *memory, usize bytes_to_read)
+os_file_read(file_t *file_data, void *memory, u32 file_offset, u32 bytes_to_read)
 {
     bool8 result = true;
     
-    BOOL success = ReadFile(file_data->handle, memory, bytes_to_read, 0, 0);
+    OVERLAPPED byte_data = {};
+    byte_data.Offset = file_offset;
+    BOOL success = ReadFile(file_data->handle, memory, bytes_to_read, 0, &byte_data);
     if(!success)
     {
         log_error("Error reading the file: '%s', message: '%s'...\n",

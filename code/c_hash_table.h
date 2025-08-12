@@ -32,10 +32,9 @@ typedef struct hash_table
 
 internal inline hash_table_t c_hash_table_create_(void *memory, u32 max_entries, usize value_size);
 internal        void         c_hash_insert_kv_pair_(hash_table_t *table, string_t key, void *value, usize value_size);
-internal        void*        c_hash_get_value_(hash_table_t *table, string_t key);
+internal        void*        c_hash_get_value(hash_table_t *table, string_t key);
 
 #define c_hash_table_create(memory, max_entries, data_type) c_hash_table_create_(memory, max_entries, sizeof(data_type))
 #define c_hash_insert_kv_pair(table, key, value)            c_hash_insert_kv_pair_(table, key, (void*)value, sizeof(value))
-#define c_hash_get_value(table, key)                        c_hash_get_value(table, (void*)key, sizeof(key))
 
 #endif

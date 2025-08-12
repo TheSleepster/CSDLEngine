@@ -14,26 +14,26 @@
 
 // NOTE(Sleepster): This is stupid... but C doens't make this easier. 
 #if defined OS_WINDOWS
-typedef void* file_handle_t;
+typedef void*  os_handle_t;
 #elif defined OS_LINUX | defined OS_MAC
-typedef int    file_handle_t
+typedef int    os_handle_t
 #endif
 
 typedef struct file
 {
-    file_handle_t handle;
-    string_t      file_name;
-    string_t      filepath;
+    os_handle_t handle;
+    string_t    file_name;
+    string_t    filepath;
 
-    bool8         overlapping;
-    bool8         for_writing;
+    bool8       overlapping;
+    bool8       for_writing;
 }file_t;
 
 typedef struct mapped_file_data
 {
-    file_t        file;
-    file_handle_t mapping_handle;
-    string_t      mapped_file_data;
+    file_t      file;
+    os_handle_t mapping_handle;
+    string_t    mapped_file_data;
 }mapped_file_t;
 
 typedef struct file_data
@@ -44,6 +44,17 @@ typedef struct file_data
     string_t filename;
     string_t filepath;
 }file_data_t;
+
+typedef struct overlap_io_data 
+{
+    u64         offset_to_read;
+    u64         bytes_to_read;
+
+    u32         status;
+    u32         bytes_transfered;
+
+    os_handle_t event_handle;
+}overlap_io_data_t;
 
 struct visit_file_data;
 
@@ -70,13 +81,22 @@ typedef struct visit_file_data
  * functions for specific operating systems.  Windows keeps a write
  * pointer for each file you create with CreateFile... But I don't
  * know how Linux or Mac does it...
+ *
+ *
  */
 
 internal inline file_t            c_file_open(string_t filepath, bool8 create);
 internal inline bool8             c_file_close(file_t *file);
-internal        string_t          c_file_read(string_t filepath);
-internal        string_t          c_file_read_arena(memory_arena_t *arena, string_t filepath);
-internal        string_t          c_file_read_za(zone_allocator_t *zone, string_t filepath, za_allocation_tag_t tag);
+
+// NOTE(Sleepster): These belong to the 'bytes_to_read' parameter of c_file_read_*... 
+#define READ_ENTIRE_FILE (max_u32)
+#define READ_TO_END      (0)
+
+internal        u32               c_file_get_read_size(file_t *file, u32 bytes_to_read, u32 file_offset);
+internal        string_t          c_file_read(string_t filepath, u32 bytes_to_read, u32 file_offset);
+internal        string_t          c_file_read_arena(memory_arena_t *arena, string_t filepath, u32 bytes_to_read, u32 file_offset);
+internal        string_t          c_file_read_za(zone_allocator_t *zone, string_t filepath, u32 bytes_to_read, u32 file_offset, za_allocation_tag_t tag);
+
 internal inline bool8             c_file_open_and_write(string_t filepath, void *data, s64 bytes_to_write, bool8 overwrite);
 internal inline bool8             c_file_write(file_t *file, void *data, s64 bytes_to_write);
 internal inline bool8             c_file_write_string(file_t *file, string_t data);

@@ -377,6 +377,56 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
     return(result);
 }
 
+internal void 
+r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
+{
+    Assert(texture != null);
+    Assert(texture->bitmap.data.data != null);
+    Assert(texture->view->GPU_textureID == 0);
+
+    glGenTextures(1, &texture->view->GPU_textureID);
+    glBindTexture(GL_TEXTURE_2D, texture->view->GPU_textureID);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    switch(filter_type)
+    {
+        case TAAFT_LINEAR:
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }break;
+        case TAAFT_NEAREST:
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        }break;
+        default: {InvalidCodePath;}break;
+    }
+
+    if(has_AA)
+    {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, 
+                 texture->bitmap.width, texture->bitmap.height, 0, 
+                 GL_RGBA, GL_UNSIGNED_BYTE, texture->bitmap.data.data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    texture->has_AA      = has_AA;
+    texture->filter_type = filter_type;
+
+    // NOTE(Sleepster): This is in pixels... 
+    texture->uv_min      = vec2_create(0.0);
+    texture->uv_max      = vec2_create_float(texture->bitmap.width,
+                                             texture->bitmap.height);
+}
+
+internal void
+r_update_gpu_texture()
+{
+}
+
 internal void
 r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 {
@@ -446,10 +496,10 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    string_t lighting_shader  = c_file_read(STR("../code/shaders/lighting.glsl"));
+    string_t lighting_shader  = c_file_read(STR("../code/shaders/lighting.glsl"), READ_ENTIRE_FILE, 0);
     render_state->lighting_data.lighting_shader = r_create_shader_program(lighting_shader, ST_PIXEL_SHADER);
 
-    string_t shader_source    = c_file_read(STR("../code/shaders/basic.glsl"));
+    string_t shader_source    = c_file_read(STR("../code/shaders/basic.glsl"), READ_ENTIRE_FILE, 0);
     render_state->test_shader = r_create_shader_program(shader_source, ST_PIXEL_SHADER);
 
     // LIGHTING FRAMEBUFFER SETUP
@@ -478,6 +528,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
                                0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+
 } 
 
 internal void
@@ -535,7 +586,7 @@ r_render_single_frame(render_state_t *render_state)
         Assert(group);
         
         glUseProgram(group->render_desc.shader->program_id);
-        r_update_shader_gpu_data(group->render_desc.shader);
+        r_update_shader_gpu_data(group, group->render_desc.shader, true);
 
         glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);

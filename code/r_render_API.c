@@ -6,35 +6,80 @@
    ======================================================================== */
 #include "r_renderer_data.h"
 
+internal void
+r_add_texture_to_texture_list(render_group_t *group, u32 textureID)
+{
+    for(u32 ID_index = 0;
+        ID_index < group->texture_count;
+        ++ID_index)
+    {
+        u32 ID = group->textureIDs[ID_index];
+        if(ID == textureID) return;
+    }
+
+    Assert(group->texture_count + 1 < MAX_TEXTURES);
+
+    group->textureIDs[group->texture_count] = textureID;
+    group->texture_count += 1;
+}
+
+// TODO(Sleepster): Culling. 
 internal render_quad_t
-r_create_render_quad(vec2_t                position,
+r_create_render_quad(render_state_t       *render_state,
+                     vec2_t                position,
                      vec2_t                render_size,
                      vec4_t                color,
+                     asset_handle_t       *handle,
                      float32               rotation,
                      render_quad_options_t render_options)
 {
-    render_quad_t result;
+    render_quad_t result = {};
+    result.options = render_options;
 
     float32 top    = position.y;
     float32 left   = position.x;
     float32 bottom = position.y + render_size.y;
     float32 right  = position.x + render_size.y;
 
-    result.options = render_options;
-
+    result.top_left.vPosition     = vec2_create_float(left, top);
+    result.top_right.vPosition    = vec2_create_float(right, top);
+    result.bottom_left.vPosition  = vec2_create_float(left, bottom);
+    result.bottom_right.vPosition = vec2_create_float(right, bottom);
     if(rotation > 0)
     {
-        result.top_left.vPosition     = vec2_rotate(vec2_create_float(left, top),     DegToRad(rotation));
-        result.top_right.vPosition    = vec2_rotate(vec2_create_float(right, top),    DegToRad(rotation));
-        result.bottom_left.vPosition  = vec2_rotate(vec2_create_float(left, bottom),  DegToRad(rotation));
-        result.bottom_right.vPosition = vec2_rotate(vec2_create_float(right, bottom), DegToRad(rotation));
+        result.top_left.vPosition     = vec2_rotate(result.top_left.vPosition,     DegToRad(rotation));
+        result.top_right.vPosition    = vec2_rotate(result.top_right.vPosition,    DegToRad(rotation));
+        result.bottom_left.vPosition  = vec2_rotate(result.bottom_left.vPosition,  DegToRad(rotation));
+        result.bottom_right.vPosition = vec2_rotate(result.bottom_right.vPosition, DegToRad(rotation));
+    }
+
+    if(handle->is_valid)
+    {
+        for(u32 index = 0;
+            index < 4;
+            ++index)
+        {
+            result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->texture_count;
+        }
+
+        vec2_t uv_min = *handle->texture->uv_min;
+        vec2_t uv_max = *handle->texture->uv_max;
+
+        result.top_left.vUVData     = uv_min;
+        result.top_right.vUVData    = vec2_create_float(uv_min.x + uv_max.x, uv_min.y);
+        result.bottom_left.vUVData  = vec2_create_float(uv_min.x,            uv_min.y + uv_max.y);
+        result.bottom_right.vUVData = uv_max;
+
+        r_add_texture_to_texture_list(render_state->draw_frame.active_render_group, handle->texture->GPU_textureID);
     }
     else
     {
-        result.top_left.vPosition     = vec2_create_float(left, top);
-        result.top_right.vPosition    = vec2_create_float(right, top);
-        result.bottom_left.vPosition  = vec2_create_float(left, bottom);
-        result.bottom_right.vPosition = vec2_create_float(right, bottom);
+        for(u32 index = 0;
+            index < 4;
+            ++index)
+        {
+            result.elements[index].vTextureIndex = max_u32;
+        }
     }
 
     for(u32 index = 0;
@@ -48,20 +93,23 @@ r_create_render_quad(vec2_t                position,
 }
 
 internal render_quad_t*
-r_draw_quad(render_state_t       *render_state,
-            vec2_t                position,
-            vec2_t                render_size,
-            vec4_t                color,
-            float32               rotation,
-            render_quad_options_t render_options)
+r_draw_texture(render_state_t       *render_state,
+               vec2_t                position,
+               vec2_t                render_size,
+               vec4_t                color,
+               asset_handle_t        texture_handle,
+               float32               rotation,
+               render_quad_options_t render_options)
 {
     Assert(render_state->draw_frame.active_render_group != null);
     
     render_quad_t  *result;
     render_group_t *active_render_group = render_state->draw_frame.active_render_group;
-    active_render_group->buffer_quads[active_render_group->quad_count] = r_create_render_quad(position,
+    active_render_group->buffer_quads[active_render_group->quad_count] = r_create_render_quad(render_state,
+                                                                                              position,
                                                                                               render_size,
                                                                                               color,
+                                                                                             &texture_handle,
                                                                                               rotation,
                                                                                               render_options);
     result = &active_render_group->buffer_quads[active_render_group->quad_count];
@@ -83,6 +131,26 @@ r_draw_quad(render_state_t       *render_state,
     return(result);
 }
 
+internal render_quad_t*
+r_draw_rect(render_state_t       *render_state,
+            vec2_t                position,
+            vec2_t                render_size,
+            vec4_t                color,
+            float32               rotation,
+            render_quad_options_t render_options)
+{
+    Assert(render_state->draw_frame.active_render_group != null);
+
+    asset_handle_t invalid_handle = {};
+    render_quad_t *result = r_draw_texture(render_state,
+                                           position,
+                                           render_size,
+                                           color,
+                                           invalid_handle,
+                                           rotation,
+                                           render_options);
+    return(result);
+}
 
 ////////////////////
 // LIGHTING

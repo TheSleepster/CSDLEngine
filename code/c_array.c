@@ -50,7 +50,7 @@ internal inline void*
 c_array_get_value(array_t *array, s32 index)
 {
     void *result = null;
-    Assert((s32)array->capacity <= index);
+    Assert((s32)array->capacity >= index);
 
     result = (u8*)array->data + (index * array->element_size);
     return(result);

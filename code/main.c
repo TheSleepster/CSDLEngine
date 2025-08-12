@@ -81,21 +81,19 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
-
-        asset_manager_t asset_manager = {};
-        s_asset_manager_init(&asset_manager, STR("../build/asset_file.wad"));
         
         render_state_t render_state = {};
         r_init_renderer_data(window, &render_state);
 
-        bool8 game_initialized = false;
+        asset_manager_t asset_manager = {};
+        s_asset_manager_init(&asset_manager, STR("../build/asset_file.wad"));
 
         running = true;
         while(running)
         {
             c_process_window_events();
 
-            g_update_and_render(game_initialized, &render_state);
+            g_update_and_render(&render_state, &asset_manager);
 
             r_render_single_frame(&render_state);
             SDL_GL_SwapWindow(window);
