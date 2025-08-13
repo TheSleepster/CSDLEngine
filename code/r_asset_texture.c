@@ -88,5 +88,6 @@ s_asset_load_texture_data(asset_manager_t *asset_manager, asset_handle_t handle)
     slot_data->texture.bitmap.format = BMF_RGBA32;
     slot_data->texture.bitmap.stride = 32;
 
+    // NOTE(Sleepster): What do I do?
     r_make_gpu_texture(&slot_data->texture, false, TAAFT_NEAREST);
 }

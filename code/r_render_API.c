@@ -16,14 +16,13 @@ r_add_texture_to_texture_list(render_group_t *group, u32 textureID)
         u32 ID = group->textureIDs[ID_index];
         if(ID == textureID) return;
     }
-
     Assert(group->texture_count + 1 < MAX_TEXTURES);
 
     group->textureIDs[group->texture_count] = textureID;
     group->texture_count += 1;
 }
 
-// TODO(Sleepster): Culling. 
+// TODO(Sleepster): Better Culling. 
 internal render_quad_t
 r_create_render_quad(render_state_t       *render_state,
                      vec2_t                position,
@@ -45,48 +44,64 @@ r_create_render_quad(render_state_t       *render_state,
     result.top_right.vPosition    = vec2_create_float(right, top);
     result.bottom_left.vPosition  = vec2_create_float(left, bottom);
     result.bottom_right.vPosition = vec2_create_float(right, bottom);
-    if(rotation > 0)
-    {
-        result.top_left.vPosition     = vec2_rotate(result.top_left.vPosition,     DegToRad(rotation));
-        result.top_right.vPosition    = vec2_rotate(result.top_right.vPosition,    DegToRad(rotation));
-        result.bottom_left.vPosition  = vec2_rotate(result.bottom_left.vPosition,  DegToRad(rotation));
-        result.bottom_right.vPosition = vec2_rotate(result.bottom_right.vPosition, DegToRad(rotation));
-    }
 
-    if(handle->is_valid)
+    result.center_pos = vec2_add(position, vec2_multiply(render_size, vec2_create(0.5f)));
+
+    render_group_desc_t *mat_data = &render_state->draw_frame.active_render_group->render_desc;
+    vec4_t clip_pos = vec2_expand_vec4(result.center_pos, 0, 1);
+    mat4_t clip_mat = mat4_multiply(mat_data->view_matrix, mat_data->projection_matrix);
+    
+    clip_pos = vec4_transform(clip_mat, clip_pos);
+    result.culled = (((clip_pos.x < -1) && (clip_pos.x < -1)) ||
+                     ((clip_pos.x >  1) && (clip_pos.x >  1)) ||
+                     ((clip_pos.y < -1) && (clip_pos.y < -1)) ||
+                     ((clip_pos.y >  1) && (clip_pos.y >  1)));
+    
+    if(!result.culled)
     {
+        if(rotation > 0)
+        {
+            result.top_left.vPosition     = vec2_rotate(result.top_left.vPosition,     DegToRad(rotation));
+            result.top_right.vPosition    = vec2_rotate(result.top_right.vPosition,    DegToRad(rotation));
+            result.bottom_left.vPosition  = vec2_rotate(result.bottom_left.vPosition,  DegToRad(rotation));
+            result.bottom_right.vPosition = vec2_rotate(result.bottom_right.vPosition, DegToRad(rotation));
+        }
+
+        if(handle->is_valid)
+        {
+            for(u32 index = 0;
+                index < 4;
+                ++index)
+            {
+                result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->texture_count;
+            }
+
+            vec2_t uv_min = *handle->texture->uv_min;
+            vec2_t uv_max = *handle->texture->uv_max;
+
+            result.top_left.vUVData     = uv_min;
+            result.top_right.vUVData    = vec2_create_float(uv_min.x + uv_max.x, uv_min.y);
+            result.bottom_left.vUVData  = vec2_create_float(uv_min.x,            uv_min.y + uv_max.y);
+            result.bottom_right.vUVData = uv_max;
+
+            r_add_texture_to_texture_list(render_state->draw_frame.active_render_group, handle->texture->GPU_textureID);
+        }
+        else
+        {
+            for(u32 index = 0;
+                index < 4;
+                ++index)
+            {
+                result.elements[index].vTextureIndex = max_u32;
+            }
+        }
+
         for(u32 index = 0;
             index < 4;
             ++index)
         {
-            result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->texture_count;
+            result.elements[index].vColor = color;
         }
-
-        vec2_t uv_min = *handle->texture->uv_min;
-        vec2_t uv_max = *handle->texture->uv_max;
-
-        result.top_left.vUVData     = uv_min;
-        result.top_right.vUVData    = vec2_create_float(uv_min.x + uv_max.x, uv_min.y);
-        result.bottom_left.vUVData  = vec2_create_float(uv_min.x,            uv_min.y + uv_max.y);
-        result.bottom_right.vUVData = uv_max;
-
-        r_add_texture_to_texture_list(render_state->draw_frame.active_render_group, handle->texture->GPU_textureID);
-    }
-    else
-    {
-        for(u32 index = 0;
-            index < 4;
-            ++index)
-        {
-            result.elements[index].vTextureIndex = max_u32;
-        }
-    }
-
-    for(u32 index = 0;
-        index < 4;
-        ++index)
-    {
-        result.elements[index].vColor = color;
     }
 
     return(result);
@@ -103,31 +118,36 @@ r_draw_texture(render_state_t       *render_state,
 {
     Assert(render_state->draw_frame.active_render_group != null);
     
-    render_quad_t  *result;
+    render_quad_t  *result = null;
     render_group_t *active_render_group = render_state->draw_frame.active_render_group;
-    active_render_group->buffer_quads[active_render_group->quad_count] = r_create_render_quad(render_state,
-                                                                                              position,
-                                                                                              render_size,
-                                                                                              color,
-                                                                                             &texture_handle,
-                                                                                              rotation,
-                                                                                              render_options);
-    result = &active_render_group->buffer_quads[active_render_group->quad_count];
-    if(render_options & RQO_SHADOWCASTER)
+    render_quad_t return_value = r_create_render_quad(render_state,
+                                                      position,
+                                                      render_size,
+                                                      color,
+                                                      &texture_handle,
+                                                      rotation,
+                                                      render_options);
+    if(!return_value.culled)
     {
-        if(!render_state->draw_frame.shadow_casters)
+        active_render_group->buffer_quads[active_render_group->quad_count] = return_value;
+
+        result = &active_render_group->buffer_quads[active_render_group->quad_count];
+        if(render_options & RQO_SHADOWCASTER)
         {
-            render_state->draw_frame.shadow_casters = c_arena_push_array(&render_state->draw_frame_arena, shadow_caster2D_t, MAX_QUADS);
+            if(!render_state->draw_frame.shadow_casters)
+            {
+                render_state->draw_frame.shadow_casters = c_arena_push_array(&render_state->draw_frame_arena, shadow_caster2D_t, MAX_QUADS);
+            }
+
+            shadow_caster2D_t caster = {};
+            caster.quad_data = active_render_group->buffer_quads[active_render_group->quad_count];
+
+            render_state->draw_frame.shadow_casters[render_state->draw_frame.shadow_caster_counter] = caster; 
+            render_state->draw_frame.shadow_caster_counter += 1;
         }
 
-        shadow_caster2D_t caster = {};
-        caster.quad_data = active_render_group->buffer_quads[active_render_group->quad_count];
-
-        render_state->draw_frame.shadow_casters[render_state->draw_frame.shadow_caster_counter] = caster; 
-        render_state->draw_frame.shadow_caster_counter += 1;
+        active_render_group->quad_count += 1;
     }
-
-    active_render_group->quad_count += 1;
     return(result);
 }
 

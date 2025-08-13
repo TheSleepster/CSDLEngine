@@ -50,6 +50,9 @@ typedef struct render_quad
         };
         vertex_t elements[4];
     };
+    bool8                 culled;
+    vec2_t                center_pos;
+    
     u32                   texture_id;
     render_quad_options_t options;
 }render_quad_t;

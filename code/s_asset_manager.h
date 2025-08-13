@@ -65,7 +65,7 @@ typedef struct asset_slot
     };
 }asset_slot_t;
 
-/* NOTE(Sleepster): New idea: asset_views.  These asset_views will be
+/* NOTE(Sleepster): New idea: asset_handles. These asset_views will be
  * used to look into an asset and keep track of the state related to
  * that asset while still allowing the asset's state to remain
  * modifiable. The idea is that we no longer hand out pointers to the
