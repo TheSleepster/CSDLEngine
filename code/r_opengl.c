@@ -502,13 +502,55 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     string_t shader_source    = c_file_read(STR("../code/shaders/basic.glsl"), READ_ENTIRE_FILE, 0);
     render_state->test_shader = r_create_shader_program(shader_source, ST_PIXEL_SHADER);
 
+    // PRIMARY FRAMEBUFFER SETUP
+    {
+        u32 render_engine_width  = 320;
+        u32 render_engine_height = 180;
+
+        glGenFramebuffers(1, &render_state->primary_framebuffer.ID);
+        glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
+
+        glGenTextures(1, &render_state->primary_framebuffer.color_attachment0);
+        glGenTextures(1, &render_state->primary_framebuffer.depth_buffer);
+
+        glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 
+                     LIGHTMAP_SIZE, LIGHTMAP_SIZE, 0, 
+                     GL_RGBA, GL_UNSIGNED_BYTE, null);
+
+        glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 
+                     render_engine_width, render_engine_height, 0, 
+                     GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer,      0);
+
+        GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0};
+        glDrawBuffers(1, &draw_buffers);
+    }
+    
     // LIGHTING FRAMEBUFFER SETUP
     {
         glGenFramebuffers(1, &render_state->lighting_data.framebuffer_id);
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->lighting_data.framebuffer_id);
 
-        glGenTextures(1, &render_state->lighting_data.color_attachment_0);
-        glBindTexture(GL_TEXTURE_2D, render_state->lighting_data.color_attachment_0);
+        glGenTextures(1, &render_state->lighting_data.color_attachment0);
+        glBindTexture(GL_TEXTURE_2D, render_state->lighting_data.color_attachment0);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -524,7 +566,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         glFramebufferTexture2D(GL_FRAMEBUFFER,
                                GL_COLOR_ATTACHMENT0,
                                GL_TEXTURE_2D,
-                               render_state->lighting_data.color_attachment_0,
+                               render_state->lighting_data.color_attachment0,
                                0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

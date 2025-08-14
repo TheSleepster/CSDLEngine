@@ -157,10 +157,17 @@ typedef struct render_state
     memory_arena_t          draw_frame_arena;
     draw_frame_t            draw_frame;
 
+    struct
+    {
+        u32 ID;
+        u32 color_attachment0;
+        u32 depth_buffer;
+    }primary_framebuffer;
+
     struct 
     {
         u32            framebuffer_id;
-        u32            color_attachment_0;
+        u32            color_attachment0;
 
         render_quad_t *lighting_quads;
         u32            lighting_quad_counter;
