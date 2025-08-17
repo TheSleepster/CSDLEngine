@@ -62,13 +62,13 @@ do{                                                            \
 }while(0)
 
 
-// TODO(Sleepster): c_dynamic_array_reserve();  
-
+// NOTE(Sleepster): We don't need a reserve function like std::vector(); because we create the array with a preset reserved capacity 
 internal dynamic_array_t c_dynamic_array_create_(usize element_size, usize count);
 internal void            c_dynamic_array_destroy(dynamic_array_t *array);
 internal u32             c_dynamic_array_append_value_(dynamic_array_t *dynamic_array_t, void *value, usize element_size);
 internal void*           c_dynamic_array_get(dynamic_array_t *dynamic_array, u32 index);
 internal void            c_dynamic_array_remove(dynamic_array_t *dynamic_array, u32 index);
+internal void            c_dynamic_array_reset(dynamic_array_t *dynamic_array);
 
 /////////////////////////////
 

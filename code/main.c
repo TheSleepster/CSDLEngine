@@ -34,6 +34,7 @@
 #include "c_hash_table.c"
 
 #include "s_asset_manager.h"
+#include "at_atlas_handler.h"
 #include "r_renderer_data.h"
 #include "r_asset_shader.h"
 #include "r_asset_texture.h"
@@ -45,6 +46,7 @@
 //#include "r_asset_dynamic_render_font.c"
 //#include "r_asset_loaded_sound.c"
 #include "s_asset_manager.c"
+#include "at_atlas_handler.c"
 #include "r_render_API.c"
 #include "r_opengl.c"
 

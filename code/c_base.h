@@ -188,10 +188,23 @@ typedef void void_func(void);
 #include "c_string.h"
 #include "c_array.h"
 
+///////////////////
+// GLOBAL CONTEXT
+///////////////////
+
+/* NOTE(Sleepster): This is something I picked up from Jai... just a
+   little container that contains just simply allocators and other
+   such data like loggers if needed. Totally global to the program for
+   use whenever needed.
+*/
+
 // USE ARENAS NOT MALLOC
 typedef struct global_context
 {
+    // NOTE(Sleepster): Persistent allocations... Use sparingly... 
     memory_arena_t context_arena;
+
+    // NOTE(Sleepster): Resets "per-frame" 
     memory_arena_t temporary_arena;
 }global_context_t;
 
@@ -208,6 +221,12 @@ internal inline void
 gc_reset_temporary_data()
 {
     c_arena_reset(&global_context.temporary_arena);
+}
+
+internal inline void
+gc_reset_contexdt_arena()
+{
+    c_arena_reset(&global_context.context_arena);
 }
 
 #endif

@@ -151,4 +151,11 @@ c_dynamic_array_remove(dynamic_array_t *dynamic_array, u32 index)
     memcpy(offset_ptr, end_ptr, dynamic_array->element_size);
 }
 
+internal void
+c_dynamic_array_reset(dynamic_array_t *dynamic_array)
+{
+    memset(dynamic_array->data, 0, dynamic_array->element_size * dynamic_array->capacity);
+    dynamic_array->indices_used = 0;
+}
+
 /////////////////////////////////////

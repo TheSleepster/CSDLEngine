@@ -32,8 +32,7 @@ typedef struct vertex
 typedef enum render_quad_options
 {
     RQO_NONE         = 0X00,
-    RQO_UNLIT        = 0X01,
-    RQO_SHADOWCASTER = 0X02,
+    RQO_SHADOWCASTER = 0X01,
     RQO_COUNT,
 }render_quad_options_t;
 
@@ -181,7 +180,13 @@ typedef struct render_state
 }render_state_t;
 
 
+////////////////////////////
+// RENDER API FUNCTIONS
+////////////////////////////
 internal void r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
+internal void r_update_texture_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture);
+/////////////////////////////
+
 
 ////////// JUNK MOVE THIS STUFF
 internal inline void

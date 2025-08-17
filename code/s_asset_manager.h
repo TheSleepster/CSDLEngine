@@ -89,12 +89,7 @@ typedef struct asset_handle
 
 typedef struct asset_manager
 {
-    u64 volatile      allocated_texture_memory;
-    u64 volatile      allocated_shader_memory;
-    u64 volatile      allocated_sound_memory;
-    u64 volatile      allocated_font_memory;
-
-    // NOTE(Sleepster): READ ONLY... DO NOT MODIFY THESE BEYOND THIS INIT FUNCTION
+    // NOTE(Sleepster): READ ONLY... DO NOT MODIFY THESE BEYOND THE INIT FUNCTION
     u64               texture_memory_capacity;
     u64               shader_memory_capacity;
     u64               sound_memory_capacity;

@@ -70,7 +70,7 @@ c_arena_push_size(memory_arena_t *arena, u64 size_init)
 }
 
 internal inline void*
-_bootstrap_allocate_struct(u64 struct_size, u64 offset_to_arena, u64 base_allocation)
+bootstrap_allocate_struct_(u64 struct_size, u64 offset_to_arena, u64 base_allocation)
 {
     Assert(struct_size > base_allocation);
     

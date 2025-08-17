@@ -422,9 +422,41 @@ r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type
                                              texture->bitmap.height);
 }
 
-internal void
-r_update_gpu_texture()
+internal texture2D_t 
+r_create_texture_from_bitmap(bitmap_t *bitmap)
 {
+    Assert(false);
+    return((texture2D_t){});
+}
+
+internal void
+r_update_texture_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture)
+{
+    glBindTexture(GL_TEXTURE_2D, texture->view->GPU_textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    switch(texture->filter_type)
+    {
+        case TAAFT_NEAREST:
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        }break;
+        case TAAFT_LINEAR:
+        {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }break;
+    }
+    if(texture->has_AA)
+    {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, 
+                 texture->bitmap.width, texture->bitmap.height, 0, 
+                 GL_RGBA, GL_UNSIGNED_BYTE, texture->bitmap.data.data);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 internal void

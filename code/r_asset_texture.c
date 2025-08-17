@@ -9,6 +9,68 @@
 
 #include "c_hash_table.h"
 
+internal bitmap_t
+s_asset_create_bitmap(zone_allocator_t *zone, s32 width, s32 height, bitmap_format_t format)
+{
+    bitmap_t result   = {};
+    result.width      = width;
+    result.height     = height;
+    result.channels   = format;
+    result.stride     = 8 * format;
+    result.data.count = width * height * format;
+    result.data.data  = c_za_alloc(zone, result.data.count, ZA_TAG_TEXTURE);
+
+    return(result);
+}
+
+internal texture_view_t *
+s_asset_generate_texture_view(asset_manager_t *asset_manager, asset_slot_t *valid_slot, texture2D_t *texture_data)
+{
+    texture_view_t *new_view = c_array_get_value(&asset_manager->texture_views, asset_manager->texture_view_count);
+    new_view->viewID         = asset_manager->texture_view_count;
+    new_view->GPU_textureID  = 0; 
+    new_view->uv_min         = &texture_data->uv_min;
+    new_view->uv_max         = &texture_data->uv_max;
+    new_view->asset_slot     = valid_slot;
+
+    asset_manager->texture_view_count++;
+
+    return(new_view);
+}
+internal texture2D_t
+s_asset_create_texture(asset_manager_t  *asset_manager,
+                       zone_allocator_t *zone,
+                       s32               width,
+                       s32               height,
+                       bitmap_format_t   format,
+                       bool8             has_AA,
+                       filter_type_t     filtering)
+{
+    texture2D_t result = {};
+    result.bitmap      = s_asset_create_bitmap(zone, width, height, format);
+    result.uv_min      = vec2_create_float(0.0, 0.0);
+    result.uv_min      = vec2_create_float((float32)width, (float32)height);
+    result.has_AA      = has_AA;
+    result.filter_type = filtering;
+
+    return(result);
+}
+
+internal texture2D_t
+s_asset_create_texture_and_view(asset_manager_t  *asset_manager,
+                                zone_allocator_t *zone,
+                                s32               width,
+                                s32               height,
+                                bitmap_format_t   format,
+                                bool8             has_AA,
+                                filter_type_t     filtering)
+{
+    texture2D_t result = s_asset_create_texture(asset_manager, zone, width, height, format, has_AA, filtering);
+    result.view        = s_asset_generate_texture_view(asset_manager, null, &result);
+
+    return(result);
+}
+
 internal asset_handle_t
 s_asset_get_texture_handle(asset_manager_t *asset_manager, string_t asset_key)
 {
@@ -30,15 +92,8 @@ s_asset_get_texture_handle(asset_manager_t *asset_manager, string_t asset_key)
         else
         {
             // generate a new view 
-            texture_view_t *new_view = c_array_get_value(&asset_manager->texture_views, asset_manager->texture_view_count);
-            new_view->viewID         = asset_manager->texture_view_count;
-            new_view->GPU_textureID  = 0; 
-            new_view->uv_min         = &texture_data->uv_min;
-            new_view->uv_max         = &texture_data->uv_max;
-            new_view->asset_slot     = valid_slot;
-
-            asset_manager->texture_view_count++;
-
+            texture_view_t *new_view = s_asset_generate_texture_view(asset_manager, valid_slot, texture_data);
+            
             texture_data->view = new_view;
             result.texture     = new_view;
         }

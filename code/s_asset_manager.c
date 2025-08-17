@@ -11,44 +11,10 @@
 #include "asset_builder/ab_packer_info.h"
 
 internal void
-s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filepath)
+s_asset_manager_read_asset_file_entries(asset_manager_t                *asset_manager,
+                                        string_t                        entry_data,
+                                        asset_file_table_of_contents_t *table_of_contents)
 {
-    asset_manager->texture_memory_capacity = MB(100);
-    asset_manager->shader_memory_capacity  = MB(200);
-    asset_manager->font_memory_capacity    = MB(500);
-    asset_manager->sound_memory_capacity   = MB(500);
-
-    asset_manager->texture_allocator = c_za_create(asset_manager->texture_memory_capacity);
-    asset_manager->shader_allocator  = c_za_create(asset_manager->shader_memory_capacity);
-    asset_manager->font_allocator    = c_za_create(asset_manager->font_memory_capacity);
-    asset_manager->sound_allocator   = c_za_create(asset_manager->sound_memory_capacity);
-
-    asset_manager->manager_arena =  c_arena_create(MB(200));
-    asset_manager->trash_arena   = &global_context.temporary_arena;
-    
-    void *memory  = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
-    void *memory2 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
-    void *memory3 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
-    void *memory4 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
-    
-    asset_manager->texture_hash = c_hash_table_create(memory , MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-    asset_manager->shader_hash  = c_hash_table_create(memory2, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-    asset_manager->font_hash    = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-    asset_manager->sound_hash   = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-
-    asset_manager->asset_file_handle = c_file_open(packed_asset_filepath, false);
-    asset_manager->asset_file_data   = c_file_read(packed_asset_filepath, sizeof(asset_file_header_t), 0);
-
-    asset_file_header_t *header = asset_manager->asset_file_data.data;
-    Assert(header->magic_value == ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' '));
-
-    string_t table_data = c_file_read(packed_asset_filepath, sizeof(asset_file_table_of_contents_t), header->offset_to_table_of_contents);
-    asset_file_table_of_contents_t *table_of_contents = table_data.data; 
-    Assert(table_of_contents->magic_value == ASSET_FILE_MAGIC_VALUE('t', 'o', 'c', 'd'));
-
-    u32 first_entry_offset = header->offset_to_table_of_contents + sizeof(asset_file_table_of_contents_t);
-    string_t entry_data    = c_file_read(packed_asset_filepath, READ_TO_END, first_entry_offset);
-
     byte *first_entry = entry_data.data;
     for(u32 entry_index = 0;
         entry_index < table_of_contents->entry_count;
@@ -115,6 +81,51 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
                 InvalidCodePath;
             }break;
         }
+    }
+}
+
+internal void
+s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filepath)
+{
+    asset_manager->texture_memory_capacity = MB(100);
+    asset_manager->shader_memory_capacity  = MB(200);
+    asset_manager->font_memory_capacity    = MB(500);
+    asset_manager->sound_memory_capacity   = MB(500);
+
+    asset_manager->texture_allocator = c_za_create(asset_manager->texture_memory_capacity);
+    asset_manager->shader_allocator  = c_za_create(asset_manager->shader_memory_capacity);
+    asset_manager->font_allocator    = c_za_create(asset_manager->font_memory_capacity);
+    asset_manager->sound_allocator   = c_za_create(asset_manager->sound_memory_capacity);
+
+    asset_manager->manager_arena =  c_arena_create(MB(200));
+    asset_manager->trash_arena   = &global_context.temporary_arena;
+    
+    void *memory  = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    void *memory2 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    void *memory3 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    void *memory4 = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t) * MANAGER_HASH_TABLE_SIZE);
+    
+    asset_manager->texture_hash = c_hash_table_create(memory , MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->shader_hash  = c_hash_table_create(memory2, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->font_hash    = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->sound_hash   = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+
+    // NOTE(Sleepster): Read asset file data
+    {
+        asset_manager->asset_file_handle = c_file_open(packed_asset_filepath, false);
+        asset_manager->asset_file_data   = c_file_read(packed_asset_filepath, sizeof(asset_file_header_t), 0);
+
+        asset_file_header_t *header = asset_manager->asset_file_data.data;
+        Assert(header->magic_value == ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' '));
+
+        string_t table_data = c_file_read(packed_asset_filepath, sizeof(asset_file_table_of_contents_t), header->offset_to_table_of_contents);
+        asset_file_table_of_contents_t *table_of_contents = table_data.data; 
+        Assert(table_of_contents->magic_value == ASSET_FILE_MAGIC_VALUE('t', 'o', 'c', 'd'));
+
+        u32 first_entry_offset = header->offset_to_table_of_contents + sizeof(asset_file_table_of_contents_t);
+        string_t entry_data    = c_file_read(packed_asset_filepath, READ_TO_END, first_entry_offset);
+
+        s_asset_manager_read_asset_file_entries(asset_manager, entry_data, table_of_contents);
     }
 
     void *texture_view_memory    = c_arena_push_array(&asset_manager->manager_arena, texture_view_t, 100);
