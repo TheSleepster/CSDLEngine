@@ -97,7 +97,7 @@ main(int argc, char **argv)
 
             g_update_and_render(&render_state, &asset_manager);
 
-            r_render_single_frame(&render_state);
+            r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);
 
             c_arena_reset(&render_state.draw_frame_arena);
@@ -107,5 +107,6 @@ main(int argc, char **argv)
         }
     }
 
+    SDL_Delay(100);
     return(0);
 }

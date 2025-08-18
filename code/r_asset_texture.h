@@ -50,6 +50,8 @@ typedef enum filter_type
 
 typedef struct texture_view
 {
+    bool8         is_valid;
+    
     u32           viewID;
     u32           GPU_textureID;
 

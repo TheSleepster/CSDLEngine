@@ -21,7 +21,7 @@ at_atlas_handler_create(asset_manager_t  *asset_manager,
 
     void *hash_table_memory  = c_za_alloc(zone, 1024 * sizeof(atlas_handler_hash_table_entry_t), ZA_TAG_TEXTURE);
     
-    handler.contents         = c_hash_table_create(hash_table_memory, 1024, texture2D_t*);
+    handler.contents         = c_hash_table_create(hash_table_memory, 1024, atlas_handler_hash_table_entry_t*);
     handler.textures_to_pack = c_dynamic_array_create(texture2D_t*, 64);
     handler.bitmap_cursor_x  = 0;
     handler.bitmap_cursor_y  = 0;
@@ -35,37 +35,50 @@ at_atlas_handler_create(asset_manager_t  *asset_manager,
 internal void
 at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *handler, texture_view_t *view)
 {
-    Assert(handler->is_initialized   == true);
-    Assert(handler->atlas_width      >  0);
-    Assert(handler->atlas_height     >  0);
-    Assert(handler->bitmap->data.data != null);
+    Assert(handler->is_initialized         == true);
+    Assert(handler->atlas_width             >  0);
+    Assert(handler->atlas_height            >  0);
+    Assert(handler->bitmap->data.data      != null);
+    Assert(view                            != null);
+    Assert(view->asset_slot                != null);
+    Assert(view->asset_slot->filename.data != null);
+    
+    atlas_handler_hash_table_entry_t *entry = c_hash_get_value(&handler->contents, view->asset_slot->filename);
+    if(!entry)
+    {
+        atlas_handler_hash_table_entry_t entry_data;
+        entry_data.texture_name =  view->asset_slot->filename;
+        entry_data.texture_data = &view->asset_slot->texture;
 
-    atlas_handler_hash_table_entry_t entry_data;
-    entry_data.texture_name =  view->asset_slot->filename;
-    entry_data.texture_data = &view->asset_slot->texture;
-
-    c_dynamic_array_append(&handler->textures_to_pack, &view->asset_slot->texture);
-    c_hash_insert_kv_pair(&handler->contents, entry_data.texture_name, &entry_data);
+        c_dynamic_array_append(&handler->textures_to_pack, &view->asset_slot->texture);
+        c_hash_insert_kv_pair(&handler->contents, entry_data.texture_name, &entry_data);
+    }
+    else
+    {
+        log_warning("This texture: '%s' is already a part of the atlas_handler's contents...\n", view->asset_slot->filename.data);
+    }
 }
 
 internal void
 at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *handler, bool8 has_AA, filter_type_t filtering)
 {
-    Assert(handler->is_initialized    == true);
-    Assert(handler->atlas_width        >  0);
-    Assert(handler->atlas_height       >  0);
-    Assert(handler->bitmap->data.data != null);
+    Assert(handler->is_initialized     == true);
+    Assert(handler->atlas_width         >  0);
+    Assert(handler->atlas_height        >  0);
+    Assert(handler->atlas.bitmap.data.count >=  0);
 
     if(handler->textures_to_pack.indices_used > 0)
     {
         r_make_gpu_texture(&handler->atlas, has_AA, filtering);
-        string_t *bitmap_data = &handler->bitmap->data;
+        string_t *bitmap_data = &handler->atlas.bitmap.data;
 
         for(u32 texture_index = 0;
             texture_index < handler->textures_to_pack.indices_used;
             ++texture_index)
         {
-            texture2D_t *texture = c_dynamic_array_get(&handler->textures_to_pack, texture_index);
+            // IMPORTANT(Sleepster): ARRAY WEIRDNESS WHAT IS THIS????? 
+            texture_view_t *texture_view = *((void**)c_dynamic_array_get(&handler->textures_to_pack, texture_index));
+            texture2D_t     *texture      = &(texture_view)->asset_slot->texture;
             Assert(texture);
 
             string_t *texture_data = &texture->bitmap.data;
@@ -87,11 +100,12 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
                     }
                 }
 
+                r_delete_texture(texture->view);
                 texture->view->GPU_textureID = handler->atlas.view->GPU_textureID;
-                texture->uv_min        = vec2_create_float((float32)handler->bitmap_cursor_x,
-                                                           (float32)handler->bitmap_cursor_y);
-                texture->uv_max        = vec2_create_float((float32)handler->bitmap_cursor_x + texture->bitmap.width,
-                                                           (float32)handler->bitmap_cursor_y + texture->bitmap.height);
+                texture->uv_min = vec2_create_float((float32)handler->bitmap_cursor_x,
+                                                    (float32)handler->bitmap_cursor_y);
+                texture->uv_max = vec2_create_float((float32)handler->bitmap_cursor_x + texture->bitmap.width,
+                                                    (float32)handler->bitmap_cursor_y + texture->bitmap.height);
                 if(texture->bitmap.height > handler->tallest_y)
                 {
                     handler->tallest_y = texture->bitmap.height;
@@ -105,13 +119,16 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
                     handler->bitmap_cursor_y += handler->tallest_y;
                 }
             }
+
+            //s_asset_destroy_texture_data(asset_manager, texture->view);
         }
+
 
         c_dynamic_array_reset(&handler->textures_to_pack);
         r_update_texture_from_bitmap(asset_manager, &handler->atlas);
     }
     else
     {
-        log_warning("Called to build an atlas, however there are no textures to be packed...\n");
+        //log_warning("Called to build an atlas, however there are no textures to be packed...\n");
     }
 }

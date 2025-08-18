@@ -17,6 +17,7 @@ s_asset_create_bitmap(zone_allocator_t *zone, s32 width, s32 height, bitmap_form
     result.height     = height;
     result.channels   = format;
     result.stride     = 8 * format;
+    result.format     = format;
     result.data.count = width * height * format;
     result.data.data  = c_za_alloc(zone, result.data.count, ZA_TAG_TEXTURE);
 
@@ -26,14 +27,30 @@ s_asset_create_bitmap(zone_allocator_t *zone, s32 width, s32 height, bitmap_form
 internal texture_view_t *
 s_asset_generate_texture_view(asset_manager_t *asset_manager, asset_slot_t *valid_slot, texture2D_t *texture_data)
 {
-    texture_view_t *new_view = c_array_get_value(&asset_manager->texture_views, asset_manager->texture_view_count);
-    new_view->viewID         = asset_manager->texture_view_count;
-    new_view->GPU_textureID  = 0; 
-    new_view->uv_min         = &texture_data->uv_min;
-    new_view->uv_max         = &texture_data->uv_max;
-    new_view->asset_slot     = valid_slot;
+    texture_view_t *new_view = 0; 
+    for(u32 view_index = 0;
+        view_index < asset_manager->texture_catalog.texture_views.capacity;
+        ++view_index)
+    {
+        texture_view_t *found = c_array_get_value(&asset_manager->texture_catalog.texture_views, view_index);
+        if(!found->is_valid)
+        {
+            new_view = found;
+            break;
+        }
+    }
+    
+    if(new_view)
+    {
+        new_view->viewID         = asset_manager->texture_catalog.texture_view_count;
+        new_view->is_valid       = true;
+        new_view->GPU_textureID  = 0; 
+        new_view->uv_min         = &texture_data->uv_min;
+        new_view->uv_max         = &texture_data->uv_max;
+        new_view->asset_slot     = valid_slot;
 
-    asset_manager->texture_view_count++;
+        asset_manager->texture_catalog.texture_view_count++;
+    }
 
     return(new_view);
 }
@@ -76,7 +93,7 @@ s_asset_get_texture_handle(asset_manager_t *asset_manager, string_t asset_key)
 {
     asset_handle_t result = {};
 
-    asset_slot_t *valid_slot = c_hash_get_value(&asset_manager->texture_hash, asset_key);
+    asset_slot_t *valid_slot = c_hash_get_value(&asset_manager->texture_catalog.texture_hash, asset_key);
     result.type = AT_BITMAP;
     if(valid_slot)
     {
@@ -93,7 +110,6 @@ s_asset_get_texture_handle(asset_manager_t *asset_manager, string_t asset_key)
         {
             // generate a new view 
             texture_view_t *new_view = s_asset_generate_texture_view(asset_manager, valid_slot, texture_data);
-            
             texture_data->view = new_view;
             result.texture     = new_view;
         }
@@ -102,7 +118,7 @@ s_asset_get_texture_handle(asset_manager_t *asset_manager, string_t asset_key)
     {
         log_warning("Invalid texture key: '%s', could not find a texture with that name in our packaging system...\n", asset_key.data);
         result.is_valid = false;
-        result.texture  = &asset_manager->null_texture;
+        result.texture  = &asset_manager->texture_catalog.null_texture;
     }
 
     return(result);
@@ -116,7 +132,7 @@ s_asset_load_texture_data(asset_manager_t *asset_manager, asset_handle_t handle)
     
     if(slot_data->asset_file_data_offset > 0)
     {
-        slot_data->texture.bitmap.data = c_file_read_za(asset_manager->texture_allocator,
+        slot_data->texture.bitmap.data = c_file_read_za(asset_manager->texture_catalog.texture_allocator,
                                                         asset_manager->asset_file_handle.filepath,
                                                         slot_data->asset_file_data_length,
                                                         slot_data->asset_file_data_offset,
@@ -126,7 +142,7 @@ s_asset_load_texture_data(asset_manager_t *asset_manager, asset_handle_t handle)
     {
         // NOTE(Sleepster): Data wasn't in the asset file, load it from the filepath
         Assert(slot_data->filename.data != null);
-        slot_data->texture.bitmap.data = c_file_read_za(asset_manager->texture_allocator,
+        slot_data->texture.bitmap.data = c_file_read_za(asset_manager->texture_catalog.texture_allocator,
                                                         slot_data->filename,
                                                         slot_data->asset_file_data_length,
                                                         slot_data->asset_file_data_offset,
@@ -143,6 +159,22 @@ s_asset_load_texture_data(asset_manager_t *asset_manager, asset_handle_t handle)
     slot_data->texture.bitmap.format = BMF_RGBA32;
     slot_data->texture.bitmap.stride = 32;
 
+    at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, slot_data->texture.view);
+
     // NOTE(Sleepster): What do I do?
     r_make_gpu_texture(&slot_data->texture, false, TAAFT_NEAREST);
+}
+
+internal inline void
+s_asset_destroy_texture_data(asset_manager_t *asset_manager, texture_view_t *view)
+{
+    bitmap_t *bitmap = &view->asset_slot->texture.bitmap;
+    c_za_free(asset_manager->texture_catalog.texture_allocator, bitmap->data.data);
+    bitmap->data.count = 0;
+}
+
+internal inline void
+s_asset_destroy_texture_view(asset_manager_t *asset_manager, texture_view_t *view)
+{
+    view->is_valid = false;
 }

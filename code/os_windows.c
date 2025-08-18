@@ -337,7 +337,7 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
 
     u32 cursor = 0;
     dynamic_array_t directories = c_dynamic_array_create(string_t, 10);
-    c_dynamic_array_append(&directories, filepath);
+    c_dynamic_array_append_value(&directories, filepath);
 
     while(cursor < directories.indices_used)
     {
@@ -374,7 +374,7 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
                     visit_file_data->is_directory = true;
                     if(visit_file_data->recursive)
                     {
-                        c_dynamic_array_append(&directories, visit_file_data->fullname);
+                        c_dynamic_array_append_value(&directories, visit_file_data->fullname);
                     }
                 }
             }

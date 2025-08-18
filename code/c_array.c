@@ -21,6 +21,7 @@ c_array_create_(u32 element_size, u32 count)
     result.total_size   = element_size * count;
     result.data         = malloc(result.total_size);
 
+    memset(result.data, 0, result.total_size);
     return(result);
 }
 
@@ -76,6 +77,8 @@ c_dynamic_array_create_(usize element_size, usize count)
     result.data            = malloc(element_size * count);
     if(result.data)
     {
+        memset(result.data, 0, element_size * count);
+        
         result.indices_used    = 0;
         result.element_size    = element_size;
         result.total_size      = element_size * count;

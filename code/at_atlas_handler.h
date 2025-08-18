@@ -17,6 +17,10 @@
 
 #include "r_asset_texture.h"
 
+#define ENGINE_ATLAS_SIZE 4096
+
+typedef struct asset_manager asset_manager_t;
+
 typedef struct atlas_handler_hash_table_entry
 {
     string_t     texture_name;

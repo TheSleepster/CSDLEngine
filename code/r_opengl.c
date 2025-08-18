@@ -429,6 +429,12 @@ r_create_texture_from_bitmap(bitmap_t *bitmap)
     return((texture2D_t){});
 }
 
+internal inline void
+r_delete_texture(texture_view_t *view)
+{
+    glDeleteTextures(1, &view->GPU_textureID);
+}
+
 internal void
 r_update_texture_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture)
 {
@@ -465,9 +471,10 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     render_state->draw_frame_arena = c_arena_create(MB(100));
     Assert(render_state->draw_frame_arena.base != null);
 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,  SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,  1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,          1);
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     bool8 success = SDL_GL_MakeCurrent(window, context);
@@ -606,7 +613,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 } 
 
 internal void
-r_render_single_frame(render_state_t *render_state)
+r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_state)
 {
     glEnable(GL_BLEND);
 
@@ -643,7 +650,7 @@ r_render_single_frame(render_state_t *render_state)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-    r_handle_renderpass_data(render_state);
+    r_handle_renderpass_data(asset_manager, render_state);
 
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();

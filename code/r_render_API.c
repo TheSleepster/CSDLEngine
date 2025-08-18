@@ -321,8 +321,10 @@ r_end_renderpass(render_state_t *render_state)
 }
 
 internal void
-r_handle_renderpass_data(render_state_t *render_state)
+r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state)
 {
+    at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler, false, TAAFT_NEAREST);
+    
     render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
                                                               render_group_t*,
                                                               render_state->draw_frame.render_group_counter);

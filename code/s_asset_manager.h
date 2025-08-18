@@ -16,8 +16,11 @@
 #include "r_asset_shader.h"
 #include "r_asset_dynamic_render_font.h"
 #include "r_asset_texture.h"
+#include "at_atlas_handler.h"
 
 #define MANAGER_HASH_TABLE_SIZE 1024
+#define MAX_TEXTURE_VIEWS       1024
+
 typedef enum asset_type
 {
     AT_NONE,
@@ -95,36 +98,56 @@ typedef struct asset_manager
     u64               sound_memory_capacity;
     u64               font_memory_capacity;
     
-    zone_allocator_t *texture_allocator;
-    zone_allocator_t *shader_allocator;
-    zone_allocator_t *sound_allocator;
-    zone_allocator_t *font_allocator;
-    
     memory_arena_t   *trash_arena;  // draw_frame_arena;
     memory_arena_t    manager_arena;
 
-    // TODO(Sleepster): read in portions of the file, not the whole thing...
-    // What are we supposed to do with this? What if we have more than one asset file?
-    // FILE HANDLE???
+    // TODO(Sleepster): What are we supposed to do with this? What if we have more than one asset file?
     string_t          asset_file_data;
     file_t            asset_file_handle;
 
-    hash_table_t      texture_hash;
-    hash_table_t      shader_hash;
-    hash_table_t      font_hash;
-    hash_table_t      sound_hash;
+    struct 
+    {
+        zone_allocator_t *texture_allocator;
+        atlas_handler_t   primary_handler;
 
-    u32               texture_view_count;
-    u32               font_view_count;
-    u32               shader_view_count;
+        hash_table_t      texture_hash;
+        array_t           texture_views;
+        u32               texture_view_count;
 
-    array_t           texture_views;
-    array_t           font_views;
-    array_t           shader_views;
 
-    texture_view_t    null_texture;
-    texture_view_t    null_font;
-    texture_view_t    null_shader;
+
+        texture_view_t    null_texture;
+    }texture_catalog;
+    struct 
+    {
+        zone_allocator_t *shader_allocator;
+
+        hash_table_t      shader_hash;
+        array_t           shader_views;
+        u32               shader_view_count;
+
+        texture_view_t    null_shader;
+    }shader_catalog;
+    struct 
+    {
+        zone_allocator_t *font_allocator;
+    
+        hash_table_t      font_hash;
+        array_t           font_views;
+        u32               font_view_count;
+
+        texture_view_t    null_font;
+    }font_catalog;
+    struct
+    {
+        zone_allocator_t *sound_allocator;
+
+        hash_table_t      sound_hash;
+        array_t           sound_views;
+        u32               sound_view_count;
+
+        texture_view_t    null_sound;
+    }sound_catalog;
 }asset_manager_t;
 
 #endif

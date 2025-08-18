@@ -14,6 +14,8 @@
 
 /* TODO:
  * 1.) Array For Each
+ * 2.) Switch to OS allocation using Virtual Memory
+ * 3.) For some reason pointers when added to arrays do not work properly
  */
 
 /////////////////////////////
@@ -55,12 +57,12 @@ typedef struct dynamic_array
 }dynamic_array_t;
 
 #define c_dynamic_array_create(type, count)  c_dynamic_array_create_(sizeof(type), count)
-#define c_dynamic_array_append(array, value)                   \
+#define c_dynamic_array_append(array, value) c_dynamic_array_append_value_(array, value, sizeof(value))
+#define c_dynamic_array_append_value(array, value)             \
 do{                                                            \
     __typeof__(value) temp = value;                            \
     c_dynamic_array_append_value_(array, &temp, sizeof(temp)); \
 }while(0)
-
 
 // NOTE(Sleepster): We don't need a reserve function like std::vector(); because we create the array with a preset reserved capacity 
 internal dynamic_array_t c_dynamic_array_create_(usize element_size, usize count);
