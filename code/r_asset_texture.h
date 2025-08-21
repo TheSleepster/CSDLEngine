@@ -38,6 +38,7 @@ typedef struct bitmap
     
     // NOTE(Sleepster): byte array essentially. 
     string_t        data;
+    string_t        decompressed_data;
 }bitmap_t;
 
 typedef enum filter_type
@@ -57,8 +58,6 @@ typedef struct texture_view
 
     vec2_t       *uv_min;
     vec2_t       *uv_max;
-
-    asset_slot_t *asset_slot;
 }texture_view_t;
 
 typedef struct texture2D

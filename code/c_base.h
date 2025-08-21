@@ -159,25 +159,25 @@
 
 #include "c_types.h"
 
-global s8  min_s8  = (s8) 0x80;
-global s16 min_s16 = (s16)0x8000;
-global s32 min_s32 = (s32)0x80000000;
-global s64 min_s64 = (s64)0x8000000000000000llu;
+global s8  MIN_S8  = (s8) 0x80;
+global s16 MIN_S16 = (s16)0x8000;
+global s32 MIN_S32 = (s32)0x80000000;
+global s64 MIN_S64 = (s64)0x8000000000000000llu;
 
-global s8  max_s8  = (s8) 0x7f;
-global s16 max_s16 = (s16)0x7ffff;
-global s32 max_s32 = (s32)0x7ffffffff;
-global s64 max_s64 = (s64)0x7fffffffffffffffllu;
+global s8  MAX_S8  = (s8) 0x7f;
+global s16 MAX_S16 = (s16)0x7ffff;
+global s32 MAX_S32 = (s32)0x7ffffffff;
+global s64 MAX_S64 = (s64)0x7fffffffffffffffllu;
 
-global u8  min_u8  = (u8) 0x80;
-global u16 min_u16 = (u16)0x8000;
-global u32 min_u32 = (u32)0x80000000;
-global u64 min_u64 = (u64)0x8000000000000000llu;
+global u8  MIN_U8  = (u8) 0x80;
+global u16 MIN_U16 = (u16)0x8000;
+global u32 MIN_U32 = (u32)0x80000000;
+global u64 MIN_U64 = (u64)0x8000000000000000llu;
 
-global u8  max_u8  = (u8) 0x7f;
-global u16 max_u16 = (u16)0x7ffff;
-global u32 max_u32 = (u32)0x7fffffff;
-global u64 max_u64 = (u64)0x7fffffffffffffffllu;
+global u8  MAX_U8  = (u8) 0x7f;
+global u16 MAX_U16 = (u16)0x7ffff;
+global u32 MAX_U32 = (u32)0x7fffffff;
+global u64 MAX_U64 = (u64)0x7fffffffffffffffllu;
 
 global float32 machine_epsilon_f32 = 1.1920929e-7f;
 global float64 machine_epsilon_f64 = 2.220446e-16;

@@ -13,8 +13,7 @@
 #include "c_debug.h"
 
 /* TODO:
- * 1.) Array For Each
- * 2.) Switch to OS allocation using Virtual Memory
+ * 2.) Switch to OS allocation using Virtual Memory instead of malloc
  * 3.) For some reason pointers when added to arrays do not work properly
  */
 
@@ -35,11 +34,14 @@ typedef struct array
 #define c_array_create_from_base(data, type, count)         c_array_create_from_base_(data, sizeof(type), count)
 #define c_array_set_value_at_index(array, index, value_ptr) c_array_set_value_at_index_(array, index, value_ptr, sizeof(*value_ptr))
 
+#define ARRAY_FOR_EACH(array, iterator)                     for(u32 iterator = 0; iterator < array->capacity; ++iterator)
+
 internal        array_t c_array_create_(u32 element_size, u32 count);
 internal        array_t c_array_create_from_base_(void *data, u32 element_size, u32 count);
 internal inline void    c_array_set_value_at_index_(array_t *array, s32 index, void *data, u64 new_element_size);
 internal inline void*   c_array_get_value(array_t *array, s32 index);
 internal inline void    c_array_clear_value(array_t *array, s32 index);
+
 
 /////////////////////////////
 // DYNAMIC ARRAY
@@ -63,6 +65,8 @@ do{                                                            \
     __typeof__(value) temp = value;                            \
     c_dynamic_array_append_value_(array, &temp, sizeof(temp)); \
 }while(0)
+
+#define DYNAMIC_ARRAY_FOR_EACH(array, iterator)      for(u32 iterator = 0; iterator < array->indices_used; ++iterator)
 
 // NOTE(Sleepster): We don't need a reserve function like std::vector(); because we create the array with a preset reserved capacity 
 internal dynamic_array_t c_dynamic_array_create_(usize element_size, usize count);

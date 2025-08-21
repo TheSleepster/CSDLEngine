@@ -58,9 +58,16 @@ typedef struct os_mutex
     os_handle_t handle;
     void       *user_data;
 }os_mutex_t;
+
+typedef struct os_semaphore
+{
+    os_handle_t handle;
+}os_semaphore_t;
     
 #define PLATFORM_THREAD_PROC(name) u32 name(void *user_data)
 typedef PLATFORM_THREAD_PROC(thread_proc_t);
+
+internal os_thread_t os_create_thread(thread_proc_t *proc, void *user_data);
 
 #if defined OS_WINDOWS
 # include "os_windows.c"

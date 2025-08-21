@@ -7,6 +7,7 @@
 #define COLOR_WHITE ((vec4_t){1.0, 1.0, 1.0, 1.0})
 
 global bool8 initialized_stuff;
+global dynamic_render_font_varient_t *varient;
 
 internal void
 r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager)
@@ -40,16 +41,23 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
     r_begin_renderpass(render_state, &test_group3);
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){20, 20}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
-    asset_handle_t block_handle = s_asset_get_texture_handle(asset_manager, STR("block"));
+    asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
+    asset_handle_t block_handle = s_asset_texture_get(asset_manager, STR("block"));
     if(!initialized_stuff)
     {
-        s_asset_load_texture_data(asset_manager, block_handle);
+        s_asset_font_create_at_size(asset_manager, font_handle, 14);
+        varient = s_asset_font_get_at_size(asset_manager, font_handle, 16);
+        s_asset_texture_load_data(asset_manager, block_handle);
+        
         initialized_stuff = true;
     }
-    r_draw_texture(render_state, vec2_create_float(20, 40), vec2_create_float(20, 20), COLOR_WHITE, block_handle, 0, RQO_NONE);
-    r_end_renderpass(render_state);
 
-    s32 x = 0;
+    r_draw_texture(render_state, vec2_create_float(20, 40), vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
+
+    r_draw_rect(render_state, vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
+    r_draw_texture(render_state, vec2_create_float(50, -50), vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
+    
+    r_end_renderpass(render_state);
 }
 
 internal void

@@ -395,3 +395,16 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
     c_dynamic_array_destroy(&directories);
 }
 
+/////////////////////////////
+// MULTITHREADING FUNCTIONS
+/////////////////////////////
+
+internal os_thread_t
+os_thread_create(thread_proc_t *proc, void *user_data)
+{
+    os_thread_t result;
+    result.handle    = CreateThread(null, 0, proc, user_data, 0, &result.thread_id);
+    result.user_data = user_data;
+
+    return(result);
+}

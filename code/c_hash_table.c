@@ -22,6 +22,27 @@ c_fnv_hash_value(u8 *data, usize element_size, u64 hash_value)
     return(new_value);
 }
 
+internal hash_table_t
+c_hash_table_create_ma(memory_arena_t *arena, u32 max_entries, usize value_size)
+{
+    hash_table_t result;
+    
+    void *memory = c_arena_push_size(arena, max_entries * value_size);
+    result = c_hash_table_create_(memory, max_entries, value_size);
+
+    return(result);
+}
+
+internal hash_table_t
+c_hash_table_create_za(zone_allocator_t *zone, u32 max_entries, usize value_size, za_allocation_tag_t tag)
+{
+    hash_table_t result;
+    
+    void *memory = c_za_alloc(zone, max_entries * value_size, tag);
+    result = c_hash_table_create_(memory, max_entries, value_size);
+
+    return(result);
+}
 
 internal inline hash_table_t
 c_hash_table_create_(void *memory, u32 max_entries, usize value_size)

@@ -50,8 +50,8 @@ typedef struct atlas_handler
 // API DEFINITIONS
 ////////////////////
 internal atlas_handler_t at_atlas_handler_create(asset_manager_t  *asset_manager, zone_allocator_t *zone, s32 atlas_width, s32 atlas_height);
-internal void            at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *handler, texture_view_t *view);
-internal void            at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *handler, bool8 has_AA, filter_type_t filtering);
+internal void            at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *handler, asset_handle_t handle);
+internal void            at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *handler);
 ////////////////////
 
 #endif

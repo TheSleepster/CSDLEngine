@@ -22,14 +22,15 @@ r_add_texture_to_texture_list(render_group_t *group, u32 textureID)
     group->texture_count += 1;
 }
 
-// TODO(Sleepster): Better Culling. 
 internal render_quad_t
 r_create_render_quad(render_state_t       *render_state,
                      vec2_t                position,
                      vec2_t                render_size,
                      vec4_t                color,
-                     asset_handle_t       *handle,
                      float32               rotation,
+                     vec2_t                texture_offset,
+                     vec2_t                texture_size,
+                     u32                   gpu_texture_id,
                      render_quad_options_t render_options)
 {
     render_quad_t result = {};
@@ -45,18 +46,16 @@ r_create_render_quad(render_state_t       *render_state,
     result.bottom_left.vPosition  = vec2_create_float(left, bottom);
     result.bottom_right.vPosition = vec2_create_float(right, bottom);
 
-    result.center_pos = vec2_add(position, vec2_multiply(render_size, vec2_create(0.5f)));
-
     render_group_desc_t *mat_data = &render_state->draw_frame.active_render_group->render_desc;
-    vec4_t clip_pos = vec2_expand_vec4(result.center_pos, 0, 1);
+    vec4_t min_clip_pos = vec2_expand_vec4(result.top_left.vPosition, 0, 1);
+    vec4_t max_clip_pos = vec2_expand_vec4(result.bottom_right.vPosition, 0, 1);
+
     mat4_t clip_mat = mat4_multiply(mat_data->view_matrix, mat_data->projection_matrix);
     
-    clip_pos = vec4_transform(clip_mat, clip_pos);
-    result.culled = (((clip_pos.x < -1) && (clip_pos.x < -1)) ||
-                     ((clip_pos.x >  1) && (clip_pos.x >  1)) ||
-                     ((clip_pos.y < -1) && (clip_pos.y < -1)) ||
-                     ((clip_pos.y >  1) && (clip_pos.y >  1)));
-    
+    vec4_t quad_min = vec4_transform(clip_mat, min_clip_pos);
+    vec4_t quad_max = vec4_transform(clip_mat, max_clip_pos);
+    result.culled = ((quad_max.x < -1.0f) || (quad_min.x > 1.0f) ||
+                     (quad_max.y < -1.0f) || (quad_min.y > 1.0f));
     if(!result.culled)
     {
         if(rotation > 0)
@@ -67,7 +66,7 @@ r_create_render_quad(render_state_t       *render_state,
             result.bottom_right.vPosition = vec2_rotate(result.bottom_right.vPosition, DegToRad(rotation));
         }
 
-        if(handle->is_valid)
+        if(gpu_texture_id != MAX_U32)
         {
             for(u32 index = 0;
                 index < 4;
@@ -76,15 +75,15 @@ r_create_render_quad(render_state_t       *render_state,
                 result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->texture_count;
             }
 
-            vec2_t uv_min = *handle->texture->uv_min;
-            vec2_t uv_max = *handle->texture->uv_max;
+            vec2_t uv_min =  texture_offset;
+            vec2_t uv_max =  vec2_add(texture_offset, texture_size);
 
             result.top_left.vUVData     = uv_min;
-            result.top_right.vUVData    = vec2_create_float(uv_min.x + uv_max.x, uv_min.y);
-            result.bottom_left.vUVData  = vec2_create_float(uv_min.x,            uv_min.y + uv_max.y);
+            result.top_right.vUVData    = vec2_create_float(uv_max.x, uv_min.y);
+            result.bottom_left.vUVData  = vec2_create_float(uv_min.x, uv_max.y);
             result.bottom_right.vUVData = uv_max;
 
-            r_add_texture_to_texture_list(render_state->draw_frame.active_render_group, handle->texture->GPU_textureID);
+            r_add_texture_to_texture_list(render_state->draw_frame.active_render_group, gpu_texture_id);
         }
         else
         {
@@ -92,7 +91,7 @@ r_create_render_quad(render_state_t       *render_state,
                 index < 4;
                 ++index)
             {
-                result.elements[index].vTextureIndex = max_u32;
+                result.elements[index].vTextureIndex = MAX_U32;
             }
         }
 
@@ -108,28 +107,33 @@ r_create_render_quad(render_state_t       *render_state,
 }
 
 internal render_quad_t*
-r_draw_texture(render_state_t       *render_state,
-               vec2_t                position,
-               vec2_t                render_size,
-               vec4_t                color,
-               asset_handle_t        texture_handle,
-               float32               rotation,
-               render_quad_options_t render_options)
+r_draw_texture_ex(render_state_t       *render_state,
+                  vec2_t                position,
+                  vec2_t                render_size,
+                  vec4_t                color,
+                  float32               rotation,
+                  vec2_t                texture_offset,
+                  vec2_t                texture_size,
+                  u32                   gpu_texture_id,
+                  render_quad_options_t render_options)
 {
     Assert(render_state->draw_frame.active_render_group != null);
-    
     render_quad_t  *result = null;
-    render_group_t *active_render_group = render_state->draw_frame.active_render_group;
-    render_quad_t return_value = r_create_render_quad(render_state,
-                                                      position,
-                                                      render_size,
-                                                      color,
-                                                      &texture_handle,
-                                                      rotation,
-                                                      render_options);
-    if(!return_value.culled)
+
+    render_quad_t quad_init = r_create_render_quad(render_state,
+                                                   position,
+                                                   render_size,
+                                                   color,
+                                                   rotation,
+                                                   texture_offset,
+                                                   texture_size,
+                                                   gpu_texture_id,
+                                                   render_options);
+    if(!quad_init.culled)
     {
-        active_render_group->buffer_quads[active_render_group->quad_count] = return_value;
+        render_group_t *active_render_group = render_state->draw_frame.active_render_group;
+        
+        active_render_group->buffer_quads[active_render_group->quad_count] = quad_init;
 
         result = &active_render_group->buffer_quads[active_render_group->quad_count];
         if(render_options & RQO_SHADOWCASTER)
@@ -148,6 +152,40 @@ r_draw_texture(render_state_t       *render_state,
 
         active_render_group->quad_count += 1;
     }
+
+    return(result);
+}
+
+internal inline render_quad_t*
+r_draw_texture(render_state_t       *render_state,
+               vec2_t                position,
+               vec2_t                render_size,
+               vec4_t                color,
+               float32               rotation,
+               asset_handle_t        texture_handle,
+               render_quad_options_t render_options)
+{
+    render_quad_t *result = null;
+    
+    vec2_t uv_min     = vec2();
+    vec2_t uv_max     = vec2();
+    u32    texture_id = MAX_U32;
+    if(texture_handle.is_valid)
+    {
+        uv_min     = *texture_handle.texture->uv_min;
+        uv_max     = *texture_handle.texture->uv_max;
+        texture_id =  texture_handle.texture->GPU_textureID;
+    }
+
+    result = r_draw_texture_ex(render_state,
+                                  position,
+                                  render_size,
+                                  color,
+                                  rotation,
+                                  uv_min,
+                                  uv_max,
+                                  texture_id,
+                                  render_options);
     return(result);
 }
 
@@ -159,16 +197,15 @@ r_draw_rect(render_state_t       *render_state,
             float32               rotation,
             render_quad_options_t render_options)
 {
-    Assert(render_state->draw_frame.active_render_group != null);
-
     asset_handle_t invalid_handle = {};
     render_quad_t *result = r_draw_texture(render_state,
                                            position,
                                            render_size,
                                            color,
-                                           invalid_handle,
                                            rotation,
+                                           invalid_handle,
                                            render_options);
+
     return(result);
 }
 
@@ -323,7 +360,7 @@ r_end_renderpass(render_state_t *render_state)
 internal void
 r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state)
 {
-    at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler, false, TAAFT_NEAREST);
+    at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
     
     render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
                                                               render_group_t*,

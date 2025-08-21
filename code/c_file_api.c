@@ -31,7 +31,7 @@ c_file_get_read_size(file_t *file, u32 bytes_to_read, u32 file_offset)
     u32 result = 0;
 
     u32 file_size = os_file_get_size(file);
-    if(bytes_to_read == max_u32)
+    if(bytes_to_read == MAX_U32)
     {
         // read the whole file
         result = file_size;

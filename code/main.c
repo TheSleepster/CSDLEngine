@@ -43,7 +43,7 @@
 
 #include "r_asset_shader.c"
 #include "r_asset_texture.c"
-//#include "r_asset_dynamic_render_font.c"
+#include "r_asset_dynamic_render_font.c"
 //#include "r_asset_loaded_sound.c"
 #include "s_asset_manager.c"
 #include "at_atlas_handler.c"
@@ -79,6 +79,11 @@ main(int argc, char **argv)
         return(0);
     }
 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,  SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,          1);
+
     SDL_Window *window = SDL_CreateWindow("SDL Window", 1920, 1080, SDL_WINDOW_OPENGL);
     if(window)
     {
@@ -107,6 +112,5 @@ main(int argc, char **argv)
         }
     }
 
-    SDL_Delay(100);
     return(0);
 }

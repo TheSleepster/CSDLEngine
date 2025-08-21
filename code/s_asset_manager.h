@@ -82,11 +82,14 @@ typedef struct asset_slot
 
 typedef struct asset_handle
 {
-    bool8        is_valid;
-    asset_type_t type;
+    bool8         is_valid;
+    asset_type_t  type;
+
+    asset_slot_t *asset_slot;
     union
     {
-        const texture_view_t *texture;
+        texture_view_t        *texture;
+        dynamic_render_font_t *font;
     };
 }asset_handle_t;
 
@@ -114,8 +117,6 @@ typedef struct asset_manager
         array_t           texture_views;
         u32               texture_view_count;
 
-
-
         texture_view_t    null_texture;
     }texture_catalog;
     struct 
@@ -130,6 +131,7 @@ typedef struct asset_manager
     }shader_catalog;
     struct 
     {
+        FT_Library        font_lib;
         zone_allocator_t *font_allocator;
     
         hash_table_t      font_hash;

@@ -378,7 +378,7 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
 }
 
 internal void 
-r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
+r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
 {
     Assert(texture != null);
     Assert(texture->bitmap.data.data != null);
@@ -422,21 +422,19 @@ r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type
                                              texture->bitmap.height);
 }
 
-internal texture2D_t 
-r_create_texture_from_bitmap(bitmap_t *bitmap)
+internal void 
+r_texture_create_from_bitmap(bitmap_t *bitmap)
 {
-    Assert(false);
-    return((texture2D_t){});
 }
 
 internal inline void
-r_delete_texture(texture_view_t *view)
+r_texture_delete(texture_view_t *view)
 {
     glDeleteTextures(1, &view->GPU_textureID);
 }
 
 internal void
-r_update_texture_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture)
+r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture)
 {
     glBindTexture(GL_TEXTURE_2D, texture->view->GPU_textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -470,11 +468,6 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 {
     render_state->draw_frame_arena = c_arena_create(MB(100));
     Assert(render_state->draw_frame_arena.base != null);
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,  SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,          1);
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     bool8 success = SDL_GL_MakeCurrent(window, context);
@@ -675,5 +668,4 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
         glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
     }
-
 }

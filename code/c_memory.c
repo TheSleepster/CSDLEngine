@@ -63,7 +63,9 @@ c_arena_push_size(memory_arena_t *arena, u64 size_init)
     Assert((arena->used + size) <= arena->capacity);
     Assert(arena->base != null);
 
-    result       = offset_ptr;
+    result = offset_ptr;
+    memset(result, 0, size);
+    
     arena->used += size;
 
     return(result);
@@ -257,7 +259,7 @@ c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag)
     zone->cursor               = base_block->next_block;
 
     result = (byte*)base_block + sizeof(zone_allocator_block_t);
-    //memset(result, 0, size);
+    memset(result, 0, size - sizeof(zone_allocator_block_t));
 
     log_info("Zone Allocated: %d bytes...\n", size);
     return(result);

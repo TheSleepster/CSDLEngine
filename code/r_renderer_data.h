@@ -183,9 +183,9 @@ typedef struct render_state
 ////////////////////////////
 // RENDER API FUNCTIONS
 ////////////////////////////
-internal        void r_make_gpu_texture(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
-internal inline void r_delete_texture(texture_view_t *view);
-internal        void r_update_texture_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture);
+internal        void r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
+internal inline void r_texture_delete(texture_view_t *view);
+internal        void r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture);
 /////////////////////////////
 
 

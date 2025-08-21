@@ -5,6 +5,7 @@ CC=clang
 ifeq ($(OS),Windows_NT)
     OS_DEFINE = -DOS_WINDOWS=1
     PLATFORM_LIBS = -lopengl32 -luser32 -lgdi32 -lwinmm -lshell32 -lole32 -luuid -lversion -ladvapi32 -lsetupapi -lcfgmgr32 -loleaut32 -limm32
+	LDFLAGS = -Wl,/IGNORE:4099
     EXE_EXT = .exe
     DEV_NULL = NUL
 else
@@ -66,7 +67,7 @@ $(ASSET_FILE_BUILDER_OUT): $(ASSET_FILE_BUILDER_SRC) | ../build
 
 $(ENGINE_OUT): $(ENGINE_SRC) | ../build
 	@echo Building Engine...
-	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) -o $@ -MMD -MF ../build/engine.d
+	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/engine.d
 
 ../build:
 	mkdir -p ../build

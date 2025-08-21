@@ -89,7 +89,7 @@ internal inline file_t            c_file_open(string_t filepath, bool8 create);
 internal inline bool8             c_file_close(file_t *file);
 
 // NOTE(Sleepster): These belong to the 'bytes_to_read' parameter of c_file_read_*... 
-#define READ_ENTIRE_FILE (max_u32)
+#define READ_ENTIRE_FILE (MAX_U32)
 #define READ_TO_END      (0)
 
 internal        u32               c_file_get_read_size(file_t *file, u32 bytes_to_read, u32 file_offset);

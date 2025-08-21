@@ -92,11 +92,6 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
     asset_manager->font_memory_capacity    = MB(500);
     asset_manager->sound_memory_capacity   = MB(500);
 
-    asset_manager->texture_catalog.texture_allocator = c_za_create(asset_manager->texture_memory_capacity);
-    asset_manager->shader_catalog.shader_allocator   = c_za_create(asset_manager->shader_memory_capacity);
-    asset_manager->font_catalog.font_allocator       = c_za_create(asset_manager->font_memory_capacity);
-    asset_manager->sound_catalog.sound_allocator     = c_za_create(asset_manager->sound_memory_capacity);
-
     asset_manager->manager_arena =  c_arena_create(MB(200));
     asset_manager->trash_arena   = &global_context.temporary_arena;
     
@@ -107,13 +102,25 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
 
     void *texture_view_memory = c_arena_push_size(&asset_manager->manager_arena, sizeof(texture_view_t) * MAX_TEXTURE_VIEWS);
 
-    asset_manager->texture_catalog.texture_hash    = c_hash_table_create(memory, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-    asset_manager->texture_catalog.texture_views   = c_array_create_from_base(texture_view_memory, texture_view_t, MAX_TEXTURE_VIEWS);
-    asset_manager->texture_catalog.primary_handler = at_atlas_handler_create(asset_manager, asset_manager->texture_catalog.texture_allocator, ENGINE_ATLAS_SIZE, ENGINE_ATLAS_SIZE); 
+    asset_manager->texture_catalog.texture_allocator = c_za_create(asset_manager->texture_memory_capacity);
+    asset_manager->texture_catalog.texture_hash      = c_hash_table_create(memory, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->texture_catalog.texture_views     = c_array_create_from_base(texture_view_memory, texture_view_t, MAX_TEXTURE_VIEWS);
+    asset_manager->texture_catalog.primary_handler   = at_atlas_handler_create(asset_manager, asset_manager->texture_catalog.texture_allocator, ENGINE_ATLAS_SIZE, ENGINE_ATLAS_SIZE); 
 
-    asset_manager->shader_catalog.shader_hash      = c_hash_table_create(memory2, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-    asset_manager->font_catalog.font_hash          = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
-    asset_manager->sound_catalog.sound_hash        = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->shader_catalog.shader_allocator   = c_za_create(asset_manager->shader_memory_capacity);
+    asset_manager->shader_catalog.shader_hash        = c_hash_table_create(memory2, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+
+    FT_Error error = FT_Init_FreeType(&asset_manager->font_catalog.font_lib);
+    if(error != 0)
+    {
+        Assert(0);
+    }
+    
+    asset_manager->font_catalog.font_allocator       = c_za_create(asset_manager->font_memory_capacity);
+    asset_manager->font_catalog.font_hash            = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+
+    asset_manager->sound_catalog.sound_allocator     = c_za_create(asset_manager->sound_memory_capacity);
+    asset_manager->sound_catalog.sound_hash          = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
 
     // NOTE(Sleepster): Read asset file data
     {
