@@ -1,7 +1,7 @@
 #define U32_MAX 0x7fffffff
 
 #ifdef VERTEX_SHADER
-layout(location = 0) in vec2 vPosition;
+layout(location = 0) in vec3 vPosition;
 layout(location = 1) in vec2 vUVData;
 layout(location = 2) in vec4 vColor;
 layout(location = 3) in vec3 vVSNormals;
@@ -20,7 +20,7 @@ main()
     vOutColor        = vColor;
     vOutUVData       = vUVData;
     vOutTextureIndex = vTextureIndex;
-    gl_Position      = uProjectionMatrix * uViewMatrix * vec4(vPosition, 0, 1);
+    gl_Position      = uProjectionMatrix * uViewMatrix * vec4(vPosition, 1);
 }
 #endif
 

@@ -41,16 +41,26 @@ r_create_render_quad(render_state_t       *render_state,
     float32 bottom = position.y + render_size.y;
     float32 right  = position.x + render_size.x;
 
-    result.top_left.vPosition     = vec2_create_float(left, top);
-    result.top_right.vPosition    = vec2_create_float(right, top);
-    result.bottom_left.vPosition  = vec2_create_float(left, bottom);
-    result.bottom_right.vPosition = vec2_create_float(right, bottom);
+    render_group_desc_t *render_group_data = &render_state->draw_frame.active_render_group->render_desc;
 
-    render_group_desc_t *mat_data = &render_state->draw_frame.active_render_group->render_desc;
-    vec4_t min_clip_pos = vec2_expand_vec4(result.top_left.vPosition, 0, 1);
-    vec4_t max_clip_pos = vec2_expand_vec4(result.bottom_right.vPosition, 0, 1);
+    /* NOTE(Sleepster): We are using an Orthographic projection matrix.
+     * In OpenGL and Vulkan, the depth values are always normalized between -1 and 1
+     */
+    float32 near_value        = -1;
+    float32 far_value         =  1;
 
-    mat4_t clip_mat = mat4_multiply(mat_data->view_matrix, mat_data->projection_matrix);
+    float32 depth_step        = (far_value - near_value) / MAX_RENDER_LAYERS;
+    float32 layer_depth_value = near_value  + (render_group_data->render_layer * depth_step);
+
+    result.top_left.vPosition     = vec3_create_float(left, top,     layer_depth_value);
+    result.top_right.vPosition    = vec3_create_float(right, top,    layer_depth_value);
+    result.bottom_left.vPosition  = vec3_create_float(left, bottom,  layer_depth_value);
+    result.bottom_right.vPosition = vec3_create_float(right, bottom, layer_depth_value);
+
+    vec4_t min_clip_pos = vec3_expand_vec4(result.top_left.vPosition, 1);
+    vec4_t max_clip_pos = vec3_expand_vec4(result.bottom_right.vPosition, 1);
+
+    mat4_t clip_mat = mat4_multiply(render_group_data->view_matrix, render_group_data->projection_matrix);
     
     vec4_t quad_min = vec4_transform(clip_mat, min_clip_pos);
     vec4_t quad_max = vec4_transform(clip_mat, max_clip_pos);
@@ -60,10 +70,10 @@ r_create_render_quad(render_state_t       *render_state,
     {
         if(rotation > 0)
         {
-            result.top_left.vPosition     = vec2_rotate(result.top_left.vPosition,     DegToRad(rotation));
-            result.top_right.vPosition    = vec2_rotate(result.top_right.vPosition,    DegToRad(rotation));
-            result.bottom_left.vPosition  = vec2_rotate(result.bottom_left.vPosition,  DegToRad(rotation));
-            result.bottom_right.vPosition = vec2_rotate(result.bottom_right.vPosition, DegToRad(rotation));
+            result.top_left.vPosition     = vec2_expand_vec3(vec2_rotate(result.top_left.vPosition.xy,     DegToRad(rotation)), layer_depth_value);
+            result.top_right.vPosition    = vec2_expand_vec3(vec2_rotate(result.top_right.vPosition.xy,    DegToRad(rotation)), layer_depth_value);
+            result.bottom_left.vPosition  = vec2_expand_vec3(vec2_rotate(result.bottom_left.vPosition.xy,  DegToRad(rotation)), layer_depth_value);
+            result.bottom_right.vPosition = vec2_expand_vec3(vec2_rotate(result.bottom_right.vPosition.xy, DegToRad(rotation)), layer_depth_value);
         }
 
         if(gpu_texture_id != MAX_U32)
@@ -217,7 +227,7 @@ r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_fo
         p_character < output.data + output.count;
         p_character = unicode_next_character(p_character))
     {
-        font_glyph_t *glyph     = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
+        font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
         result += glyph->glyph_render_size.x + glyph->advance;
 
         if(glyph->owner_page->bitmap_dirty)
@@ -265,7 +275,7 @@ r_draw_string(asset_manager_t       *asset_manager,
             if(character == '\n' || character == '\r')
             {
                 draw_position.x  = position.x;
-                draw_position.y += varient->typical_ascender;
+                draw_position.y -= varient->typical_ascender * 2;
 
                 continue;
             }
@@ -287,7 +297,7 @@ r_draw_string(asset_manager_t       *asset_manager,
                                   glyph->owner_page->font_atlas.view->GPU_textureID,
                                   render_options);
 
-                draw_position.x += glyph->advance - glyph->offset_x;
+                draw_position.x += glyph->advance;
             }
         }
     }
@@ -361,6 +371,8 @@ r_build_renderpass_desc(GPU_shader_t          *desired_shader,
                          mat4_t                 projection_matrix,
                          render_group_effects_t render_effects)
 {
+    Assert(render_layer <= MAX_RENDER_LAYERS);
+    
     render_group_desc_t result;
     result.shader            = desired_shader;
     result.render_layer      = render_layer;
@@ -390,6 +402,8 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
 internal void
 r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc)
 {
+    Assert(render_pass_desc->render_layer <= MAX_RENDER_LAYERS);
+
     u64 pass_id = r_get_renderpass_desc_id(render_pass_desc);
     if(render_state->draw_frame.render_groups == null || !render_state->draw_frame.initialized)
     {

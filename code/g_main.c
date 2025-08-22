@@ -48,22 +48,19 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
         initialized_stuff = true;
     }
 
-    r_draw_texture(render_state, vec2_create_float(20, 40), vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
-
+    r_draw_texture(render_state, vec2_create_float(20, 40), vec2_create_float(20, 20), COLOR_WHITE,  0, block_handle, RQO_NONE);
     r_draw_rect(render_state, vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
     r_draw_texture(render_state, vec2_create_float(50, -50), vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
     
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group4 = r_build_renderpass_desc(&render_state->font_shader,
-                                                              24,
+                                                              1,
                                                               view_matrix,
                                                               projection_matrix,
                                                               RGE_None);
     r_begin_renderpass(render_state, &test_group4);
-
-    r_draw_string(asset_manager, render_state, STR("This is a test!!!..."), font_handle, 16, vec2_create_float(-100, 60), COLOR_WHITE, RQO_NONE);
-    
+    r_draw_string(asset_manager, render_state, STR("This is a test!!!...\nWhat are the bones doing here?"), font_handle, 16, vec2_create_float(-100, 50), COLOR_WHITE, RQO_NONE);
     r_end_renderpass(render_state);
 }
 

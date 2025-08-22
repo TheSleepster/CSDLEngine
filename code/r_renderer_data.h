@@ -22,7 +22,7 @@
 
 typedef struct vertex
 {
-    vec2_t vPosition;
+    vec3_t vPosition;
     vec2_t vUVData;
     vec4_t vColor;
     vec3_t vVSNormals;
@@ -59,7 +59,7 @@ typedef struct render_quad
 
 ///////////////////////
 // RENDER GROUPS 
-
+///////////////////////
 
 #define LIGHTMAP_SIZE    4096
 #define MAX_LIGHT_RADIUS 256
@@ -85,7 +85,6 @@ typedef struct shadow_caster2D
 
 #define MAX_RENDER_GROUPS 96
 #define MAX_RENDER_LAYERS 32
-
 #define MAX_TEXTURES      16
 
 typedef enum render_group_effects
