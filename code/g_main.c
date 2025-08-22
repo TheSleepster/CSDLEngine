@@ -41,14 +41,10 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
     r_begin_renderpass(render_state, &test_group3);
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){20, 20}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
-    asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
+    asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
     asset_handle_t block_handle = s_asset_texture_get(asset_manager, STR("block"));
     if(!initialized_stuff)
     {
-        s_asset_font_create_at_size(asset_manager, font_handle, 14);
-        varient = s_asset_font_get_at_size(asset_manager, font_handle, 16);
-        s_asset_texture_load_data(asset_manager, block_handle);
-        
         initialized_stuff = true;
     }
 
@@ -56,6 +52,17 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
 
     r_draw_rect(render_state, vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
     r_draw_texture(render_state, vec2_create_float(50, -50), vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
+    
+    r_end_renderpass(render_state);
+
+    render_group_desc_t test_group4 = r_build_renderpass_desc(&render_state->font_shader,
+                                                              24,
+                                                              view_matrix,
+                                                              projection_matrix,
+                                                              RGE_None);
+    r_begin_renderpass(render_state, &test_group4);
+
+    r_draw_string(asset_manager, render_state, STR("This is a test!!!..."), font_handle, 16, vec2_create_float(-100, 60), COLOR_WHITE, RQO_NONE);
     
     r_end_renderpass(render_state);
 }

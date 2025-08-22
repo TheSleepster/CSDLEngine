@@ -39,7 +39,7 @@ r_create_render_quad(render_state_t       *render_state,
     float32 top    = position.y;
     float32 left   = position.x;
     float32 bottom = position.y + render_size.y;
-    float32 right  = position.x + render_size.y;
+    float32 right  = position.x + render_size.x;
 
     result.top_left.vPosition     = vec2_create_float(left, top);
     result.top_right.vPosition    = vec2_create_float(right, top);
@@ -207,6 +207,94 @@ r_draw_rect(render_state_t       *render_state,
                                            render_options);
 
     return(result);
+}
+
+internal s32
+r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, string_t output)
+{
+    s32 result = 0;
+    for(u8 *p_character = output.data;
+        p_character < output.data + output.count;
+        p_character = unicode_next_character(p_character))
+    {
+        font_glyph_t *glyph     = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
+        result += glyph->glyph_render_size.x + glyph->advance;
+
+        if(glyph->owner_page->bitmap_dirty)
+        {
+            texture2D_t *texture = &glyph->owner_page->font_atlas;
+            if(texture->view->GPU_textureID == 0)
+            {
+                r_texture_make_gpu(texture, texture->has_AA, texture->filter_type);
+            }
+            else
+            {
+                r_texture_update_from_bitmap(asset_manager, texture);
+            }
+
+            glyph->owner_page->bitmap_dirty = false;
+        }
+    }
+
+    return(result);
+}
+
+internal void
+r_draw_string(asset_manager_t       *asset_manager,
+              render_state_t        *render_state,
+              string_t               output,
+              asset_handle_t         font,
+              u32                    pixel_size,
+              vec2_t                 position,
+              vec4_t                 color,
+              render_quad_options_t  render_options)
+{
+    dynamic_render_font_varient_t *varient = s_asset_font_get_at_size(asset_manager, font, pixel_size);
+    if(varient)
+    {
+        r_prepare_string_for_rendering(asset_manager, varient, output);
+        
+        vec2_t draw_position = position;
+        for(u8 *p_character = output.data;
+            p_character < output.data + output.count;
+            p_character = unicode_next_character(p_character))
+        {
+            u8  character   = *p_character;
+            if(character == '\0') break;
+            
+            if(character == '\n' || character == '\r')
+            {
+                draw_position.x  = position.x;
+                draw_position.y += varient->typical_ascender;
+
+                continue;
+            }
+
+            font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
+            if(character == '\t' || character == ' ')
+            {
+                draw_position.x += glyph->advance;
+            }
+            else
+            {
+                r_draw_texture_ex(render_state,
+                                  vec2_create_float(floorf(draw_position.x + glyph->offset_x), floorf(draw_position.y - glyph->ascent) + glyph->offset_y),
+                                  glyph->glyph_render_size,
+                                  color,
+                                  0.0f,
+                                  glyph->atlas_offset,
+                                  glyph->glyph_size,
+                                  glyph->owner_page->font_atlas.view->GPU_textureID,
+                                  render_options);
+
+                draw_position.x += glyph->advance - glyph->offset_x;
+            }
+        }
+    }
+    else
+    {
+        log_error("Could not get a varient of your font: '%s' at the size of: '%d'...\n", font.font->filename.data, pixel_size);
+    }
 }
 
 ////////////////////

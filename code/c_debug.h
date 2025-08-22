@@ -46,7 +46,7 @@ _log(debug_log_level_t log_level, const char *message, char *file, int32 line, .
         "\033[31m",          // LOG_ERROR:   Red
         "\033[41m\033[30m"   // LOG_FATAL:   Red background, Black text
     };
-    bool8 is_error = (log_level > 2);
+    bool8 is_error = (log_level > 1);
 
     char buffer[32000];
     memset(buffer, 0, sizeof(buffer));

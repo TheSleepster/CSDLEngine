@@ -57,7 +57,7 @@ at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *ha
     }
     else
     {
-        log_warning("This texture: '%s' is already a part of the atlas_handler's contents...\n", handle.asset_slot->filename.data);
+        log_warning("This texture: '%s' is already a part of the atlas_handler's contents... Nothing to be done...\n", handle.asset_slot->filename.data);
     }
 }
 

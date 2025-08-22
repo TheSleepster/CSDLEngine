@@ -41,6 +41,8 @@ u32 UTF8_offsets[] = {0x00000000, 0x00003080, 0x000e2080,
 
 typedef struct dynamic_render_font
 {
+    string_t        filename;
+
     bool8           is_valid;
     bool8           is_initialized;
     
@@ -90,6 +92,8 @@ typedef struct font_glyph
 {
     vec2_t   atlas_offset;
     vec2_t   glyph_size;
+    vec2_t   glyph_render_size;
+
     string_t hash_key;
 
     // RENDERING //

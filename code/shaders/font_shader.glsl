@@ -40,7 +40,7 @@ main()
     vec4 TextureColor = vec4(1.0);
     if(vOutTextureIndex != U32_MAX)
     {
-        TextureColor = texelFetch(uTest, ivec2(vOutUVData), 0);
+        TextureColor = texture(uTest, vOutUVData, 0);
     }
     vFragColor = TextureColor * vOutColor;
 }

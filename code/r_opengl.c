@@ -382,6 +382,7 @@ r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type
 {
     Assert(texture != null);
     Assert(texture->bitmap.data.data != null);
+    Assert(texture->view != null);
     Assert(texture->view->GPU_textureID == 0);
 
     glGenTextures(1, &texture->view->GPU_textureID);
@@ -527,6 +528,9 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    
+    string_t font_shader      = c_file_read(STR("../code/shaders/font_shader.glsl"), READ_ENTIRE_FILE, 0);
+    render_state->font_shader = r_create_shader_program(font_shader, ST_PIXEL_SHADER);
 
     string_t lighting_shader  = c_file_read(STR("../code/shaders/lighting.glsl"), READ_ENTIRE_FILE, 0);
     render_state->lighting_data.lighting_shader = r_create_shader_program(lighting_shader, ST_PIXEL_SHADER);
@@ -645,12 +649,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
     r_handle_renderpass_data(asset_manager, render_state);
 
-    mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
-    mat4_t view_matrix       = mat4_identity();
-
-    r_update_shader_uniform_data(&render_state->test_shader, STR("uProjectionMatrix"), &projection_matrix.values);
-    r_update_shader_uniform_data(&render_state->test_shader, STR("uViewMatrix"), &view_matrix.values);
-
     glBindVertexArray(render_state->primary_vao_id);
     for(u32 group_index = 0;
         group_index < render_state->draw_frame.render_group_counter;
@@ -658,6 +656,10 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     {
         render_group_t *group = render_state->draw_frame.render_groups[group_index];
         Assert(group);
+        
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+
         
         glUseProgram(group->render_desc.shader->program_id);
         r_update_shader_gpu_data(group, group->render_desc.shader, true);

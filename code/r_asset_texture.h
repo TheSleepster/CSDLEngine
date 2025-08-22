@@ -12,8 +12,9 @@
 #include "c_memory.h"
 #include "c_file_api.h"
 
-typedef struct asset_slot   asset_slot_t;
-typedef struct asset_handle asset_handle_t;
+typedef struct asset_slot    asset_slot_t;
+typedef struct asset_handle  asset_handle_t;
+typedef struct asset_manager asset_manager_t;
 
 typedef enum bitmap_format
 {
@@ -71,5 +72,7 @@ typedef struct texture2D
     bool8           has_AA;
     filter_type_t   filter_type;
 }texture2D_t;
+
+internal void s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle);
 
 #endif

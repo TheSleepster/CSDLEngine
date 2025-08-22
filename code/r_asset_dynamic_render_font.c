@@ -13,10 +13,11 @@ s_asset_font_get(asset_manager_t *asset_manager, string_t font_name)
     asset_slot_t *valid_slot = c_hash_get_value(&asset_manager->font_catalog.font_hash, font_name);
     if(valid_slot)
     {
-        result.is_valid   = true;
-        result.type       =  AT_FONT;
-        result.asset_slot = valid_slot;
-        result.font       = &valid_slot->render_font;
+        result.is_valid       =  true;
+        result.type           =  AT_FONT;
+        result.asset_slot     =  valid_slot;
+        result.font           = &valid_slot->render_font;
+        result.font->filename =  valid_slot->filename;
     }
     else
     {
@@ -43,8 +44,9 @@ s_UTF8_convert_UTF32(u8 *character)
         }
 
         if(utf32_char > UTF32_MAX_CHARACTER) utf32_char = UTF32_REPLACEMENT_CHARACTER;
-    }
 
+        result = utf32_char;
+    }
     return(result);
 }
 
@@ -62,14 +64,17 @@ s_font_atlas_find_next_free_line(dynamic_render_font_page_t *page, s32 glyph_wid
     }
     else
     {
-        result = vec2_create_float(page->bitmap_cursor_x, page->bitmap_cursor_y);
+        result = vec2_create_float(page->bitmap_cursor_x + 1, page->bitmap_cursor_y + 1);
     }
 
     return(result);
 }
 
 internal void 
-s_font_copy_glyph_data_to_page_bitmap(memory_arena_t *arena, dynamic_render_font_page_t *page, font_glyph_t *glyph)
+s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
+                                      memory_arena_t             *arena,
+                                      dynamic_render_font_page_t *page,
+                                      font_glyph_t               *glyph)
 {
     if(!page->bitmap_valid)
     {
@@ -82,8 +87,9 @@ s_font_copy_glyph_data_to_page_bitmap(memory_arena_t *arena, dynamic_render_font
         page->font_atlas.bitmap.data.count = (4096 * 4096 * 4) * sizeof(u8);
         page->font_atlas.uv_min            = vec2_create_float(0.0, 0.0);
         page->font_atlas.uv_max            = vec2_create_float(1.0, 1.0);
-        page->font_atlas.has_AA            = true;
-        page->font_atlas.filter_type       = TAAFT_LINEAR;
+        page->font_atlas.has_AA            = false;
+        page->font_atlas.filter_type       = TAAFT_NEAREST;
+        page->font_atlas.view              = s_asset_texture_view_generate(asset_manager, null, &page->font_atlas);
         
         page->bitmap_valid = true;
     }
@@ -98,9 +104,15 @@ s_font_copy_glyph_data_to_page_bitmap(memory_arena_t *arena, dynamic_render_font
 
     s32 glyph_width   = font_face->glyph->bitmap.width;
     s32 row_height    = font_face->glyph->bitmap.rows;
-    glyph->glyph_size = vec2_create_float(glyph_width, row_height);
 
-    glyph->atlas_offset = s_font_atlas_find_next_free_line(page, glyph_width, row_height);
+    glyph->glyph_render_size = vec2_create_float(glyph_width, row_height);
+    vec2_t bitmap_offset     = s_font_atlas_find_next_free_line(page, glyph_width, row_height);
+    glyph->atlas_offset      = vec2_create_float((float32)bitmap_offset.x / (float32)page->font_atlas.bitmap.width,
+                                                 (float32)bitmap_offset.y / (float32)page->font_atlas.bitmap.height);
+
+    glyph->glyph_size = vec2_create_float((float32)glyph_width / (float32)page->font_atlas.bitmap.width,
+                                          (float32)row_height  / (float32)page->font_atlas.bitmap.height);
+    
     for(s32 row = 0;
         row < row_height;
         ++row)
@@ -110,7 +122,7 @@ s_font_copy_glyph_data_to_page_bitmap(memory_arena_t *arena, dynamic_render_font
             ++column)
         {
             uint8  source = font_face->glyph->bitmap.buffer[(row_height- 1 - row) * font_face->glyph->bitmap.pitch + column];
-            uint8 *dest   = (u8 *)page->font_atlas.bitmap.data.data + (((u32)glyph->atlas_offset.y + row) * page->font_atlas.bitmap.width + ((uint32)glyph->atlas_offset.x + column)) * 4;
+            uint8 *dest   = (u8 *)page->font_atlas.bitmap.data.data + (((u32)bitmap_offset.y + row) * page->font_atlas.bitmap.width + ((uint32)bitmap_offset.x + column)) * 4;
 
             dest[0] = source;
             dest[1] = source;
@@ -123,7 +135,7 @@ s_font_copy_glyph_data_to_page_bitmap(memory_arena_t *arena, dynamic_render_font
 }
 
 internal font_glyph_t*
-s_asset_font_get_utf8_glyph(dynamic_render_font_varient_t *varient, u8 *character)
+s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, u8 *character)
 {
     font_glyph_t *result = null;
 
@@ -195,12 +207,11 @@ s_asset_font_get_utf8_glyph(dynamic_render_font_varient_t *varient, u8 *characte
             }
 
             font_glyph_t *glyph = c_arena_push_struct(&varient->parent->font_arena, font_glyph_t);
-            ZeroStruct(glyph);
 
             glyph->hash_key   = c_string_make_copy(&varient->parent->font_arena, temp);
             glyph->owner_page = valid_page;
 
-            s_font_copy_glyph_data_to_page_bitmap(&varient->parent->font_arena, valid_page, glyph);
+            s_font_copy_glyph_data_to_page_bitmap(asset_manager, &varient->parent->font_arena, valid_page, glyph);
             c_hash_insert_kv_pair(&valid_page->glyph_lookup, glyph->hash_key, glyph);
             result = glyph;
 
@@ -258,9 +269,9 @@ s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handl
     dynamic_render_font_t *font = handle.font;
     if(!font->is_initialized)
     {
-        font->font_arena  = c_arena_create(MB(50));
+        font->font_arena  = c_arena_create(MB(200));
         font->loaded_data = s_asset_font_load_data(&font->font_arena, asset_manager, handle);
-        font->pixel_sizes = c_dynamic_array_create(dynamic_render_font_varient_t*, 20);
+        font->pixel_sizes = c_dynamic_array_create(dynamic_render_font_varient_t, 20);
 
         Assert(font->loaded_data.data);
         font->is_initialized = true;
@@ -330,7 +341,7 @@ s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handl
         if(!success) success = s_asset_font_set_unknown_character(result, (u32)'?');
         if(!success) log_warning("Unable to set the unknown character for this font...\n");
 
-        c_dynamic_array_append(&font->pixel_sizes, result);
+        c_dynamic_array_append_value(&font->pixel_sizes, *result);
     }
     else
     {
