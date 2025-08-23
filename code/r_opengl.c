@@ -659,7 +659,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         
         r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
         r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-
         
         glUseProgram(group->render_desc.shader->program_id);
         r_update_shader_gpu_data(group, group->render_desc.shader, true);
@@ -670,4 +669,5 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
         glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
     }
+
 }
