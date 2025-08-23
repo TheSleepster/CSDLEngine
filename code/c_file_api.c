@@ -21,7 +21,7 @@ c_file_close(file_t *file)
         log_error("Failed to close the file passed, filename: '%s'...", file->file_name.data);
     }
 
-    file->handle = null;
+    file->handle = 0;
     return(result);
 }
 

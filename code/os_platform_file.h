@@ -69,13 +69,13 @@ typedef PLATFORM_THREAD_PROC(thread_proc_t);
 
 internal os_thread_t os_create_thread(thread_proc_t *proc, void *user_data);
 
-#if defined OS_WINDOWS
+#if OS_WINDOWS
 # include "os_windows.c"
 
-#elif defined OS_LINUX
+#elif OS_LINUX
 # include "os_linux.c"
 
-#elif defined OS_MAC
+#elif OS_MAC
 # error "lmao really?"
 #endif
 

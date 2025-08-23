@@ -13,10 +13,10 @@
 // TODO(Sleepster): THREAD SAFE OVERLAPPING IO 
 
 // NOTE(Sleepster): This is stupid... but C doens't make this easier. 
-#if defined OS_WINDOWS
+#if OS_WINDOWS
 typedef void*  os_handle_t;
-#elif defined OS_LINUX | defined OS_MAC
-typedef int    os_handle_t
+#elif OS_LINUX|OS_MAC
+typedef int    os_handle_t;
 #endif
 
 typedef struct file

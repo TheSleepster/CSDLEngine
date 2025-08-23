@@ -6,6 +6,9 @@
    ======================================================================== */
 #include <stdio.h>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <c_types.h>
 #include <c_base.h>
 #include <c_types.h>
@@ -201,7 +204,7 @@ VISIT_FILES(get_resource_dir_files)
     asset_packer_t *packer = user_data; 
     if(type != AT_NONE)
     {
-        string_t data = c_file_read(filepath);
+        string_t data = c_file_read(filepath, READ_ENTIRE_FILE, 0);
         afb_add_entry(packer, filename_no_ext, filepath, data, type);
     }
 }
