@@ -49,7 +49,7 @@ internal void          os_directory_visit(string_t filepath, visit_file_data_t *
 typedef struct os_thread
 {
     os_handle_t handle;
-    s32         thread_id;
+    u32         thread_id;
     void       *user_data;
 }os_thread_t;
 
@@ -70,10 +70,10 @@ typedef PLATFORM_THREAD_PROC(thread_proc_t);
 internal os_thread_t os_create_thread(thread_proc_t *proc, void *user_data);
 
 #if OS_WINDOWS
-# include "os_windows.c"
+# include "os_windows.cpp"
 
 #elif OS_LINUX
-# include "os_linux.c"
+# include "os_linux.cpp"
 
 #elif OS_MAC
 # error "lmao really?"

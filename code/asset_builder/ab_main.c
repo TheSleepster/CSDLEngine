@@ -22,11 +22,11 @@
 
 #include "../os_platform_file.h"
 
-#include <c_memory.c>
-#include <c_string.c>
-#include <c_array.c>
-#include <c_file_api.c>
-#include <c_hash_table.c>
+#include <c_memory.cpp>
+#include <c_string.cpp>
+#include <c_array.cpp>
+#include <c_file_api.cpp>
+#include <c_hash_table.cpp>
 
 #include "../r_asset_texture.h"
 #include "../r_asset_shader.h"
@@ -78,10 +78,10 @@ afb_file_write(asset_packer_t *packer)
     const u32 FLAGS_DWORD      = 100;
     const u32 OFFSET_TO_TOC    = offset;
 
-    c_string_builder_append_value(&packer->header, &FILE_MAGIC_VALUE, sizeof(u32));
-    c_string_builder_append_value(&packer->header, &FILE_VERSION,     sizeof(u32));
-    c_string_builder_append_value(&packer->header, &FLAGS_DWORD,      sizeof(u32));
-    c_string_builder_append_value(&packer->header, &OFFSET_TO_TOC,    sizeof(u32));
+    c_string_builder_append_value(&packer->header, (void*)&FILE_MAGIC_VALUE, sizeof(u32));
+    c_string_builder_append_value(&packer->header, (void*)&FILE_VERSION,     sizeof(u32));
+    c_string_builder_append_value(&packer->header, (void*)&FLAGS_DWORD,      sizeof(u32));
+    c_string_builder_append_value(&packer->header, (void*)&OFFSET_TO_TOC,    sizeof(u32));
 
     c_string_builder_write_to_file(&packer->asset_file, &packer->header);
 
@@ -201,7 +201,7 @@ VISIT_FILES(get_resource_dir_files)
         type = AT_SHADER;
     }
     
-    asset_packer_t *packer = user_data; 
+    asset_packer_t *packer = (asset_packer_t*)user_data; 
     if(type != AT_NONE)
     {
         string_t data = c_file_read(filepath, READ_ENTIRE_FILE, 0);

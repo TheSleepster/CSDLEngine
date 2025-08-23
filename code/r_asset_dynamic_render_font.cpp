@@ -10,7 +10,7 @@ internal asset_handle_t
 s_asset_font_get(asset_manager_t *asset_manager, string_t font_name)
 {
     asset_handle_t result = {};
-    asset_slot_t *valid_slot = c_hash_get_value(&asset_manager->font_catalog.font_hash, font_name);
+    asset_slot_t *valid_slot  = (asset_slot_t *)c_hash_get_value(&asset_manager->font_catalog.font_hash, font_name);
     if(valid_slot)
     {
         result.is_valid       =  true;
@@ -362,7 +362,7 @@ s_asset_font_get_at_size(asset_manager_t *asset_manager, asset_handle_t handle, 
         pixel_size < font->pixel_sizes.indices_used;
         ++pixel_size)
     {
-        dynamic_render_font_varient_t *varient = c_dynamic_array_get(&font->pixel_sizes, pixel_size);
+        dynamic_render_font_varient_t *varient = (dynamic_render_font_varient_t *)c_dynamic_array_get(&font->pixel_sizes, pixel_size);
         if(size == varient->pixel_size)
         {
             result = varient;

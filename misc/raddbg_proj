@@ -1,0 +1,17 @@
+// raddbg 0.9.20 project file
+
+recent_file: path: "../code/r_render_api.c"
+recent_file: path: "../code/main.c"
+recent_file: path: "../code/c_memory.c"
+recent_file: path: "../code/r_opengl.c"
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memcpy.asm"
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_common.inl"
+recent_file: path: "../../sokol_sdl3/data/deps/sdl3/src/events/sdl_quit.c"
+recent_file: path: "../code/r_renderer_data.h"
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
+target:
+{
+  executable: "sdl_proj_debug.exe"
+  working_directory: ""
+  enabled: 1
+}

@@ -1,6 +1,6 @@
 # WE LITERALLY CANNOT SUPPORT MSVC. NOT THAT WE'D WANT TOO...
 
-CC=clang
+CC=clang++
 
 ifeq ($(OS),Windows_NT)
     OS_DEFINE = -DOS_WINDOWS=1
@@ -23,7 +23,7 @@ endif
 SILENT ?=
 
 COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/
-COMMON_C_FLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare
+COMMON_C_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings
 
 BUILD_TYPE ?= debug
 ifeq ($(BUILD_TYPE),release)
@@ -33,7 +33,7 @@ else
 endif
 
 ENGINE_LIBS = $(PLATFORM_LIBS) -L../run_tree/deps/glad/src/ -L../run_tree/deps/SDL3/lib/ -L../run_tree/deps/Freetype/ -lSDL3-Static -lglad -lfreetype
-ENGINE_SRC = ../code/main.c
+ENGINE_SRC = ../code/main.cpp
 ENGINE_OUT = ../build/Thor_$(BUILD_TYPE)$(EXE_EXT)
 
 ASSET_FILE_BUILDER_LIBS = $(PLATFORM_LIBS)
@@ -78,5 +78,4 @@ clean:
 .PHONY: all engine asset_file_builder run_asset_file_builder tests clean
 
 -include ../build/engine.d
--include ../build/asset_file_builder.d
 -include $(patsubst ../code/tests/%.c,../build/test_%.d,$(TESTS_SRC))

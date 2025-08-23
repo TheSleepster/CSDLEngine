@@ -14,7 +14,7 @@ c_arena_create(u64 block_size)
     result.block_size      = block_size;
     result.scratch_counter = 0;
     result.used            = 0;
-    result.base            = os_allocate_memory(block_size);
+    result.base            = (byte*)os_allocate_memory(block_size);
     result.is_initialized  = true;
 
     return(result);
@@ -24,17 +24,17 @@ internal inline memory_arena_footer_t*
 c_arena_get_footer(memory_arena_t *arena)
 {
     memory_arena_footer_t *result;
-    result = (memory_arena_footer_t *)(arena->base + arena->capacity);
+    result = (memory_arena_footer_t *)((u8*)arena->base + arena->capacity);
 
     return(result);
 }
 
-internal void*
+internal byte*
 c_arena_push_size(memory_arena_t *arena, u64 size_init)
 {
     Assert(arena->is_initialized == true);
     
-    void *result = null;
+    byte *result = null;
 
     u8 *offset_ptr = ((u8*)arena->base + arena->used);
     u64 size = (size_init + 15) & ~15;
@@ -46,14 +46,14 @@ c_arena_push_size(memory_arena_t *arena, u64 size_init)
         }
 
         memory_arena_footer_t footer;
-        footer.last_base = arena->base;
+        footer.last_base = (u8 *)arena->base;
         footer.last_used = arena->used;
         footer.last_capacity = arena->capacity;
 
         u64 new_block_size = size > (arena->block_size + sizeof(memory_arena_footer_t)) ? size : arena->block_size;
 
         arena->capacity = new_block_size - sizeof(memory_arena_footer_t);
-        arena->base     = os_allocate_memory(new_block_size);
+        arena->base     = (byte *)os_allocate_memory(new_block_size);
         arena->used     = 0;
         arena->block_counter += 1;
 
@@ -77,8 +77,8 @@ bootstrap_allocate_struct_(u64 struct_size, u64 offset_to_arena, u64 base_alloca
     Assert(struct_size > base_allocation);
     
     memory_arena_t bootstrap_arena = c_arena_create(base_allocation);
-    bootstrap_arena.base          += struct_size;
-    bootstrap_arena.capacity      -= struct_size;
+    bootstrap_arena.base      = (u8*)bootstrap_arena.base + struct_size;
+    bootstrap_arena.capacity -= struct_size;
 
     *(memory_arena_t *)((u8*)bootstrap_arena.base + offset_to_arena) = bootstrap_arena;
     return((void*)bootstrap_arena.base);
@@ -90,7 +90,7 @@ c_begin_scratch_arena(memory_arena_t *arena)
     scratch_arena_t result;
     result.parent = arena;
     result.used   = arena->used;
-    result.base   = arena->base + arena->used;
+    result.base   = (u8*)arena->base + arena->used;
 
     arena->scratch_counter += 1;
 
@@ -100,7 +100,7 @@ c_begin_scratch_arena(memory_arena_t *arena)
 internal inline void
 c_arena_free_last_block(memory_arena_t *arena)
 {
-    u8 *block_to_free = arena->base;
+    u8 *block_to_free = (u8*)arena->base;
     u64 old_capacity  = arena->capacity;
 
     memory_arena_footer_t *footer = c_arena_get_footer(arena);
@@ -158,7 +158,7 @@ c_za_create(u64 block_size)
     zone_allocator_t *result = null;
     void *base          = os_allocate_memory(block_size + sizeof(zone_allocator_t));
 
-    result              = base;
+    result              = (zone_allocator_t*)base;
     result->base        = (u8*)base + sizeof(zone_allocator_t);
     result->capacity    = block_size;
 
@@ -189,10 +189,10 @@ c_za_destroy(zone_allocator_t *zone)
     zone = null;
 }
 
-internal void*
+internal byte*
 c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag)
 {
-    void *result = null;
+    byte *result = null;
     u64 size = (size_init + 15) & ~15;
     size     = size + sizeof(zone_allocator_block_t);
 
@@ -274,7 +274,7 @@ c_za_free(zone_allocator_t *zone, void *data)
     block = (zone_allocator_block_t *)((byte*)data - sizeof(zone_allocator_block_t));
     Assert(block->block_id == DEBUG_ZONE_ID);
     u64 block_size                = block->block_size;
-    za_allocation_tag_t block_tag = block->allocation_tag;
+    za_allocation_tag_t block_tag = (za_allocation_tag_t)block->allocation_tag;
     if(block->is_allocated)
     {
         block->is_allocated   = false;

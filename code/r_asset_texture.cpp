@@ -32,7 +32,7 @@ s_asset_texture_view_generate(asset_manager_t *asset_manager, asset_slot_t *vali
         view_index < asset_manager->texture_catalog.texture_views.capacity;
         ++view_index)
     {
-        texture_view_t *found = c_array_get_value(&asset_manager->texture_catalog.texture_views, view_index);
+        texture_view_t *found = (texture_view_t *)c_array_get_value(&asset_manager->texture_catalog.texture_views, view_index);
         if(!found->is_valid)
         {
             new_view = found;
@@ -93,7 +93,7 @@ s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
 {
     asset_handle_t result = {};
 
-    asset_slot_t *valid_slot = c_hash_get_value(&asset_manager->texture_catalog.texture_hash, asset_key);
+    asset_slot_t *valid_slot = (asset_slot_t *)c_hash_get_value(&asset_manager->texture_catalog.texture_hash, asset_key);
     result.type = AT_BITMAP;
     if(valid_slot)
     {
@@ -162,7 +162,7 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle)
                                      &slot_data->texture.bitmap.height,
                                      &slot_data->texture.bitmap.channels,
                                      BMF_RGBA32);
-    s32 data_length = strlen(data);
+    s32 data_length = strlen((char *)data);
     slot_data->texture.bitmap.decompressed_data.data  = data;
     slot_data->texture.bitmap.decompressed_data.count = data_length;
 

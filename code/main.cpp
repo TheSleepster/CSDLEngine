@@ -27,11 +27,11 @@
 
 #include "os_platform_file.h"
 
-#include "c_memory.c"
-#include "c_string.c"
-#include "c_array.c"
-#include "c_file_api.c"
-#include "c_hash_table.c"
+#include "c_memory.cpp"
+#include "c_string.cpp"
+#include "c_array.cpp"
+#include "c_file_api.cpp"
+#include "c_hash_table.cpp"
 
 #include "s_asset_manager.h"
 #include "at_atlas_handler.h"
@@ -41,16 +41,16 @@
 #include "r_asset_dynamic_render_font.h"
 //#include "r_asset_loaded_sound.h"
 
-#include "r_asset_shader.c"
-#include "r_asset_texture.c"
-#include "r_asset_dynamic_render_font.c"
+#include "r_asset_shader.cpp"
+#include "r_asset_texture.cpp"
+#include "r_asset_dynamic_render_font.cpp"
 //#include "r_asset_loaded_sound.c"
-#include "s_asset_manager.c"
-#include "at_atlas_handler.c"
-#include "r_render_API.c"
-#include "r_opengl.c"
+#include "s_asset_manager.cpp"
+#include "at_atlas_handler.cpp"
+#include "r_render_API.cpp"
+#include "r_opengl.cpp"
 
-#include "g_main.c"
+#include "g_main.cpp"
 
 global bool8 running;
 

@@ -127,11 +127,11 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
         asset_manager->asset_file_handle = c_file_open(packed_asset_filepath, false);
         asset_manager->asset_file_data   = c_file_read(packed_asset_filepath, sizeof(asset_file_header_t), 0);
 
-        asset_file_header_t *header = asset_manager->asset_file_data.data;
+        asset_file_header_t *header = (asset_file_header_t *)asset_manager->asset_file_data.data;
         Assert(header->magic_value == ASSET_FILE_MAGIC_VALUE('W', 'A', 'D', ' '));
 
         string_t table_data = c_file_read(packed_asset_filepath, sizeof(asset_file_table_of_contents_t), header->offset_to_table_of_contents);
-        asset_file_table_of_contents_t *table_of_contents = table_data.data; 
+        asset_file_table_of_contents_t *table_of_contents = (asset_file_table_of_contents_t *)table_data.data; 
         Assert(table_of_contents->magic_value == ASSET_FILE_MAGIC_VALUE('t', 'o', 'c', 'd'));
 
         u32 first_entry_offset = header->offset_to_table_of_contents + sizeof(asset_file_table_of_contents_t);

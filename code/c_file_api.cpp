@@ -60,7 +60,7 @@ c_file_read(string_t filepath, u32 bytes_to_read, u32 file_offset)
     if(file.handle != null)
     {
         bytes_to_read = c_file_get_read_size(&file, bytes_to_read, file_offset);
-        u8 *data      = malloc(sizeof(u8) * bytes_to_read);
+        u8 *data      = (u8 *)malloc(sizeof(u8) * bytes_to_read);
 
         os_file_read(&file, data, file_offset, bytes_to_read);
         os_file_close(&file);

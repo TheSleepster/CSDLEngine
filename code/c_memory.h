@@ -31,7 +31,7 @@ typedef struct memory_arena_footer
 
 typedef struct memory_arena
 {
-    void *base;
+    byte *base;
     u64   block_size;
     u64   capacity;
     u64   used;
@@ -51,7 +51,7 @@ typedef struct scratch_arena
 
 //////////// MEMORY ARENA API DEFINITIONS //////////////
 internal inline memory_arena_t         c_arena_create(u64 block_size);
-internal        void*                  c_arena_push_size(memory_arena_t *arena, u64 size);
+internal        byte*                  c_arena_push_size(memory_arena_t *arena, u64 size);
 internal inline scratch_arena_t        c_begin_scratch_arena(memory_arena_t *arena);
 internal inline void                   c_end_scratch_arena(scratch_arena_t *scratch);
 internal inline memory_arena_footer_t* c_arena_get_footer(memory_arena_t *arena);
@@ -106,7 +106,7 @@ typedef struct zone_allocator
 
 internal zone_allocator_t* c_za_create(u64 block_size);
 internal void              c_za_destroy(zone_allocator_t *zone);
-internal void*             c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag);
+internal byte*             c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag);
 internal void              c_za_free(zone_allocator_t  *zone, void *data);
 internal void              c_za_free_tag(zone_allocator_t *zone, za_allocation_tag_t tag);
 

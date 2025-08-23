@@ -7,7 +7,7 @@
 
 #include "c_string.h"
 
-internal s32
+internal u32
 c_string_length(const char *c_string)
 {
     Assert(c_string);
@@ -242,12 +242,12 @@ c_string_builder_create_new_buffer(string_builder_t *builder)
     bool8 result = false;
     usize new_size = builder->new_buffer_size > 0 ? builder->new_buffer_size : STRING_BUILDER_BUFFER_SIZE;
 
-    byte *bytes = malloc(new_size);
+    byte *bytes = (byte *)malloc(new_size);
     if(bytes)
     {
         ZeroMemory(bytes, new_size);
 
-        string_builder_buffer_t *buffer = bytes;
+        string_builder_buffer_t *buffer = (string_builder_buffer_t *)bytes;
         buffer->next_buffer     = null;
         buffer->bytes_used      = 0;
         buffer->bytes_allocated = new_size - sizeof(string_builder_buffer_t);

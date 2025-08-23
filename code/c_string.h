@@ -24,7 +24,7 @@ typedef struct string
 }string_t;
 
 //////////// API DEFINITIONS //////////////
-internal        s32         c_string_length(const char *c_string);
+internal        u32         c_string_length(const char *c_string);
 internal inline string_t    c_string_create(const char *c_string);
 internal inline string_t    c_string_make_heap(memory_arena_t *arena, string_t string);
 internal inline bool8       c_string_compare(string_t A, string_t B);
@@ -44,7 +44,7 @@ internal inline string_t    c_string_get_file_ext_from_path(string_t filepath);
 
 // MACROS
 #define STR(x)   (string_t){.data = (byte*)x, .count = c_string_length(x)}
-#define C_STR(x) ((const char *)x.data)
+#define C_STR(x) ((char *)x.data)
 ///////////////////////////////////////////
 
 typedef struct string_builder_buffer

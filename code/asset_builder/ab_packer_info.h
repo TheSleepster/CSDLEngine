@@ -31,12 +31,12 @@
 
 string_t valid_arguments[] =
 {
-    {.data = "--resource_dir", .count = 13},
-    {.data = "--generate_enums", .count = 16},
-    {.data = "--codegen_file_name", .count = 19},
-    {.data = "--asset_file_name", .count = 17},
-    {.data = "--file_ext", .count = 10},
-    {.data = "--help", .count = 6},
+    {.data = (u8*)&("--resource_dir"), .count = 13},
+    {.data = (u8*)&("--generate_enums"), .count = 16},
+    {.data = (u8*)&("--codegen_file_name"), .count = 19},
+    {.data = (u8*)&("--asset_file_name"), .count = 17},
+    {.data = (u8*)&("--file_ext"), .count = 10},
+    {.data = (u8*)&("--help"), .count = 6},
 };
 
 global memory_arena_t packer_arena;

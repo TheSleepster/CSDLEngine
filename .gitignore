@@ -1,0 +1,9 @@
+# Compiled object files and executables
+*.o
+*.out
+*.exe
+*.bin
+*.dll
+*.so
+*.dylib
+*.wad

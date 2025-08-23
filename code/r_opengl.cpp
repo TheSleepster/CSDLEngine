@@ -180,8 +180,8 @@ r_make_shader_object(string_t shader_source, string_t shader_prefix, GLenum shad
     glShaderSource(shader_object, 2, shaders, lengths);
     glCompileShader(shader_object);
 
-    u32 success = 0;
-    glGetShaderiv(shader_object, GL_COMPILE_STATUS, &success);
+    bool32 success = 0;
+    glGetShaderiv(shader_object, GL_COMPILE_STATUS, (GLint*)&success);
     if(!success)
     {
         char log_data[512];
@@ -210,7 +210,7 @@ r_compile_pixel_shader(GPU_shader_t *shader, string_t shader_source)
     glLinkProgram(shader->program_id);
 
     u32 success = 0;
-    glGetProgramiv(shader->program_id, GL_LINK_STATUS, &success);
+    glGetProgramiv(shader->program_id, GL_LINK_STATUS, (GLint*)&success);
     if(!success)
     {
         char log_data[512];
@@ -258,17 +258,17 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
                     ++ubo_index)
                 {
                     shader_storage_buffer_t *ubo_data = (shader_storage_buffer_t*)result.shader_uniform_buffers.data + ubo_index;
-                    glGetActiveUniformBlockiv(result.program_id, ubo_index, GL_UNIFORM_BLOCK_NAME_LENGTH, &ubo_data->name.count);
+                    glGetActiveUniformBlockiv(result.program_id, ubo_index, GL_UNIFORM_BLOCK_NAME_LENGTH, (GLint*)&ubo_data->name.count);
 
                     ubo_data->name.count -= 1;
-                    ubo_data->name.data   = malloc(sizeof(u8) * ubo_data->name.count);
+                    ubo_data->name.data   = (u8 *)malloc(sizeof(u8) * ubo_data->name.count);
                     ubo_data->data        = null;
-                    glGetActiveUniformBlockName(result.program_id, ubo_index, ubo_data->name.count + 1, null, ubo_data->name.data);
+                    glGetActiveUniformBlockName(result.program_id, ubo_index, ubo_data->name.count + 1, null, (GLchar*)ubo_data->name.data);
 
-                    glGetActiveUniformBlockiv(result.program_id, ubo_index, GL_UNIFORM_BLOCK_DATA_SIZE, &ubo_data->size);
-                    glGetActiveUniformBlockiv(result.program_id, ubo_index, GL_UNIFORM_BLOCK_BINDING,   &ubo_data->binding);
+                    glGetActiveUniformBlockiv(result.program_id, ubo_index, GL_UNIFORM_BLOCK_DATA_SIZE, (GLint*)&ubo_data->size);
+                    glGetActiveUniformBlockiv(result.program_id, ubo_index, GL_UNIFORM_BLOCK_BINDING,   (GLint*)&ubo_data->binding);
 
-                    glGenBuffers(1, &ubo_data->location_id);
+                    glGenBuffers(1, (GLuint*)&ubo_data->location_id);
                     glBindBuffer(GL_UNIFORM_BUFFER, ubo_data->location_id);
                     glBufferData(GL_UNIFORM_BUFFER, ubo_data->size, null, GL_DYNAMIC_DRAW);
                     glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -306,7 +306,7 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
                     glGetActiveUniform(result.program_id, uniform_index, 256, &name_length, &uniform_size, &uniform_type, buffer);
                     r_assign_uniform_type(uniform_data, uniform_type);
 
-                    uniform_data->name.data  = malloc(sizeof(u8) * name_length);
+                    uniform_data->name.data  = (u8*)malloc(sizeof(u8) * name_length);
                     uniform_data->name.count = name_length;
                     uniform_data->size = uniform_size;
                     uniform_data->data = null;
@@ -314,7 +314,7 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
 
                     uniform_data->name.data[uniform_data->name.count] = '\0';
 
-                    uniform_data->location_id = glGetUniformLocation(result.program_id, uniform_data->name.data);
+                    uniform_data->location_id = glGetUniformLocation(result.program_id, (const GLchar *)uniform_data->name.data);
                     if(uniform_data->location_id != -1)
                     {
                         true_uniform_index += 1;
@@ -348,19 +348,19 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
                     s32  name_length;
                     glGetProgramResourceName(result.program_id, GL_SHADER_STORAGE_BLOCK, buffer_index, 256, &name_length, buffer);
 
-                    working_buffer->name.data  = malloc(sizeof(u8) * name_length);
+                    working_buffer->name.data  = (u8 *)malloc(sizeof(u8) * name_length);
                     working_buffer->name.count = name_length;
                     working_buffer->data       = null;
                     memset(working_buffer->name.data, 0, sizeof(u8) * name_length);
                     memcpy(working_buffer->name.data, buffer, sizeof(u8) * name_length);
 
                     GLenum property = GL_BUFFER_BINDING;
-                    glGetProgramResourceiv(result.program_id, GL_SHADER_STORAGE_BLOCK, buffer_index, 1, &property, 1, null, &working_buffer->binding);
+                    glGetProgramResourceiv(result.program_id, GL_SHADER_STORAGE_BLOCK, buffer_index, 1, &property, 1, null, (GLint *)&working_buffer->binding);
 
                     working_buffer->update   = gl_update_ssbo;
                     working_buffer->old_size = 0;
 
-                    glGenBuffers(1, &working_buffer->location_id);
+                    glGenBuffers(1, (GLuint *)&working_buffer->location_id);
                 }
             }
             else
@@ -577,7 +577,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer,      0);
 
         GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, &draw_buffers);
+        glDrawBuffers(1, (const GLenum *)&draw_buffers);
     }
     
     // LIGHTING FRAMEBUFFER SETUP

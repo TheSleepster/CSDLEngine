@@ -48,7 +48,7 @@ internal inline hash_table_t
 c_hash_table_create_(void *memory, u32 max_entries, usize value_size)
 {
     hash_table_t result;
-    result.entries       = memory;
+    result.entries       = (hash_table_entry_t *)memory;
     result.max_entries   = max_entries;
     result.value_size    = value_size;
     result.entry_counter = 0;

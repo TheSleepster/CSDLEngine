@@ -69,8 +69,6 @@ initialize_gamestate()
 {
 }
 
-global bool8 initialized_stuff = false;
-
 internal void
 g_update_and_render(render_state_t *render_state, asset_manager_t *asset_manager)
 {

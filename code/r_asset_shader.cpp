@@ -124,7 +124,7 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
                 {
                     sampler_data[sampler_index] = sampler_index;
                 }
-                glUniform1iv(uniform_data->location_id, MAX_TEXTURES, sampler_data);
+                glUniform1iv(uniform_data->location_id, MAX_TEXTURES, (const GLint *)sampler_data);
             }
             else
             {

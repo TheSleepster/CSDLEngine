@@ -42,7 +42,7 @@ typedef double   float64;
 typedef float    real32;
 typedef double   real64;
 
-#define null (void*)0 
+#define null 0 
 
 #define global        static
 #define internal      static

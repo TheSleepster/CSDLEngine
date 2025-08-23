@@ -41,6 +41,10 @@ main()
     if(vOutTextureIndex != U32_MAX)
     {
         TextureColor = texelFetch(uTest, ivec2(vOutUVData), 0);
+        if(TextureColor.a == 0.0)
+        {
+            discard;
+        }
     }
     vFragColor = TextureColor * vOutColor;
 }

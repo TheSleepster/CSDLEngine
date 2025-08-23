@@ -45,7 +45,7 @@ at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *ha
     Assert(handle.asset_slot                 != null);
     Assert(handle.asset_slot->filename.data  != null);
     
-    atlas_handler_hash_table_entry_t *entry = c_hash_get_value(&handler->contents, handle.asset_slot->filename);
+    atlas_handler_hash_table_entry_t *entry = (atlas_handler_hash_table_entry_t *)c_hash_get_value(&handler->contents, handle.asset_slot->filename);
     if(!entry)
     {
         atlas_handler_hash_table_entry_t entry_data;
@@ -78,7 +78,7 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
             ++texture_index)
         {
             // IMPORTANT(Sleepster): ARRAY WEIRDNESS WHAT IS THIS????? 
-            asset_handle_t *asset_handle = c_dynamic_array_get(&handler->textures_to_pack, texture_index);
+            asset_handle_t *asset_handle = (asset_handle_t*)c_dynamic_array_get(&handler->textures_to_pack, texture_index);
             texture2D_t    *texture      = &asset_handle->asset_slot->texture;
             Assert(texture);
 
