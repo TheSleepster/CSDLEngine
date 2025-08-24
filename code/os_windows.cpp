@@ -48,6 +48,30 @@ os_free_memory(void *data, usize free_size)
     VirtualFree(data, 0, MEM_RELEASE);
 }
 
+internal void*
+os_reallocate_memory(void *offset, u64 allocation_size)
+{
+    void *result = null;
+    result = VirtualAlloc(offset, allocation_size, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+    if(!result)
+    {
+        DWORD error = GetLastError();
+        LPSTR message_buffer = 0;
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       null,           
+                       error,          
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPSTR)&message_buffer, 
+                       0,              
+                       null);
+
+        log_fatal("Failed to allocate virtual memory: '%s'...\n", message_buffer);
+        LocalFree(message_buffer);
+    }
+
+    return(result);
+}
+
 ///////////////////////////////////
 // PLATFORM FILE IO FUNCTIONS
 ///////////////////////////////////

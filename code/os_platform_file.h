@@ -21,6 +21,7 @@
 
 internal void* os_allocate_memory(usize allocation_size);
 internal void  os_free_memory(void *data, usize free_size);
+internal void* os_reallocate_memory(void *offset, u64 allocation_size);
 
 //////////////////
 // FILE IO STUFF

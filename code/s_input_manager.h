@@ -109,6 +109,7 @@ typedef struct input_manager
 /*===========================================
   =============== GENERAL API ===============
   ===========================================*/
+internal void                s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_manager);
 internal void                s_input_manager_reset_controller_states(input_manager_t *input_manager);
 internal void                s_input_manager_initialize_keyboard_controller(input_manager_t *input_manager, s32 index);
 internal input_controller_t* s_input_manager_get_primary_controller(input_manager_t *input_manager);

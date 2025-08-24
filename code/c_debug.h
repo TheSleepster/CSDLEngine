@@ -65,7 +65,7 @@ _log(debug_log_level_t log_level, const char *message, char *file, int32 line, .
     }
     else
     {
-        sprintf(out_buffer, "%s%s%s\033[0m\n", color_schemes[log_level], info_strings[log_level], buffer);
+        sprintf(out_buffer, "%s%s%s\033[0m", color_schemes[log_level], info_strings[log_level], buffer);
     }
 
     if(is_error) fprintf(stderr, "%s", out_buffer);

@@ -19,7 +19,7 @@ c_array_create_(u32 element_size, u32 count)
     result.capacity     = count;
 
     result.total_size   = element_size * count;
-    result.data         = malloc(result.total_size);
+    result.data         = os_allocate_memory(result.total_size);
 
     memset(result.data, 0, result.total_size);
     return(result);
@@ -74,7 +74,7 @@ internal dynamic_array_t
 c_dynamic_array_create_(usize element_size, usize count)
 {
     dynamic_array_t result = {};
-    result.data            = malloc(element_size * count);
+    result.data            = os_allocate_memory(element_size * count);
     if(result.data)
     {
         memset(result.data, 0, element_size * count);
@@ -109,7 +109,7 @@ c_dynamic_array_append_value_(dynamic_array_t *dynamic_array, void *value, usize
     {
         dynamic_array->capacity   = dynamic_array->capacity > 0 ? dynamic_array->capacity * 2 : 1;
         dynamic_array->total_size = dynamic_array->capacity * dynamic_array->element_size;
-        void *new_array           = realloc(dynamic_array->data, dynamic_array->capacity * dynamic_array->element_size);
+        void *new_array           = os_reallocate_memory((u8*)dynamic_array->data + dynamic_array->total_size, dynamic_array->capacity * dynamic_array->element_size);
         if(!new_array)
         {
             log_error("Failure to reallocate the dynamic_array's data pointer... size is: %d\n", dynamic_array->capacity);
