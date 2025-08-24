@@ -22,7 +22,7 @@ os_allocate_memory(usize allocation_size)
     errno = 0;
     
     void *data = mmap(0, allocation_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    if(errno == MAP_FAILED)
+    if(errno == -1)
     {
         int error = errno;
         log_fatal("mmap failed... error: (%s), code: '%d'...\n", strerror(error), error);
@@ -79,7 +79,7 @@ os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overla
         flags |= O_NONBLOCK;
     }
 
-    result.handle = open(filepath.data, flags, 0666);
+    result.handle = open(C_STR(filepath), flags, 0666);
     if(result.handle == -1)
     {
         log_error("Failure to open file '%s' for %s, error: '%s'...\n",
@@ -188,7 +188,7 @@ os_file_map(string_t filepath)
             log_error("MMAP failed to map the data for file: '%s'... error: '%s'...\n", result.file.filepath, strerror(errno));
         }
 
-        result.mapped_file_data.data  = mapped_data;
+        result.mapped_file_data.data  = (byte*)mapped_data;
         result.mapped_file_data.count = file_size;
     }
 
@@ -221,7 +221,7 @@ os_file_exists(string_t filepath)
     bool8 result = false;
 
     struct stat file_stats;
-    result = (stat(filepath.data, &file_stats) == 0);
+    result = (stat(C_STR(filepath), &file_stats) == 0);
 
     return(result);
 }
@@ -231,7 +231,7 @@ os_file_get_modtime_and_size(string_t filepath)
 {
     file_data_t result = {};
     struct stat file_stats;
-    if(stat(filepath.data, &file_stats) == 0)
+    if(stat(C_STR(filepath), &file_stats) == 0)
     {
         result.file_size    = file_stats.st_size;
         result.last_modtime = file_stats.st_mtime;
@@ -250,7 +250,7 @@ internal bool8
 os_file_replace_or_rename(string_t old_file, string_t new_file)
 {
     bool8 result = false;
-    if(rename(old_file.data, new_file.data) == 0)
+    if(rename(C_STR(old_file), C_STR(new_file)) == 0)
     {
         result = true;
     }
@@ -268,7 +268,7 @@ os_directory_exists(string_t filepath)
 {
     bool8 result = false;
     struct stat file_stats;
-    if(stat(filepath.data, &file_stats) == 0)
+    if(stat(C_STR(filepath), &file_stats) == 0)
     {
         result = S_ISDIR(file_stats.st_mode);
     }
@@ -279,7 +279,7 @@ os_directory_exists(string_t filepath)
 internal void
 os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
 {
-    DIR *directory = opendir(filepath.data);
+    DIR *directory = opendir(C_STR(filepath));
     if(directory != null)
     {
         struct dirent *entry;
