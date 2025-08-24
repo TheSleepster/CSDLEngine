@@ -85,6 +85,6 @@
   ..\code\r_renderer_data.h ..\code\r_asset_shader.cpp \
   ..\code\r_asset_texture.cpp ..\code\r_asset_dynamic_render_font.cpp \
   ..\code\s_asset_manager.cpp ..\code\asset_builder\ab_packer_info.h \
-  ..\code\asset_builder\..\s_asset_manager.h \
-  ..\code\at_atlas_handler.cpp ..\code\r_render_API.cpp \
-  ..\code\r_opengl.cpp ..\code\g_main.cpp
+  ..\code\asset_builder\..\s_asset_manager.h ..\code\s_input_manager.cpp \
+  ..\code\s_input_manager.h ..\code\at_atlas_handler.cpp \
+  ..\code\r_render_API.cpp ..\code\r_opengl.cpp ..\code\g_main.cpp

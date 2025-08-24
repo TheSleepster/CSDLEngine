@@ -1,5 +1,13 @@
 // raddbg 0.9.20 project file
 
+recent_file: path: "../code/main.cpp"
+recent_file: path: "../code/s_input_manager.cpp"
+recent_file: path: "../code/at_atlas_handler.cpp"
+recent_file: path: "../code/s_asset_manager.cpp"
+recent_file: path: "../code/r_asset_shader.cpp"
+recent_file: path: "../code/r_asset_texture.cpp"
+recent_file: path: "../code/g_main.cpp"
+recent_file: path: "../code/r_render_API.cpp"
 recent_file: path: "../code/s_asset_manager.c"
 recent_file: path: "../code/r_render_api.c"
 recent_file: path: "../code/r_asset_dynamic_render_font.c"
