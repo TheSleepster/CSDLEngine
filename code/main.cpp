@@ -200,7 +200,7 @@ c_process_window_events(input_manager_t *input_manager)
 int
 main(int argc, char **argv)
 {
-    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS) == 0)
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD|SDL_INIT_JOYSTICK) == 0)
     {
         log_fatal("Failed to start SDL critical subsystems...exiting\n");
         return(0);
