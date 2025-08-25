@@ -20,18 +20,33 @@
 
 typedef struct audio_device
 {
-    u32 device_id;
-    s32 audio_buffer_size;
-    s32 audio_buffer_size_ms;
+    u32           device_id;
+    s32           device_buffer_size_in_sample_frames;
+    s32           device_buffer_size_ms;
 
-    u32 device_frequency;
-    u32 channel_count;
+    u32           device_frequency;
+    u32           channel_count;
+
+    SDL_AudioSpec device_spec;
 }audio_device_t;
+
+typedef struct audio_buffer
+{
+    s16 *sample_buffer;
+    s32  sample_count;
+
+    s32  bytes_per_sample;
+}audio_buffer_t;
 
 typedef struct audio_manager
 {
-    audio_device_t  current_playback_device;
-    SDL_AudioFormat engine_audio_format;
+    audio_device_t   current_playback_device;
+    SDL_AudioFormat  engine_audio_format;
+
+    SDL_AudioSpec    audio_manager_spec;
+
+    SDL_AudioStream *stream;
+    audio_buffer_t   buffer;
 }audio_manager_t;
 
 #endif

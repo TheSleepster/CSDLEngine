@@ -123,70 +123,39 @@ main(int argc, char **argv)
 
         input_manager_t input_manager = {};
         s_input_manager_initialize_keyboard_controller(&input_manager, 0);
-        
-        // NOTE(Sleepster): Audio Setup
-        SDL_AudioDeviceID device             = 0;
-        SDL_AudioSpec     device_spec        = {};
-        SDL_AudioSpec     audio_manager_spec = {};
-        SDL_AudioStream  *stream             = null;
-        {
-            device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, null);
-            if(device != 0)
-            {
-                audio_manager_spec.freq     = 48000;
-                audio_manager_spec.format   = SDL_AUDIO_S16LE;
-                audio_manager_spec.channels = 2;
-                
-                s32 device_buffer_size_in_sample_frames;
-                bool32 result = SDL_GetAudioDeviceFormat(device, &device_spec, &device_buffer_size_in_sample_frames);
-                if(result)
-                {
-                    log_info("Device: '%s' opened. Device data format: '%d'. Device channel count: '%d', Device sample rate: '%d'...\n",
-                             SDL_GetAudioDeviceName(device), device_spec.format, device_spec.channels, device_spec.freq);
 
+        audio_manager_t audio_manager = {};
+        s_audio_manager_init(&audio_manager);
 
-                    stream = SDL_CreateAudioStream(&audio_manager_spec, &device_spec);
-                    if(stream != null)
-                    {
-                        log_info("Successfully created a new SDL_AudioStream!\n");
-                        bool32 did_bind = SDL_BindAudioStream(device, stream);
-                        if(did_bind)
-                        {
-                            log_info("Bound the audio stream to the device: '%s'...\n",
-                                     SDL_GetAudioDeviceName(device));
+        u64 performance_counter_frequency = SDL_GetPerformanceFrequency();
+        u64 last_tsc                      = SDL_GetPerformanceCounter();
+        u64 current_tsc                   = 0;
+        u64 delta_tsc                     = 0;
 
-                            SDL_ResumeAudioDevice(device);
-                        }
-                        else
-                        {
-                            log_error("Failure to bind the audio stream to the primary device... error: '%s'...\n", SDL_GetError());
-                        }
-                    }
-                }
-                else
-                {
-                    log_error("Failure to open the system's default audio device... error: '%s'\n", SDL_GetError());
-                }
-            }
-        }
-        
+        float64 delta_time = 0.0f;
+
         running = true;
-
-        s32 bytes_per_sample         = sizeof(s16);
-        s32 bytes_per_sample_frame   = 2.0f * bytes_per_sample; 
-        s32 frames_to_write          = 12000;
-        s32 bytes_to_write           = frames_to_write * bytes_per_sample_frame;
-        s32 sample_count             = bytes_to_write / sizeof(s16);
         while(running)
         {
-            s32 queued_audio = SDL_GetAudioStreamQueued(stream);
-            if(queued_audio < bytes_to_write * 4)
+            s32 sample_rate      = audio_manager.audio_manager_spec.freq;
+            s32 bytes_per_sample = audio_manager.audio_manager_spec.channels * sizeof(s16);
+            
+            float32 device_latency = audio_manager.current_playback_device.device_buffer_size_ms;
+
+            s32 samples_to_write = (s32)(ceilf(((float32)device_latency * (float32)sample_rate) / 1000.0f));
+            s32 bytes_to_write   = samples_to_write * bytes_per_sample;
+            
+            s32 queued_audio = SDL_GetAudioStreamQueued(audio_manager.stream);
+            if(queued_audio < bytes_to_write)
             {
-                s16 *buffer = (s16*)c_arena_push_size(&global_context.temporary_arena, bytes_to_write);
-                if(buffer)
+                audio_manager.buffer.sample_buffer = (s16*)c_arena_push_size(&global_context.temporary_arena,
+                                                                              bytes_to_write);
+                if(audio_manager.buffer.sample_buffer)
                 {
-                    create_sine_wave(buffer, sample_count);
-                    bool32 result = SDL_PutAudioStreamData(stream, buffer, bytes_to_write);
+                    create_sine_wave(audio_manager.buffer.sample_buffer, samples_to_write);
+                    bool32 result = SDL_PutAudioStreamData(audio_manager.stream,
+                                                           audio_manager.buffer.sample_buffer,
+                                                           bytes_to_write);
                     if(!result)
                     {
                         log_error("Could not put SDL_AudioStream data... Error: %s'\n", SDL_GetError());
@@ -206,6 +175,13 @@ main(int argc, char **argv)
             ZeroStruct(render_state.draw_frame);
 
             gc_reset_temporary_data();
+
+            current_tsc = SDL_GetPerformanceCounter();
+            delta_tsc   = current_tsc - last_tsc;
+            last_tsc    = current_tsc;
+
+            delta_time  = (float32)((float64)delta_tsc / (float64)performance_counter_frequency);
+            log_info("Delta time in seconds: '%.03f'...\n", delta_time);
         }
     }
 
