@@ -85,10 +85,45 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
             action_key->is_pressed      = (event->key.down && !event->key.repeat);
             action_key->is_down         = (event->key.down && event->key.repeat);
             action_key->is_released     = (event->key.down == false);
-
             if(action_key->is_pressed || action_key->is_released)
             {
                 action_key->half_transition_counter += 1;
+            }
+
+            if((event->key.mod & SDL_KMOD_SHIFT) != 0)
+            {
+                if(event->key.down)
+                {
+                    controller->keyboard.is_shift_key_down = true;
+                }
+                else
+                {
+                    controller->keyboard.is_shift_key_down = false;
+                }
+            }
+
+            if((event->key.mod & SDL_KMOD_CTRL) != 0)
+            {
+                if(event->key.down)
+                {
+                    controller->keyboard.is_control_key_down = true;
+                }
+                else
+                {
+                    controller->keyboard.is_control_key_down = false;
+                }
+            }
+
+            if((event->key.mod & SDL_KMOD_ALT) != 0)
+            {
+                if(event->key.down)
+                {
+                    controller->keyboard.is_alt_key_down = true;
+                }
+                else
+                {
+                    controller->keyboard.is_alt_key_down = false;
+                }
             }
         }break;
         case SDL_EVENT_MOUSE_MOTION:
@@ -301,6 +336,33 @@ s_input_manager_consume_keyboard_key_release(input_controller_t *controller, s32
     action_button_t *button         = controller->keyboard.input + key_index;
     button->is_released             = false;
     button->half_transition_counter = 0;
+}
+
+internal bool8
+s_input_manager_is_shift_key_down(input_controller_t *controller)
+{
+    bool8 result = false;
+    result = controller->keyboard.is_shift_key_down;
+
+    return(result);
+}
+
+internal bool8
+s_input_manager_is_control_key_down(input_controller_t *controller)
+{
+    bool8 result = false;
+    result = controller->keyboard.is_control_key_down;
+
+    return(result);
+}
+
+internal bool8
+s_input_manager_is_alt_key_down(input_controller_t *controller)
+{
+    bool8 result = false;
+    result = controller->keyboard.is_alt_key_down;
+
+    return(result);
 }
 
 /*=============================================

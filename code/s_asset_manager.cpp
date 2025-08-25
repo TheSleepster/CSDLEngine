@@ -142,3 +142,33 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
 
     //s_asset_manager_generate_null_views(asset_manager);
 }
+
+internal string_t
+s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
+                                          zone_allocator_t   *zone,
+                                          asset_slot_t       *slot_data,
+                                          za_allocation_tag_t tag)
+{
+    string_t result = {};
+    if(slot_data->asset_file_data_offset > 0)
+    {
+        result = c_file_read_za(zone,
+                                asset_manager->asset_file_handle.filepath,
+                                slot_data->asset_file_data_length,
+                                slot_data->asset_file_data_offset,
+                                tag);
+    }
+    else
+    {
+        Assert(slot_data->filename.data != null);
+        result = c_file_read_za(zone,
+                                slot_data->filename,
+                                READ_ENTIRE_FILE,
+                                0,
+                                tag);
+    }
+    slot_data->slot_state = ASS_LOADED;
+
+    return(result);
+}
+

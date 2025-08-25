@@ -27,12 +27,6 @@
 
 #include "os_platform_file.h"
 
-#include "c_memory.cpp"
-#include "c_string.cpp"
-#include "c_array.cpp"
-#include "c_file_api.cpp"
-#include "c_hash_table.cpp"
-
 #include "s_asset_manager.h"
 #include "s_audio_manager.h"
 #include "s_input_manager.h"
@@ -43,10 +37,16 @@
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
+#include "c_memory.cpp"
+#include "c_string.cpp"
+#include "c_array.cpp"
+#include "c_file_api.cpp"
+#include "c_hash_table.cpp"
+
 #include "r_asset_shader.cpp"
 #include "r_asset_texture.cpp"
 #include "r_asset_dynamic_render_font.cpp"
-//#include "r_asset_loaded_sound.c"
+#include "a_asset_loaded_sound.cpp"
 #include "s_asset_manager.cpp"
 #include "s_audio_manager.cpp"
 #include "s_input_manager.cpp"
@@ -75,24 +75,6 @@ c_process_window_events(input_manager_t *input_manager)
             {
             }break;
         }
-    }
-}
-
-internal void
-create_sine_wave(s16 *buffer, s32 sample_count)
-{
-    u32 tone_hz   = 300;
-    u32 amplitude = 30000;
-    for(s32 sample_index = 0;
-        sample_index < sample_count;
-        ++sample_index)
-    {
-        float32 time_value = (float32)sample_index / (float32)48000;
-
-        s16 *sample0 = buffer + (sample_index * 2 + 0);
-        s16 *sample1 = buffer + (sample_index * 2 + 1);
-        *sample0 = (s16)((amplitude * sinf((2.0f * PI32) * tone_hz * time_value)) / 200.0);
-        *sample1 = (s16)((amplitude * sinf((2.0f * PI32) * tone_hz * time_value)) / 200.0);
     }
 }
 
@@ -137,43 +119,16 @@ main(int argc, char **argv)
         running = true;
         while(running)
         {
-            s32 sample_rate      = audio_manager.audio_manager_spec.freq;
-            s32 bytes_per_sample = audio_manager.audio_manager_spec.channels * sizeof(s16);
-            
-            float32 device_latency = audio_manager.current_playback_device.device_buffer_size_ms;
-
-            s32 samples_to_write = (s32)(ceilf(((float32)device_latency * (float32)sample_rate) / 1000.0f));
-            s32 bytes_to_write   = samples_to_write * bytes_per_sample;
-            
-            s32 queued_audio = SDL_GetAudioStreamQueued(audio_manager.stream);
-            if(queued_audio < bytes_to_write)
-            {
-                audio_manager.buffer.sample_buffer = (s16*)c_arena_push_size(&global_context.temporary_arena,
-                                                                              bytes_to_write);
-                if(audio_manager.buffer.sample_buffer)
-                {
-                    create_sine_wave(audio_manager.buffer.sample_buffer, samples_to_write);
-                    bool32 result = SDL_PutAudioStreamData(audio_manager.stream,
-                                                           audio_manager.buffer.sample_buffer,
-                                                           bytes_to_write);
-                    if(!result)
-                    {
-                        log_error("Could not put SDL_AudioStream data... Error: %s'\n", SDL_GetError());
-                    }
-                }
-            }
-            
+            s_audio_manager_fill_sound_buffer(&audio_manager);
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
 
             g_update_and_render(&render_state, &asset_manager);
-
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);
 
             c_arena_reset(&render_state.draw_frame_arena);
             ZeroStruct(render_state.draw_frame);
-
             gc_reset_temporary_data();
 
             current_tsc = SDL_GetPerformanceCounter();

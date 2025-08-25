@@ -48,6 +48,10 @@ typedef struct keyboard_controller_data
     vec2_t          current_mouse_pos;
     vec2_t          last_mouse_pos;
     vec2_t          mouse_delta;
+
+    bool8           is_shift_key_down;
+    bool8           is_control_key_down;
+    bool8           is_alt_key_down;
 }keyboard_controller_data_t;
 
 typedef struct analog_button
@@ -115,6 +119,9 @@ internal void                s_input_manager_initialize_keyboard_controller(inpu
 internal input_controller_t* s_input_manager_get_primary_controller(input_manager_t *input_manager);
 internal input_controller_t* s_input_manager_get_controller_at_index(input_manager_t *input_manager, s32 index);
 internal input_controller_t* s_input_manager_get_active_controller(input_manager_t *input_manager);
+internal bool8               s_input_manager_is_shift_key_down(input_controller_t *controller);
+internal bool8               s_input_manager_is_control_key_down(input_controller_t *controller);
+internal bool8               s_input_manager_is_alt_key_down(input_controller_t *controller);
 
 /*==============================================
   =============== KEYBOARD INPUT ===============

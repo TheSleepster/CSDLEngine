@@ -49,4 +49,10 @@ typedef struct audio_manager
     audio_buffer_t   buffer;
 }audio_manager_t;
 
+/*===========================================
+  =============== GENERAL API ===============
+  ===========================================*/
+internal void s_audio_manager_init(audio_manager_t *audio_manager);
+internal void s_audio_manager_fill_sound_buffer(audio_manager_t *audio_manager);
+
 #endif

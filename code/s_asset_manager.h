@@ -17,9 +17,12 @@
 #include "r_asset_dynamic_render_font.h"
 #include "r_asset_texture.h"
 #include "at_atlas_handler.h"
+#include "a_asset_loaded_sound.h"
 
 #define MANAGER_HASH_TABLE_SIZE 1024
 #define MAX_TEXTURE_VIEWS       1024
+
+typedef struct asset_file_table_of_contents asset_file_table_of_contents_t;
 
 typedef enum asset_type
 {
@@ -63,7 +66,7 @@ typedef struct asset_slot
     {
         texture2D_t           texture;
         GPU_shader_t          shader;
-        //loaded_sound_t        sound;
+        loaded_sound_t        loaded_sound;
         dynamic_render_font_t render_font;
     };
 }asset_slot_t;
@@ -90,6 +93,7 @@ typedef struct asset_handle
     {
         texture_view_t        *texture;
         dynamic_render_font_t *font;
+        loaded_sound_t        *sound;
     };
 }asset_handle_t;
 
@@ -151,5 +155,9 @@ typedef struct asset_manager
         texture_view_t    null_sound;
     }sound_catalog;
 }asset_manager_t;
+
+internal void     s_asset_manager_read_asset_file_entries(asset_manager_t *asset_manager, string_t entry_data, asset_file_table_of_contents_t *table_of_contents);
+internal void     s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filepath);
+internal string_t s_asset_load_data_from_asset_file_or_path(asset_manager_t *asset_manager, zone_allocator_t *zone, asset_slot_t *slot_data, za_allocation_tag_t tag);
 
 #endif

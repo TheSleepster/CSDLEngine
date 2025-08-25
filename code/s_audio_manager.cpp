@@ -55,8 +55,55 @@ s_audio_manager_init(audio_manager_t *audio_manager)
         }
     }
         
-    audio_manager->buffer.samples_to_write = 12000;
     audio_manager->buffer.bytes_per_sample = 2.0f * sizeof(s16); 
-    audio_manager->buffer.bytes_to_write   = audio_manager->buffer.samples_to_write * audio_manager->buffer.bytes_per_sample;
-    audio_manager->buffer.sample_count     = audio_manager->buffer.bytes_to_write / sizeof(s16);
+}
+
+
+internal void
+DEBUG_create_sine_wave(s16 *buffer, s32 sample_count)
+{
+    u32 tone_hz   = 300;
+    u32 amplitude = 30000;
+    for(s32 sample_index = 0;
+        sample_index < sample_count;
+        ++sample_index)
+    {
+        float32 time_value = (float32)sample_index / (float32)48000;
+
+        s16 *sample0 = buffer + (sample_index * 2 + 0);
+        s16 *sample1 = buffer + (sample_index * 2 + 1);
+        *sample0 = (s16)((amplitude * sinf((2.0f * PI32) * tone_hz * time_value)) / 200.0);
+        *sample1 = (s16)((amplitude * sinf((2.0f * PI32) * tone_hz * time_value)) / 200.0);
+    }
+}
+
+
+internal void
+s_audio_manager_fill_sound_buffer(audio_manager_t *audio_manager)
+{
+    s32 sample_rate      = audio_manager->audio_manager_spec.freq;
+    s32 bytes_per_sample = audio_manager->audio_manager_spec.channels * sizeof(s16);
+            
+    float32 device_latency = audio_manager->current_playback_device.device_buffer_size_ms;
+
+    s32 samples_to_write = (s32)(ceilf(((float32)device_latency * (float32)sample_rate) / 1000.0f));
+    s32 bytes_to_write   = samples_to_write * bytes_per_sample;
+            
+    s32 queued_audio = SDL_GetAudioStreamQueued(audio_manager->stream);
+    if(queued_audio < bytes_to_write)
+    {
+        audio_manager->buffer.sample_buffer = (s16*)c_arena_push_size(&global_context.temporary_arena,
+                                                                     bytes_to_write);
+        if(audio_manager->buffer.sample_buffer)
+        {
+            DEBUG_create_sine_wave(audio_manager->buffer.sample_buffer, samples_to_write);
+            bool32 result = SDL_PutAudioStreamData(audio_manager->stream,
+                                                   audio_manager->buffer.sample_buffer,
+                                                   bytes_to_write);
+            if(!result)
+            {
+                log_error("Could not put SDL_AudioStream data... Error: %s'\n", SDL_GetError());
+            }
+        }
+    }
 }
