@@ -33,6 +33,23 @@ os_allocate_memory(usize allocation_size)
     return(data);
 }
 
+internal inline void*
+os_reallocate_memory(void *offset, u64 allocation_size)
+{
+    errno = 0;
+    
+    void *result = mmap(offset, allocation_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    if(errno == -1)
+    {
+        int error = errno;
+        log_fatal("mmap failed... error: (%s), code: '%d'...\n", strerror(error), error);
+
+        result = null;
+    }
+
+    return(result);
+}
+
 internal inline void
 os_free_memory(void *data, usize free_size)
 {
