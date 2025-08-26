@@ -17,6 +17,7 @@
 #include "c_file_api.h"
 
 typedef struct playing_sound playing_sound_t;
+typedef struct audio_manager audio_manager_t; 
 
 #define RIFF_CODE(a, b, c, d) (((u32)(a) << 0) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24)) 
 enum 
