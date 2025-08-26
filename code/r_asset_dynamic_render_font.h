@@ -12,10 +12,9 @@
 
 typedef struct dynamic_render_font_varient dynamic_render_font_varient_t;
 
-/*===========================================
-  ================= UNICODE =================
-  ===========================================*/
-
+/*=============================================
+  =============== UNICODE STUFF ===============
+  =============================================*/
 u8 UTF8_trailing_bytes[] =
 {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -37,6 +36,20 @@ u32 UTF8_offsets[] = {0x00000000, 0x00003080, 0x000e2080,
 #define  UTF16_MAX_CHARACTER          0x0010FFFF
 #define  UTF32_MAX_CHARACTER          0x7FFFFFFF
 #define  UTF32_REPLACEMENT_CHARACTER  0x0000FFFD
+
+internal inline s32
+FT_ROUND(s32 X)
+{
+    if (X >= 0) return (X + 0x1f) >> 6;
+    return -(((-X) + 0x1f) >> 6);
+}
+
+internal u8*
+unicode_next_character(u8 *character)
+{
+    u8 character_bytes = 1 + UTF8_trailing_bytes[*character];
+    return(character + character_bytes);
+}
 ////////////////////////////////
 
 typedef struct dynamic_render_font
@@ -107,18 +120,14 @@ typedef struct font_glyph
     dynamic_render_font_page_t *owner_page;
 }font_glyph_t;
 
-internal inline s32
-FT_ROUND(s32 X)
-{
-    if (X >= 0) return (X + 0x1f) >> 6;
-    return -(((-X) + 0x1f) >> 6);
-}
 
-internal u8*
-unicode_next_character(u8 *character)
-{
-    u8 character_bytes = 1 + UTF8_trailing_bytes[*character];
-    return(character + character_bytes);
-}
-
+/*=============================================
+  =============== FONT DATA API ===============
+  =============================================*/
+internal asset_handle_t                 s_asset_font_get(asset_manager_t *asset_manager, string_t font_name);
+internal u32                            s_UTF8_convert_UTF32(u8 *character);
+internal font_glyph_t*                  s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, u8 *character);
+internal string_t                       s_asset_font_load_data(memory_arena_t *arena, asset_manager_t *asset_manager, asset_handle_t handle);
+internal dynamic_render_font_varient_t* s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handle, u32 size);
+internal dynamic_render_font_varient_t* s_asset_font_get_at_size(asset_manager_t *asset_manager, asset_handle_t handle, u32 size);
 #endif

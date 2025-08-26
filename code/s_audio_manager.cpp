@@ -77,7 +77,10 @@ s_audio_manager_init(audio_manager_t *audio_manager)
 }
 
 internal void
-s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager, audio_manager_t *audio_manager, s32 bytes_to_write, s32 samples_to_write)
+s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager,
+                                                  audio_manager_t *audio_manager,
+                                                  s32              samples_to_write,
+                                                  float32          delta_time)
 {
     const float32 master_volume = 0.1f;
 
@@ -129,7 +132,7 @@ s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager
                 vec2_approach(&sound->current_playing_volume,
                                sound->target_playing_volume,
                                sound->d_volumet,
-                               0.0f);
+                               delta_time);
                 
                 sound->play_cursor    = running_sample_index;
                 total_samples_to_mix -= mixing_count;
@@ -179,12 +182,12 @@ s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager
 }
 
 internal void
-s_audio_manager_fill_sound_buffer(asset_manager_t *asset_manager, audio_manager_t *audio_manager)
+s_audio_manager_fill_sound_buffer(asset_manager_t *asset_manager, audio_manager_t *audio_manager, float32 delta_time)
 {
     s32 sample_rate      = audio_manager->audio_manager_spec.freq;
     s32 bytes_per_sample = audio_manager->audio_manager_spec.channels * sizeof(s16);
             
-    float32 device_latency = audio_manager->current_playback_device.device_buffer_size_ms;
+    float32 device_latency = audio_manager->current_playback_device.device_buffer_size_ms + 2;
 
     s32 samples_to_write = (s32)(ceilf(((float32)device_latency * (float32)sample_rate) / 1000.0f));
     s32 bytes_to_write   = samples_to_write * bytes_per_sample;
@@ -196,7 +199,7 @@ s_audio_manager_fill_sound_buffer(asset_manager_t *asset_manager, audio_manager_
         if(audio_manager->buffer.sample_buffer)
         {
             //DEBUG_create_sine_wave(audio_manager->buffer.sample_buffer, samples_to_write);
-            s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager, audio_manager, bytes_to_write, samples_to_write);
+            s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager, audio_manager, samples_to_write, delta_time);
 
             bool32 result = SDL_PutAudioStreamData(audio_manager->stream,
                                                    audio_manager->buffer.sample_buffer,

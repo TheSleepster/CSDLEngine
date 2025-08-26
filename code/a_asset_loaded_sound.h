@@ -81,10 +81,12 @@ internal loaded_sound_t s_asset_load_WAV_file(asset_manager_t *asset_manager, st
 /*==============================================
   =============== PLAYING SOUNDS ===============
   ==============================================*/
-internal        playing_sound *s_asset_playing_sound_create(audio_manager_t *audio_manager, asset_handle_t sound_handle);
+internal        playing_sound *s_asset_playing_sound_create(audio_manager_t *audio_manager, asset_handle_t sound_handle, vec2_t starting_volume);
+internal inline void           s_asset_playing_sound_set_target_volume(playing_sound_t *sound, float32 target_x, float32 target_y, float32 fade_x, float32 fade_y);
+internal inline void           s_asset_playing_sound_set_pitch(playing_sound_t *sound, float32 pitch);
 internal inline void           a_playing_sound_pause(playing_sound_t *sound);
 internal inline void           a_playing_sound_continue(playing_sound_t *sound);
 internal inline void           a_playing_sound_set_volume(playing_sound_t *sound, float32 norm_volume_x, float32 norm_volume_y);
-internal inline void           a_playing_sound_delete(audio_manager_t *audio_manager, playing_sound_t *sound);
+internal inline void           a_playing_sound_free(audio_manager_t *audio_manager, playing_sound_t *sound);
 
 #endif

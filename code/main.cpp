@@ -123,7 +123,7 @@ main(int argc, char **argv)
             c_process_window_events(&input_manager);
 
             g_update_and_render(&render_state, &audio_manager, &asset_manager);
-            s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager);
+            s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
 
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);

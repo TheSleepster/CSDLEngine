@@ -160,7 +160,9 @@ s_asset_loaded_sound_get(asset_manager_t *asset_manager, string_t name)
   =============== PLAYING SOUNDS ===============
   ==============================================*/
 internal playing_sound*
-s_asset_playing_sound_create(audio_manager_t *audio_manager, asset_handle_t sound_handle)
+s_asset_playing_sound_create(audio_manager_t *audio_manager,
+                             asset_handle_t   sound_handle,
+                             vec2_t           starting_volume)
 {
     if(!audio_manager->first_free_playing_sound)
     {
@@ -174,14 +176,25 @@ s_asset_playing_sound_create(audio_manager_t *audio_manager, asset_handle_t soun
     result->sound_handle           = sound_handle;
     result->play_cursor            = 0.0f;
     result->current_playing_volume = vec2_create_float(1.0f, 1.0f);
-    result->target_playing_volume  = vec2_create_float(1.0f, 1.0f);
-    result->d_volumet              = vec2_create_float(0.0f, 0.0f);
     result->pitch_shift            = 1.0f;
     result->is_paused              = false;
     result->next                   = audio_manager->first_playing_sound;
 
     audio_manager->first_playing_sound = result;
     return(result);
+}
+
+internal inline void
+s_asset_playing_sound_set_target_volume(playing_sound_t *sound, float32 target_x, float32 target_y, float32 fade_x, float32 fade_y)
+{
+    sound->target_playing_volume  = vec2_create_float(target_x, target_y);
+    sound->d_volumet              = vec2_create_float(fade_x, fade_y);
+}
+
+internal inline void
+s_asset_playing_sound_set_pitch(playing_sound_t *sound, float32 pitch)
+{
+    sound->pitch_shift = pitch;
 }
 
 internal inline void
@@ -203,7 +216,7 @@ a_playing_sound_set_volume(playing_sound_t *sound, float32 norm_volume_x, float3
 }
 
 internal inline void
-a_playing_sound_delete(audio_manager_t *audio_manager, playing_sound_t *sound)
+a_playing_sound_free(audio_manager_t *audio_manager, playing_sound_t *sound)
 {
     playing_sound_t *last_free_playing_sound = audio_manager->first_free_playing_sound;
 

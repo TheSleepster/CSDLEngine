@@ -47,7 +47,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     if(!initialized_stuff)
     {
         audio_manager->playing_sound_arena = c_arena_create(MB(100));
-        s_asset_playing_sound_create(audio_manager, test_handle);
+        s_asset_playing_sound_create(audio_manager, test_handle, vec2_create_float(1.0f, 1.0f));
 
         initialized_stuff = true;
     }
