@@ -17,9 +17,9 @@
  * 3.) For some reason pointers when added to arrays do not work properly
  */
 
-/////////////////////////////
-// STATIC ARRAY
-/////////////////////////////
+/*===========================================
+  ============= STATIC ARRAY API ============
+  ===========================================*/
 
 typedef struct array
 {
@@ -43,9 +43,9 @@ internal inline void*   c_array_get_value(array_t *array, s32 index);
 internal inline void    c_array_clear_value(array_t *array, s32 index);
 
 
-/////////////////////////////
-// DYNAMIC ARRAY
-/////////////////////////////
+/*===========================================
+  ============ DYNAMIC ARRAY API ============
+  ===========================================*/
 
 typedef struct dynamic_array
 {

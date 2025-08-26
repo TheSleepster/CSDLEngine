@@ -15,17 +15,17 @@
 
 #include "c_file_api.h"
 
-/////////////////
-// MEMORY
-/////////////////
+/*===========================================
+  ============== OS MEMORY API ==============
+  ===========================================*/
 
 internal void* os_allocate_memory(usize allocation_size);
 internal void  os_free_memory(void *data, usize free_size);
 internal void* os_reallocate_memory(void *offset, u64 allocation_size);
 
-//////////////////
-// FILE IO STUFF
-//////////////////
+/*===========================================
+  ============== FILE IO STUFF ==============
+  ===========================================*/
 
 internal file_t        os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overlapping_io);
 internal bool8         os_file_close(file_t *file_data);
@@ -43,9 +43,9 @@ internal bool8         os_file_replace_or_rename(string_t old_file, string_t new
 internal bool8         os_directory_exists(string_t filepath);
 internal void          os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data);
 
-///////////////////
-// MULTITHREADING
-///////////////////
+/*===========================================
+  ============== MULTITHREADING =============
+  ===========================================*/
 
 typedef struct os_thread
 {

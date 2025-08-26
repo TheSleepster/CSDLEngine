@@ -43,7 +43,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
 
     asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
     asset_handle_t block_handle = s_asset_texture_get(asset_manager, STR("block"));
-    asset_handle_t test_handle  = s_asset_loaded_sound_get(asset_manager, STR("Test"));
+    asset_handle_t test_handle  = s_asset_loaded_sound_get(asset_manager, STR("Test2"));
     if(!initialized_stuff)
     {
         audio_manager->playing_sound_arena = c_arena_create(MB(100));

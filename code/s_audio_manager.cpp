@@ -79,7 +79,7 @@ s_audio_manager_init(audio_manager_t *audio_manager)
 internal void
 s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager, audio_manager_t *audio_manager, s32 bytes_to_write, s32 samples_to_write)
 {
-    const float32 master_volume = 1.0f;
+    const float32 master_volume = 0.1f;
 
     // NOTE(Sleepster): We mix the audio samples as 32 bit HD audio so we can prevent peaking. Then truncate to 16bit
     float32 *mixer_buffer00 = c_arena_push_array(&global_context.temporary_arena, float32, samples_to_write);
@@ -126,11 +126,10 @@ s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager
                     running_sample_index += sound->pitch_shift;
                 }
 
-                // TODO: animate volume v2_approach
-                // vec2_approach(&sound->current_playing_volume,
-                //                sound->target_playing_volume,
-                //                sound->d_volumet,
-                //                0.0f);
+                vec2_approach(&sound->current_playing_volume,
+                               sound->target_playing_volume,
+                               sound->d_volumet,
+                               0.0f);
                 
                 sound->play_cursor    = running_sample_index;
                 total_samples_to_mix -= mixing_count;

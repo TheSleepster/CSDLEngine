@@ -12,9 +12,9 @@
 
 typedef struct dynamic_render_font_varient dynamic_render_font_varient_t;
 
-////////////
-// UNICODE
-////////////
+/*===========================================
+  ================= UNICODE =================
+  ===========================================*/
 
 u8 UTF8_trailing_bytes[] =
 {

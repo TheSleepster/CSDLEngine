@@ -70,6 +70,20 @@ typedef struct loaded_sound
     s32  channel_count;
 }loaded_sound_t;
 
-internal void s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t handle);
+/*===========================================
+  ============= LOADED SOUND API ============
+  ===========================================*/
+internal void           s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t handle);
+internal asset_handle_t s_asset_loaded_sound_get(asset_manager_t *asset_manager, string_t name);
+internal loaded_sound_t s_asset_load_WAV_file(asset_manager_t *asset_manager, string_t filename, string_t filedata);
+
+/*==============================================
+  =============== PLAYING SOUNDS ===============
+  ==============================================*/
+internal        playing_sound *s_asset_playing_sound_create(audio_manager_t *audio_manager, asset_handle_t sound_handle);
+internal inline void           a_playing_sound_pause(playing_sound_t *sound);
+internal inline void           a_playing_sound_continue(playing_sound_t *sound);
+internal inline void           a_playing_sound_set_volume(playing_sound_t *sound, float32 norm_volume_x, float32 norm_volume_y);
+internal inline void           a_playing_sound_delete(audio_manager_t *audio_manager, playing_sound_t *sound);
 
 #endif

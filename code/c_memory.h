@@ -22,6 +22,9 @@ internal void  os_free_memory(void *data, usize free_size);
 #define MB(x) (KB((x))  * 1024ULL)
 #define GB(x) (MB((x))  * 1024ULL)
 
+/*===========================================
+  ============ MEMORY ARENA API  ============
+  ===========================================*/
 typedef struct memory_arena_footer
 {
     u64 last_used;
@@ -64,6 +67,10 @@ internal inline void                   c_arena_reset(memory_arena_t *arena);
 #define c_arena_push_array(arena, type, count)           (type*)c_arena_push_size(arena, (sizeof(type)) * count)
 #define c_bootstrap_allocate_struct(type, member, alloc) (type*)bootstrap_allocate_struct_(sizeof(type), OffsetOf(type, member), alloc)
 ////////////////////////////////////////////////////////
+
+/*===========================================
+  =========== ZONE ALLOCATOR API ============
+  ===========================================*/
 #define DEBUG_ZONE_ID            0x1d4a11
 #define MAX_MEMORY_FRAGMENTATION 64
 
