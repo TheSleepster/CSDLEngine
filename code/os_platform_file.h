@@ -65,7 +65,7 @@ typedef struct os_semaphore
     os_handle_t handle;
 }os_semaphore_t;
     
-#define PLATFORM_THREAD_PROC(name) u32 name(void *user_data)
+#define PLATFORM_THREAD_PROC(name) s32 name(void *user_data)
 typedef PLATFORM_THREAD_PROC(thread_proc_t);
 
 internal os_thread_t os_create_thread(thread_proc_t *proc, void *user_data);

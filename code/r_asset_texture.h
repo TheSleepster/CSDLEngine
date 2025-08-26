@@ -73,6 +73,8 @@ typedef struct texture2D
     filter_type_t   filter_type;
 }texture2D_t;
 
-internal void s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle);
+internal        void        s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle);
+internal        texture2D_t s_asset_texture_and_view_create(asset_manager_t  *asset_manager, zone_allocator_t *zone, s32 width, s32 height, bitmap_format_t format, bool8 has_AA, filter_type_t filtering);
+internal inline void        s_asset_texture_destroy_data(asset_manager_t *asset_manager, asset_handle_t handle);
 
 #endif

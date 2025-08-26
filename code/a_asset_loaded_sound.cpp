@@ -131,6 +131,26 @@ s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t handl
     }
 }
 
+internal playing_sound*
+s_asset_play_sound(audio_manager_t *audio_manager, asset_handle_t sound_handle)
+{
+    if(!audio_manager->first_free_playing_sound)
+    {
+        audio_manager->first_free_playing_sound       = c_arena_push_struct(&audio_manager->playing_sound_arena, playing_sound_t);
+        audio_manager->first_free_playing_sound->next = null;
+    }
+
+    playing_sound_t *result = audio_manager->first_free_playing_sound;
+    ZeroStruct(*result);
+    audio_manager->first_free_playing_sound = result;
+    result->sound_handle                    = sound_handle;
+    result->next_sample_index               = 0;
+    result->current_playing_volume          = vec2_create_float(1.0f, 1.0f);
+    result->is_paused                       = false;
+
+    return(result);
+}
+
 internal asset_handle_t
 s_asset_loaded_sound_get(asset_manager_t *asset_manager, string_t name)
 {
@@ -144,6 +164,8 @@ s_asset_loaded_sound_get(asset_manager_t *asset_manager, string_t name)
         result.asset_slot = valid_slot;
         if(valid_slot->slot_state == ASS_UNLOADED)
         {
+            s_asset_loaded_sound_create(asset_manager, result);
+            result.sound = &valid_slot->loaded_sound;
         }
     }
     else

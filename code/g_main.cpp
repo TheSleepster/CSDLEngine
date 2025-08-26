@@ -43,6 +43,7 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
 
     asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
     asset_handle_t block_handle = s_asset_texture_get(asset_manager, STR("block"));
+    asset_handle_t test_handle  = s_asset_loaded_sound_get(asset_manager, STR("Test"));
     if(!initialized_stuff)
     {
         initialized_stuff = true;

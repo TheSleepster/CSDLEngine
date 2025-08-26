@@ -16,9 +16,7 @@
 #include "c_array.h"
 #include "c_file_api.h"
 
-typedef struct asset_slot    asset_slot_t;
-typedef struct asset_handle  asset_handle_t;
-typedef struct asset_manager asset_manager_t;
+typedef struct playing_sound playing_sound_t;
 
 #define RIFF_CODE(a, b, c, d) (((u32)(a) << 0) | ((u32)(b) << 8) | ((u32)(c) << 16) | ((u32)(d) << 24)) 
 enum 
@@ -60,8 +58,8 @@ typedef struct WAVE_format_data
 
 typedef struct WAVE_file_iterator
 {
-    uint8      *at;
-    uint8      *end;
+    u8      *at;
+    u8      *end;
 }WAVE_file_iterator_t;
 
 typedef struct loaded_sound

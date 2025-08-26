@@ -43,14 +43,14 @@
 #include "c_file_api.cpp"
 #include "c_hash_table.cpp"
 
-#include "r_asset_shader.cpp"
-#include "r_asset_texture.cpp"
-#include "r_asset_dynamic_render_font.cpp"
-#include "a_asset_loaded_sound.cpp"
 #include "s_asset_manager.cpp"
 #include "s_audio_manager.cpp"
 #include "s_input_manager.cpp"
 #include "at_atlas_handler.cpp"
+#include "r_asset_shader.cpp"
+#include "r_asset_texture.cpp"
+#include "r_asset_dynamic_render_font.cpp"
+#include "a_asset_loaded_sound.cpp"
 #include "r_render_API.cpp"
 #include "r_opengl.cpp"
 

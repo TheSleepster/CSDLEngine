@@ -7,6 +7,8 @@
    ======================================================================== */
 
 #define S_AUDIO_MANAGER_H
+#include <SDL3/SDL_audio.h>
+
 #include "c_base.h"
 #include "c_types.h"
 #include "c_math.h"
@@ -16,7 +18,7 @@
 #include "c_array.h"
 #include "c_file_api.h"
 
-#include <SDL3/SDL_audio.h>
+#include "a_asset_loaded_sound.h"
 
 typedef struct audio_device
 {
@@ -40,6 +42,9 @@ typedef struct audio_buffer
 
 typedef struct audio_manager
 {
+    // NOTE(Sleepster): This is the child of whatever arena you wish
+    memory_arena     playing_sound_arena;
+    
     audio_device_t   current_playback_device;
     SDL_AudioFormat  engine_audio_format;
 
@@ -47,6 +52,9 @@ typedef struct audio_manager
 
     SDL_AudioStream *stream;
     audio_buffer_t   buffer;
+
+    playing_sound_t *first_playing_sound;
+    playing_sound_t *first_free_playing_sound;
 }audio_manager_t;
 
 /*===========================================

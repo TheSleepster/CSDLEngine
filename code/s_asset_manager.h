@@ -71,7 +71,7 @@ typedef struct asset_slot
     };
 }asset_slot_t;
 
-/* NOTE(Sleepster): New idea: asset_handles. These asset_views will be
+/* NOTE(Sleepster): New idea: asset_handles. These asset_handles will be
  * used to look into an asset and keep track of the state related to
  * that asset while still allowing the asset's state to remain
  * modifiable. The idea is that we no longer hand out pointers to the
@@ -96,6 +96,18 @@ typedef struct asset_handle
         loaded_sound_t        *sound;
     };
 }asset_handle_t;
+
+typedef struct playing_sound
+{
+    asset_handle_t        sound_handle;
+    asset_handle_t        next_sound_handle;
+
+    s32                   next_sample_index;
+    vec2_t                current_playing_volume;
+    bool8                 is_paused;
+
+    struct playing_sound *next;
+}playing_sound_t;
 
 typedef struct asset_manager
 {
