@@ -70,4 +70,6 @@ typedef struct loaded_sound
     s32  channel_count;
 }loaded_sound_t;
 
+internal void s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t handle);
+
 #endif

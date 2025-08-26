@@ -90,7 +90,7 @@
 //////////////////////
 
 internal inline float32
-lerp(float32 A, float32 B, float32 T)
+f32_lerp(float32 A, float32 B, float32 T)
 {
     float32 result;
     result = A + (B - A) * T;
@@ -99,7 +99,7 @@ lerp(float32 A, float32 B, float32 T)
 }
 
 internal inline float32
-unlerp(float32 A, float32 B, float32 X)
+f32_unlerp(float32 A, float32 B, float32 X)
 {
     float32 result = 0.0f;
     if(A != B)
@@ -108,6 +108,22 @@ unlerp(float32 A, float32 B, float32 X)
     }
 
     return(result);
+}
+
+internal inline bool8
+f32_equals(float32 A, float32 B, float32 tolerance)
+{
+    return(fabs(A - B) <= tolerance);
+}
+
+internal inline void
+f32_approach(float32 *value, float32 target, float32 rate, float32 delta_t)
+{
+    *value = (float32)((target - *value) * (1.0 - pow(2.0f, -rate * delta_t)));
+    if(f32_equals(*value, target, 0.01f))
+    {
+        *value = target;
+    }
 }
 
 //////////////////
@@ -526,6 +542,13 @@ vec2_transform(mat2_t A, vec2_t B)
     return(result);
 }
 
+internal inline void
+vec2_approach(vec2_t *value, vec2_t target, vec2_t rate, float32 delta_t)
+{
+    f32_approach(&value->x, target.x, rate.x, delta_t);
+    f32_approach(&value->y, target.y, rate.y, delta_t);
+}
+
 #ifndef SL_MATH_USE_DEGREES
 internal inline vec2_t
 vec2_rotate(vec2_t A, float32 rotation)
@@ -562,8 +585,8 @@ internal inline vec2_t
 vec2_lerp(vec2_t A, vec2_t B, real32 time)
 {
     vec2_t result;
-    result.x = lerp(A.x, B.x, time);
-    result.y = lerp(A.y, B.y, time);
+    result.x = f32_lerp(A.x, B.x, time);
+    result.y = f32_lerp(A.y, B.y, time);
 
     return(result);
 }
@@ -572,8 +595,8 @@ internal inline vec2_t
 vec2_unlerp(vec2_t A, vec2_t B, vec2_t X)
 {
     vec2_t result;
-    result.x = unlerp(A.x, B.x, X.x);
-    result.y = unlerp(A.y, B.y, X.y);
+    result.x = f32_unlerp(A.x, B.x, X.x);
+    result.y = f32_unlerp(A.y, B.y, X.y);
 
     return(result);
 }
@@ -781,9 +804,9 @@ internal inline vec3_t
 vec3_lerp(vec3_t A, vec3_t B, real32 time)
 {
     vec3_t result;
-    result.x = lerp(A.x, B.x, time);
-    result.y = lerp(A.y, B.y, time);
-    result.z = lerp(A.z, B.z, time);
+    result.x = f32_lerp(A.x, B.x, time);
+    result.y = f32_lerp(A.y, B.y, time);
+    result.z = f32_lerp(A.z, B.z, time);
 
     return(result);
 }
@@ -792,9 +815,9 @@ internal inline vec3_t
 vec3_unlerp(vec3_t A, vec3_t B, vec3_t X)
 {
     vec3_t result;
-    result.x = unlerp(A.x, B.x, X.x);
-    result.y = unlerp(A.y, B.y, X.y);
-    result.z = unlerp(A.z, B.z, X.z);
+    result.x = f32_unlerp(A.x, B.x, X.x);
+    result.y = f32_unlerp(A.y, B.y, X.y);
+    result.z = f32_unlerp(A.z, B.z, X.z);
 
     return(result);
 }
@@ -901,10 +924,10 @@ internal inline vec4_t
 vec4_lerp(vec4_t A, vec4_t B, real32 time)
 {
     vec4_t result;
-    result.x = lerp(A.x, B.x, time);
-    result.y = lerp(A.y, B.y, time);
-    result.z = lerp(A.z, B.z, time);
-    result.w = lerp(A.w, B.w, time);
+    result.x = f32_lerp(A.x, B.x, time);
+    result.y = f32_lerp(A.y, B.y, time);
+    result.z = f32_lerp(A.z, B.z, time);
+    result.w = f32_lerp(A.w, B.w, time);
 
     return(result);
 }
@@ -913,10 +936,10 @@ internal inline vec4_t
 vec4_unlerp(vec4_t A, vec4_t B, vec4_t X)
 {
     vec4_t result;
-    result.x = unlerp(A.x, B.x, X.x);
-    result.y = unlerp(A.y, B.y, X.y);
-    result.z = unlerp(A.z, B.z, X.z);
-    result.w = unlerp(A.w, B.w, X.w);
+    result.x = f32_unlerp(A.x, B.x, X.x);
+    result.y = f32_unlerp(A.y, B.y, X.y);
+    result.z = f32_unlerp(A.z, B.z, X.z);
+    result.w = f32_unlerp(A.w, B.w, X.w);
 
     return(result);
 }
@@ -1744,7 +1767,6 @@ mat4_inverse_determinant(mat4_t A)
 {
     return(1.0f / mat4_determinant(A));
 }
-
 
 // GRAPHICS TRANSFORMS
 

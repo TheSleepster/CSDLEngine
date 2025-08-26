@@ -10,7 +10,7 @@ global bool8 initialized_stuff;
 global dynamic_render_font_varient_t *varient;
 
 internal void
-r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager)
+r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager)
 {
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();
@@ -28,7 +28,7 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group2 = test_group_desc;
-    test_group2.render_layer   = 16;
+    test_group2.render_layer        = 16;
 
     r_begin_renderpass(render_state, &test_group2);
     r_draw_rect(render_state, (vec2_t){0,  20}, (vec2_t){20, 20}, (vec4_t){1, 1, 1, 1}, 33, RQO_NONE);
@@ -46,12 +46,15 @@ r_DEBUG_test_render(render_state_t *render_state, asset_manager_t *asset_manager
     asset_handle_t test_handle  = s_asset_loaded_sound_get(asset_manager, STR("Test"));
     if(!initialized_stuff)
     {
+        audio_manager->playing_sound_arena = c_arena_create(MB(100));
+        s_asset_playing_sound_create(audio_manager, test_handle);
+
         initialized_stuff = true;
     }
 
-    r_draw_texture(render_state, vec2_create_float(20, 40), vec2_create_float(20, 20), COLOR_WHITE,  0, block_handle, RQO_NONE);
-    r_draw_rect(render_state, vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
-    r_draw_texture(render_state, vec2_create_float(50, -50), vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
+    r_draw_texture(render_state, vec2_create_float(20, 40),     vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
+    r_draw_rect(render_state,    vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
+    r_draw_texture(render_state, vec2_create_float(50, -50),    vec2_create_float(20, 20), COLOR_WHITE, 0, block_handle, RQO_NONE);
     
     r_end_renderpass(render_state);
 
@@ -71,7 +74,7 @@ initialize_gamestate()
 }
 
 internal void
-g_update_and_render(render_state_t *render_state, asset_manager_t *asset_manager)
+g_update_and_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager)
 {
-    r_DEBUG_test_render(render_state, asset_manager);
+    r_DEBUG_test_render(render_state, audio_manager, asset_manager);
 }

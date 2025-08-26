@@ -7,7 +7,6 @@
    ======================================================================== */
 
 #define C_DEBUG_H
-
 #include <stdarg.h>
 
 #define AssertBreak() (*(int*)0 = 0)

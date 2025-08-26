@@ -119,11 +119,12 @@ main(int argc, char **argv)
         running = true;
         while(running)
         {
-            s_audio_manager_fill_sound_buffer(&audio_manager);
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
 
-            g_update_and_render(&render_state, &asset_manager);
+            g_update_and_render(&render_state, &audio_manager, &asset_manager);
+            s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager);
+
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);
 

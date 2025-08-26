@@ -102,10 +102,13 @@ typedef struct playing_sound
     asset_handle_t        sound_handle;
     asset_handle_t        next_sound_handle;
 
-    s32                   next_sample_index;
+    float32               play_cursor;
     vec2_t                current_playing_volume;
-    bool8                 is_paused;
+    vec2_t                target_playing_volume;
+    vec2_t                d_volumet;
+    float32               pitch_shift; 
 
+    bool8                 is_paused;
     struct playing_sound *next;
 }playing_sound_t;
 

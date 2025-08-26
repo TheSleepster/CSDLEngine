@@ -29,7 +29,7 @@ BUILD_TYPE ?= debug
 ifeq ($(BUILD_TYPE),release)
     CFLAGS = -O2 $(COMMON_C_FLAGS)
 else
-    CFLAGS = -g -O0 -fno-inline-functions $(COMMON_C_FLAGS) -DASSERT_ENABLED=1
+    CFLAGS = -g -O0 -fno-inline-functions $(COMMON_C_FLAGS) -DINTERNAL_DEBUG=1 -DASSERT_ENABLED=1
 endif
 
 ENGINE_LIBS = $(PLATFORM_LIBS) -L../run_tree/deps/glad/src/ -L../run_tree/deps/SDL3/lib/ -L../run_tree/deps/Freetype/ -lSDL3-Static -lglad -lfreetype
