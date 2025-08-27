@@ -120,7 +120,6 @@ typedef struct font_glyph
     dynamic_render_font_page_t *owner_page;
 }font_glyph_t;
 
-
 /*=============================================
   =============== FONT DATA API ===============
   =============================================*/
