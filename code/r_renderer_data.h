@@ -146,15 +146,15 @@ typedef struct draw_frame
 
 typedef struct render_state
 {
-    u32                     primary_vao_id;
-    u32                     primary_vbo_id;
-    u32                     primary_ebo_id;
+    u32            primary_vao_id;
+    u32            primary_vbo_id;
+    u32            primary_ebo_id;
 
-    GPU_shader_t            test_shader;
-    GPU_shader_t            font_shader;
+    GPU_shader_t   test_shader;
+    GPU_shader_t   font_shader;
 
-    memory_arena_t          draw_frame_arena;
-    draw_frame_t            draw_frame;
+    memory_arena_t draw_frame_arena;
+    draw_frame_t   draw_frame;
 
     struct
     {

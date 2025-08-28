@@ -22,6 +22,7 @@
 #include "c_string.h"
 #include "c_array.h"
 #include "c_file_api.h"
+#include "c_file_watcher.h"
 #include "c_intrinsics.h"
 #include "c_hash_table.h"
 
@@ -41,6 +42,7 @@
 #include "c_string.cpp"
 #include "c_array.cpp"
 #include "c_file_api.cpp"
+#include "c_file_watcher.cpp"
 #include "c_hash_table.cpp"
 
 #include "s_asset_manager.cpp"

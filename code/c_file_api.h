@@ -14,9 +14,9 @@
 
 // NOTE(Sleepster): This is stupid... but C doens't make this easier. 
 #if OS_WINDOWS
-typedef void*  os_handle_t;
+#include "os_windows.h"
 #elif OS_LINUX|OS_MAC
-typedef int    os_handle_t;
+#include "os_linux.h"
 #endif
 
 typedef struct file
@@ -28,6 +28,10 @@ typedef struct file
     bool8       overlapping;
     bool8       for_writing;
 }file_t;
+
+typedef struct directory
+{
+}directory_t;
 
 typedef struct mapped_file_data
 {
@@ -57,7 +61,6 @@ typedef struct overlap_io_data
 }overlap_io_data_t;
 
 struct visit_file_data;
-
 #define VISIT_FILES(name) void name(struct visit_file_data *visit_file_data, void *user_data)
 typedef VISIT_FILES(visit_files_pfn_t);
 
@@ -81,10 +84,11 @@ typedef struct visit_file_data
  * functions for specific operating systems.  Windows keeps a write
  * pointer for each file you create with CreateFile... But I don't
  * know how Linux or Mac does it...
- *
- *
  */
 
+/*===========================================
+  =============== GENERAL API ===============
+  ===========================================*/
 internal inline file_t            c_file_open(string_t filepath, bool8 create);
 internal inline bool8             c_file_close(file_t *file);
 
@@ -111,4 +115,5 @@ internal inline bool8             c_directory_exists(string_t filepath);
 
 internal        visit_file_data_t c_directory_create_visit_data(visit_files_pfn_t *function, bool8 recursive, void *user_data);
 internal inline void              c_directory_visit(string_t filepath, visit_file_data_t *visit_file_data);
+
 #endif

@@ -216,6 +216,12 @@ a_playing_sound_set_volume(playing_sound_t *sound, float32 norm_volume_x, float3
 }
 
 internal inline void
+a_playing_sound_set_looped(playing_sound_t *sound)
+{
+    sound->next_sound_handle = sound->sound_handle;
+}
+
+internal inline void
 a_playing_sound_free(audio_manager_t *audio_manager, playing_sound_t *sound)
 {
     playing_sound_t *last_free_playing_sound = audio_manager->first_free_playing_sound;

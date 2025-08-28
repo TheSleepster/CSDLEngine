@@ -1,2 +1,2 @@
 #!/bin/bash
-make SILENT=@
+bear -- make SILENT=@

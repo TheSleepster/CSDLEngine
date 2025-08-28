@@ -4,9 +4,10 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
-
 #include "c_types.h"
 #include "c_base.h"
+
+#include "os_linux.h"
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -330,4 +331,69 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
         log_error("Failure to open the directory: '%s'... error of: '%s'...\n",
                   filepath.data, strerror(errno));
     }
+}
+
+/*===========================================
+  =============== FILE WATCHER ==============
+  ===========================================*/
+
+internal void
+os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data *watch_data)
+{
+    watch_data->inotify_instance = inotify_init(IN_NONBLOCK);
+    if(watch_data->inotify_instance == -1)
+    {
+        log_error("Could not init an Inotify instance... error: %s...\n", strerror(errno));
+        return;
+    }
+    watch_data->inotify_data = c_arena_push_size(arena, KB(10));
+}
+
+internal bool8 
+os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
+{
+    bool8 result = false;
+    string_t filepath = c_string_make_copy(path);
+
+    u32 flags = 0;
+    if(watcher->events_to_monitor & FWC_EVENT_ADDED)
+    {
+        flags |= IN_CREATE;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_MODIFIED)
+    {
+        flags |= IN_MODIFY|IN_CLOSE_WRITE;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_MOVED)
+    {
+        flags |= IN_MOVED_TO|IN_MOVE_SELF;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
+    {
+        flags |= IN_ATTRIB
+    }
+    if(watcher->events_to_monitor & FWC_DELETED)
+    {
+        flags |= IN_DELETE|IN_DELETE_SELF|IM_MOVED_FROM
+    }
+
+    s32 watch_handle = inotify_add_watch(watcher->os_watch_data, filepath.data, flags);
+    if(watch_handle == -1)
+    {
+        log_error("Could not watch pathL '%s'... error: '%s'...\n", filepath.data, strerror(errno));
+        return;
+    }
+
+    string_t last_path = c_hash_get_value(&watcher->os_watch_data.directory_table, watch_handle);
+    if(c_string_compare(last_path, filepath))
+    {
+        log_warning("Filepath '%s' is already being watched...\n", filepath);
+    }
+    else
+    {
+        c_hash_insert_kv_pair(&watcher->os_watch_data.directory_table, watch_handle, filepath);
+        result = true;
+    }
+
+    return(result);
 }

@@ -4,6 +4,7 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
+#include "c_file_api.h"
 
 // NOTE(Sleepster): Errors from these calls are handled internally 
 internal inline file_t

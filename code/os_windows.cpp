@@ -12,6 +12,8 @@
 #include "c_types.h"
 #include "c_base.h"
 
+#include "os_windows.h"
+
 // TODO(Sleepster): UNICODE 
 
 /////////////////////
