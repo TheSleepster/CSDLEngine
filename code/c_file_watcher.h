@@ -62,7 +62,17 @@ typedef struct file_watcher
     dynamic_array_t              observed_changes; 
     dynamic_array_t              paths_to_watch;
 
+    u32                          notify_buffer_size;
     file_watcher_os_watch_data_t os_watch_data;
+
+    bool8                        issues_when_checking;
 }file_watcher_t;
+
+/*===========================================
+  ============ API DEFINITIONS ==============
+  ===========================================*/
+internal void  os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data);
+internal bool8 os_file_watcher_add_path(file_watcher_t *watcher, string_t path);
+internal void  os_file_watcher_issue_async_update(file_watcher_t *watcher, windows_directory_data_t *directory_data);
 
 #endif

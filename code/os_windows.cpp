@@ -5,10 +5,6 @@
    $Creator: Justin Lewis $
    ======================================================================== */
 
-#define WIN32_LEAN_AND_MEAN
-#define NO_MIN_MAX
-#include <windows.h>
-
 #include "c_types.h"
 #include "c_base.h"
 
@@ -421,16 +417,240 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
     c_dynamic_array_destroy(&directories);
 }
 
-/////////////////////////////
-// MULTITHREADING FUNCTIONS
-/////////////////////////////
-
-internal os_thread_t
-os_thread_create(thread_proc_t *proc, void *user_data)
+/*===========================================
+  ======== MULTITHREADING FUNCTIONS =========
+  ===========================================*/
+internal inline s32
+os_get_cpu_count()
 {
-    os_thread_t result;
-    result.handle    = CreateThread(null, 0, (LPTHREAD_START_ROUTINE)proc, user_data, 0, (LPDWORD)&result.thread_id);
-    result.user_data = user_data;
+    SetProcessDPIAware();
+    timeBeginPeriod(1);
+
+    SYSTEM_INFO system_info;
+    GetSystemInfo(&system_info);
+
+    return(system_info.dwNumberOfProcessors);
+}
+
+internal os_semaphore_t
+os_semaphore_create(s32 initial_thread_count, s32 max_thread_count, string_t semaphore_name)
+{
+    Assert(initial_thread_count <= max_thread_count);
+    os_semaphore_t result = {};
+
+    HANDLE semaphore_handle = CreateSemaphoreExA(0, initial_thread_count, max_thread_count, null, 0, SEMAPHORE_ALL_ACCESS);
+    if(semaphore_handle == null)
+    {
+        log_error("Failure to acquire the Windows semaphore object...\n");
+        return(result);
+    }
+
+    result.handle = semaphore_handle;
+    return(result);
+}
+
+internal inline void
+os_semaphore_close(os_semaphore_t *semaphore)
+{
+    CloseHandle(semaphore->handle);
+    semaphore->handle = null;
+}
+
+internal inline s32
+os_semaphore_release(os_semaphore_t *semaphore, s32 threads_to_release)
+{
+    s32 result = 0;
+    BOOL success = ReleaseSemaphore(semaphore->handle, threads_to_release, (long*)&result);
+    if(!success)
+    {
+        log_error("Failure to release '%d' threads...\n", threads_to_release);
+        result = 0;
+    }
 
     return(result);
+}
+
+internal inline bool8
+os_semaphore_destroy(os_semaphore_t *semaphore)
+{
+    Assert(semaphore);
+
+    bool8 result = CloseHandle(semaphore->handle);
+    if(!result) log_error("Could not close semaphore handle...\n");
+
+    return(result);
+}
+
+internal os_thread_t
+os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
+{
+    os_thread_t result;
+    result.handle = CreateThread(null, 0, (LPTHREAD_START_ROUTINE)proc, user_data, 0, (LPDWORD)&result.thread_id);
+    result.user_data = user_data;
+    if(result.handle != null)
+    {
+        if(close_handle) CloseHandle(result.handle);
+    }
+    else
+    {
+        log_error("os_create_thread() failed...\n");
+        result = {};
+    }
+
+    return(result);
+}
+
+internal inline void
+os_thread_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
+{
+    if(wait_duration_ms == 0)
+    {
+        wait_duration_ms = INFINITE;
+    }
+    WaitForSingleObject(semaphore->handle, wait_duration_ms);
+}
+
+internal inline bool8
+os_thread_close_handle(os_thread_t *thread_data)
+{
+    bool8 result = false;
+    result = CloseHandle(thread_data->handle);
+    if(result == false)
+    {
+        log_error("Failed to close thread handle...\n");
+    }
+    
+    return(result);
+}
+
+internal inline os_mutex_t
+os_mutex_create()
+{
+    os_mutex_t result;
+    result.handle = CreateMutexA(0, 0, 0);
+    if(result.handle == null)
+    {
+        log_error("Failure to create OS mutex...\n");
+    }
+
+    return(result);
+}
+
+internal inline void
+os_mutex_free(os_mutex_t *mutex)
+{
+    Assert(mutex);
+    CloseHandle(mutex->handle);
+
+    mutex->handle = null;
+}
+
+internal inline bool8
+os_mutex_lock(os_mutex_t *mutex)
+{
+    bool8 result = false;
+    
+    DWORD value = WaitForSingleObject(mutex->handle, INFINITE);
+    if(value == WAIT_OBJECT_0)
+    {
+        result = true;
+    }
+
+    return(result);
+}
+
+internal inline bool8
+os_mutex_unlock(os_mutex_t *mutex)
+{
+    bool8 result = false;
+    s32 value    = ReleaseMutex(mutex->handle);
+    if(value != 0)
+    {
+        result = true;
+    }
+
+    return(result);
+}
+
+/*===========================================
+  =============== FILE WATCHER ==============
+  ===========================================*/
+internal void
+os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data)
+{
+    c_dynamic_array_create(&watch_data->directory_data, 20);
+}
+
+internal bool8
+os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
+{
+    bool8 result = false;
+    HANDLE event_handle = CreateEventA(null, FALSE, FALSE, null);
+    if(event_handle != null)
+    {
+        HANDLE file_handle = CreateFileA(C_STR(path),
+                                         FILE_LIST_DIRECTORY,
+                                         FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+                                         null,
+                                         OPEN_EXISTING,
+                                         FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OVERLAPPED,
+                                         null);
+        if(file_handle == INVALID_HANDLE_VALUE)
+        {
+            log_error("Could not open file: '%s' error was: '%d'...\n", path, HRESULT_FROM_WIN32(GetLastError()));
+            CloseHandle(event_handle);
+
+            return(result);
+        }
+
+        string_t copied = c_string_make_copy(&watcher->watcher_arena, path);
+        windows_directory_data_t *directory = c_arena_push_struct(&watcher->watcher_arena, windows_directory_data_t);
+        directory->overlapped_data.hEvent = event_handle;
+        directory->overlapped_data.Offset = 0;
+        directory->file_handle            = file_handle;
+        directory->filename               = copied;
+        directory->notify_data            = c_arena_push_size(&watcher->watcher_arena, watcher->notify_buffer_size);
+
+        c_dynamic_array_append_value(&watcher->os_watch_data.directory_data, copied);
+        os_file_watcher_issue_async_update(watcher, directory);
+    
+        result = true;
+    }
+
+    return(result);
+}
+
+internal void
+os_file_watcher_issue_async_update(file_watcher_t *watcher, windows_directory_data_t *directory_data)
+{
+    Assert(directory_data->file_handle != INVALID_HANDLE_VALUE);
+
+    u32 notify_flags = 0;
+    if(watcher->events_to_monitor & (FWC_EVENT_ADDED|FWC_EVENT_MOVED|FWC_EVENT_DELETED))
+    {
+        notify_flags |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_CREATION;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_MODIFIED)
+    {
+        notify_flags |= FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
+    {
+        notify_flags |= FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_ATTRIBUTES;
+    }
+
+    BOOL success = ReadDirectoryChangesW(directory_data->file_handle,
+                                         directory_data->notify_data,
+                                         watcher->notify_buffer_size,
+                                         watcher->watch_recursively,
+                                         notify_flags,
+                                         null,
+                                        &directory_data->overlapped_data,
+                                         null);
+    if(!success)
+    {
+        log_error("ReadDirectoryChanges() failed for directory: '%s'... error: '%d'...\n",
+                  directory_data->filename.data, HRESULT_FROM_WIN32(GetLastError()));
+        watcher->issues_when_checking = true;
+    }
 }
