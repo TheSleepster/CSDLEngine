@@ -1,12 +1,18 @@
 // raddbg 0.9.20 project file
 
+recent_file: path: "../code/os_windows.cpp"
+recent_file: path: "../code/c_file_watcher.cpp"
 recent_file: path: "../code/main.cpp"
+recent_file: path: "../code/c_array.cpp"
+recent_file: path: "../code/c_string.cpp"
+recent_file: path: "../code/s_audio_manager.cpp"
+recent_file: path: "../code/c_hash_table.cpp"
+recent_file: path: "../code/g_main.cpp"
+recent_file: path: "../code/s_asset_manager.cpp"
 recent_file: path: "../code/s_input_manager.cpp"
 recent_file: path: "../code/at_atlas_handler.cpp"
-recent_file: path: "../code/s_asset_manager.cpp"
 recent_file: path: "../code/r_asset_shader.cpp"
 recent_file: path: "../code/r_asset_texture.cpp"
-recent_file: path: "../code/g_main.cpp"
 recent_file: path: "../code/r_render_API.cpp"
 recent_file: path: "../code/s_asset_manager.c"
 recent_file: path: "../code/r_render_api.c"
@@ -48,4 +54,9 @@ target:
   executable: "Thor_debug.exe"
   working_directory: ""
   enabled: 1
+}
+breakpoint:
+{
+  source_location: "../code/main.cpp:123:1"
+  hit_count: 0
 }
