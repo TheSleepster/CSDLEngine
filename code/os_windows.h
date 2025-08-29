@@ -15,7 +15,7 @@
 
 typedef void* os_handle_t;
 
-typedef struct windows_directory_data
+typedef struct os_file_check_event_data
 {
     string_t   filename;
     s32        bytes_returned;
@@ -24,7 +24,7 @@ typedef struct windows_directory_data
     void      *notify_data;
 
     bool8      read_failed;
-}windows_directory_data_t;
+}os_file_check_event_data_t;
 
 typedef struct file_watcher_watch_data
 {
