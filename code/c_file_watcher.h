@@ -37,8 +37,7 @@ typedef enum file_watcher_change_event
     FWC_EVENT_DELETED          = 1 << 3,
     FWC_EVENT_MOVED            = 1 << 4,
     FWC_EVENT_ATTRIBUTE_CHANGE = 1 << 5,
-    FWC_EVENT_SCAN_CHILDREN    = 1 << 6,
-    FWC_EVENT_ALL              = FWC_EVENT_ADDED|FWC_EVENT_MODIFIED|FWC_EVENT_DELETED|FWC_EVENT_MOVED|FWC_EVENT_ATTRIBUTE_CHANGE|FWC_EVENT_SCAN_CHILDREN,
+    FWC_EVENT_ALL              = FWC_EVENT_ADDED|FWC_EVENT_MODIFIED|FWC_EVENT_DELETED|FWC_EVENT_MOVED|FWC_EVENT_ATTRIBUTE_CHANGE,
     WFC_EVENT_COUNT,
 }file_watcher_change_event_t;
 
@@ -79,9 +78,8 @@ typedef struct file_watcher
 /*===========================================
   ============ API DEFINITIONS ==============
   ===========================================*/
-internal        file_watcher_t  c_file_watcher_create(file_watcher_change_event_t events_to_monitor, bool8 recursive, file_watcher_callback_t *callback, void *user_data);
-internal inline void            c_file_watcher_add_path(file_watcher_t *watcher, string_t filepath);
-internal inline void            c_file_watcher_issue_check_for_single_path(file_watcher_t *watcher, os_file_check_event_data_t *watch_data);
-internal        void            c_file_watcher_issue_check_over_all_paths(file_watcher_t *watcher);
+internal void  os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data);
+internal bool8 os_file_watcher_add_path(file_watcher_t *watcher, string_t path);
+internal void  os_file_watcher_issue_async_update(file_watcher_t *watcher, windows_directory_data_t *directory_data);
 
 #endif

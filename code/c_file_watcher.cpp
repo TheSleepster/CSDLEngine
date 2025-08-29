@@ -26,12 +26,13 @@ c_file_watcher_create(file_watcher_change_event_t events_to_monitor,
     return(result);
 }
 
-internal inline void
+internal void
 c_file_watcher_add_path(file_watcher_t *watcher, string_t filepath)
 {
     c_dynamic_array_append_value(&watcher->paths_to_watch,
                                  c_string_make_copy(&watcher->watcher_arena, filepath));
 }
+<<<<<<< HEAD
 
 internal inline void
 c_file_watcher_issue_check_for_single_path(file_watcher_t *watcher, os_file_check_event_data_t *watch_data)
@@ -56,3 +57,5 @@ internal inline void
 c_file_watcher_process_changes(file_watcher_t *watcher)
 {
 }
+=======
+>>>>>>> parent of f5bf99c (rip overcomplicated file watcher)

@@ -103,6 +103,8 @@ c_dynamic_array_destroy(dynamic_array_t *array)
 internal u32
 c_dynamic_array_append_value_(dynamic_array_t *dynamic_array, void *value, usize element_size)
 {
+    Assert(dynamic_array->element_size == element_size);
+    
     if(dynamic_array->indices_used + 1 >= dynamic_array->capacity)
     {
         dynamic_array->capacity   = dynamic_array->capacity > 0 ? dynamic_array->capacity * 2 : 1;
