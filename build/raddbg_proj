@@ -3,8 +3,8 @@
 recent_file: path: "../code/os_windows.cpp"
 recent_file: path: "../code/c_file_watcher.cpp"
 recent_file: path: "../code/main.cpp"
-recent_file: path: "../code/c_array.cpp"
 recent_file: path: "../code/c_string.cpp"
+recent_file: path: "../code/c_array.cpp"
 recent_file: path: "../code/s_audio_manager.cpp"
 recent_file: path: "../code/c_hash_table.cpp"
 recent_file: path: "../code/g_main.cpp"
@@ -57,6 +57,11 @@ target:
 }
 breakpoint:
 {
-  source_location: "../code/main.cpp:123:1"
+  source_location: "../code/main.cpp:124:1"
   hit_count: 0
+}
+breakpoint:
+{
+  source_location: "../code/os_windows.cpp:601:1"
+  hit_count: 1
 }

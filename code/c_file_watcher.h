@@ -24,6 +24,9 @@
 /*===========================================
   =============== FILE WATCHER ==============
   ===========================================*/
+#define FILE_WATCHER_MAX_CHANGES 128
+#define FILE_WATCHER_MAX_PATHS_TO_WATCH 256
+
 typedef struct file_watcher              file_watcher_t;
 
 #define FILE_WATCHER_CALLBACK(name) void name(file_watcher_t *watcher, s32 event, void *user_data)
@@ -52,21 +55,24 @@ typedef struct file_watcher_recorded_change
 typedef struct file_watcher
 {
     // NOTE(Sleepster): this has an arena mainly for copy string.
-    memory_arena_t               watcher_arena;
-    bool8                        is_valid;
+    memory_arena_t                 watcher_arena;
+    bool8                          is_valid;
     
-    file_watcher_callback_t     *callback;
-    file_watcher_change_event    events_to_monitor;
-    void                        *user_data;
+    file_watcher_callback_t       *callback;
+    file_watcher_change_event      events_to_monitor;
+    void                          *user_data;
 
-    bool8                        watch_recursively;
-    dynamic_array_t              observed_changes; 
-    dynamic_array_t              paths_to_watch;
+    bool8                          watch_recursively;
+    file_watcher_recorded_change_t observed_changes[FILE_WATCHER_MAX_CHANGES]; 
+    u32                            change_count;
+    
+    string_t                       paths_to_watch[FILE_WATCHER_MAX_PATHS_TO_WATCH];
+    u32                            paths_watched;
 
-    u32                          notify_buffer_size;
-    file_watcher_os_watch_data_t os_watch_data;
+    u32                            notify_buffer_size;
+    file_watcher_os_watch_data_t   os_watch_data;
 
-    bool8                        issues_when_checking;
+    bool8                          issues_when_checking;
 }file_watcher_t;
 
 /*===========================================

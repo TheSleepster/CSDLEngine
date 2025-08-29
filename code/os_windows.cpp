@@ -589,7 +589,6 @@ os_mutex_unlock(os_mutex_t *mutex)
 internal void
 os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data)
 {
-    watch_data->directory_data = c_dynamic_array_create(os_file_check_event_data_t, 20);
 }
 
 internal bool8
@@ -599,7 +598,7 @@ os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
     HANDLE event_handle = CreateEventW(null, FALSE, FALSE, null);
     if(event_handle != null)
     {
-        HANDLE file_handle = CreateFileW(c_utf8_string_to_retarded_windows_wide(path),
+        HANDLE file_handle = CreateFileA(C_STR(path),
                                          FILE_LIST_DIRECTORY,
                                          FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                                          null,
@@ -614,7 +613,7 @@ os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
             return(result);
         }
 
-        string_t copied = c_string_make_copy(&watcher->watcher_arena, c_retarded_windows_wide_to_utf8(path));
+        string_t copied = c_string_make_copy(&watcher->watcher_arena, path);
         os_file_check_event_data_t *directory = c_arena_push_struct(&watcher->watcher_arena, os_file_check_event_data_t);
         directory->overlapped_data.hEvent = event_handle;
         directory->overlapped_data.Offset = 0;
@@ -622,7 +621,8 @@ os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
         directory->filename               = copied;
         directory->notify_data            = c_arena_push_size(&watcher->watcher_arena, watcher->notify_buffer_size);
 
-        c_dynamic_array_append(&watcher->os_watch_data.directory_data, directory);
+        u32 count = watcher->os_watch_data.directory_data_count++;
+        watcher->os_watch_data.directory_data[count] = directory;
         os_file_watcher_issue_check(watcher, directory);
     
         result = true;
@@ -660,8 +660,9 @@ os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t 
                                          null);
     if(!success)
     {
+        HRESULT error = GetLastError();
         log_error("ReadDirectoryChanges() failed for directory: '%s'... error: '%d'...\n",
-                  directory_data->filename.data, HRESULT_FROM_WIN32(GetLastError()));
+                  directory_data->filename.data, error);
         watcher->issues_when_checking = true;
     }
 }
@@ -686,11 +687,11 @@ os_file_watcher_move_info_forward(FILE_NOTIFY_INFORMATION *info)
 internal void
 os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
 {
-    for(u32 path_index = 0;
-        path_index < watcher->paths_to_watch.indices_used;
-        ++path_index)
+    for(u32 data_index = 0;
+        data_index < watcher->os_watch_data.directory_data_count;
+        ++data_index)
     {
-        os_file_check_event_data_t *watch_data = (os_file_check_event_data_t*)c_dynamic_array_get(&watcher->paths_to_watch, path_index);
+        os_file_check_event_data_t *watch_data = watcher->os_watch_data.directory_data[data_index];
         if(watch_data->read_failed)
         {
             watch_data->read_failed = false;
