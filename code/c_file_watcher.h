@@ -49,6 +49,14 @@ typedef struct file_watcher_recorded_change
     u64                         last_change_timestamp;
 }file_watcher_recorded_change_t;
 
+typedef struct os_file_check_event_data
+{
+}os_file_check_event_data_t;
+
+typedef struct file_watcher_os_watch_data
+{
+}file_watcher_os_watch_data_t;
+
 typedef struct file_watcher
 {
     // NOTE(Sleepster): this has an arena mainly for copy string.
@@ -64,7 +72,6 @@ typedef struct file_watcher
     dynamic_array_t              paths_to_watch;
 
     u32                          notify_buffer_size;
-    file_watcher_os_watch_data_t os_watch_data;
 
     bool8                        issues_when_checking;
 }file_watcher_t;

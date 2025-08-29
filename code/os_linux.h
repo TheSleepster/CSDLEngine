@@ -11,16 +11,4 @@
 #include "c_base.h"
 #include "c_hash_table.h"
 
-typedef int os_handle_t;
-
-typedef struct file_watcher_watch_data
-{
-    s32          inotify_instance;
-    void        *inotify_data;
-    s64          inotify_bytes_read;
-    s64          inotify_cursor;
-
-    hash_table_t directory_table;
-}file_watcher_os_watch_data_t;
-
 #endif

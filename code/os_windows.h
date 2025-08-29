@@ -9,25 +9,4 @@
 #define OS_WINDOWS_H
 #include "c_types.h"
 #include "c_string.h"
-
-#define NO_MIN_MAX
-#include <windows.h>
-
-typedef void* os_handle_t;
-
-typedef struct os_file_check_event_data
-{
-    string_t   filename;
-    s32        bytes_returned;
-    OVERLAPPED overlapped_data;
-    HANDLE     file_handle;
-    void      *notify_data;
-
-    bool8      read_failed;
-}os_file_check_event_data_t;
-
-typedef struct file_watcher_watch_data
-{
-    dynamic_array_t directory_data;
-}file_watcher_os_watch_data_t;
 #endif

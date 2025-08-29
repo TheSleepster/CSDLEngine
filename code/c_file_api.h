@@ -15,8 +15,10 @@
 // NOTE(Sleepster): This is stupid... but C doens't make this easier. 
 #if OS_WINDOWS
 #include "os_windows.h"
+typedef void* os_handle_t;
 #elif OS_LINUX|OS_MAC
 #include "os_linux.h"
+typedef int os_handle_t;
 #endif
 
 typedef struct file
