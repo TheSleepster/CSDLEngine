@@ -462,6 +462,8 @@ os_semaphore_close(os_semaphore_t *semaphore)
 internal inline s32
 os_semaphore_release(os_semaphore_t *semaphore, s32 threads_to_release)
 {
+    Assert(semaphore);
+
     s32 result = 0;
     BOOL success = ReleaseSemaphore(semaphore->handle, threads_to_release, (long*)&result);
     if(!success)
@@ -487,6 +489,8 @@ os_semaphore_destroy(os_semaphore_t *semaphore)
 internal os_thread_t
 os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
 {
+    Assert(proc);
+    
     os_thread_t result;
     result.handle = CreateThread(null, 0, (LPTHREAD_START_ROUTINE)proc, user_data, 0, (LPDWORD)&result.thread_id);
     result.user_data = user_data;
@@ -506,6 +510,7 @@ os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
 internal inline void
 os_thread_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
 {
+    Assert(semaphore);
     if(wait_duration_ms == 0)
     {
         wait_duration_ms = INFINITE;
@@ -516,6 +521,8 @@ os_thread_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
 internal inline bool8
 os_thread_close_handle(os_thread_t *thread_data)
 {
+    Assert(thread_data);
+
     bool8 result = false;
     result = CloseHandle(thread_data->handle);
     if(result == false)
@@ -551,6 +558,8 @@ os_mutex_free(os_mutex_t *mutex)
 internal inline bool8
 os_mutex_lock(os_mutex_t *mutex)
 {
+    Assert(mutex);
+
     bool8 result = false;
     
     DWORD value = WaitForSingleObject(mutex->handle, INFINITE);
@@ -565,6 +574,8 @@ os_mutex_lock(os_mutex_t *mutex)
 internal inline bool8
 os_mutex_unlock(os_mutex_t *mutex)
 {
+    Assert(mutex);
+    
     bool8 result = false;
     s32 value    = ReleaseMutex(mutex->handle);
     if(value != 0)
@@ -574,89 +585,3 @@ os_mutex_unlock(os_mutex_t *mutex)
 
     return(result);
 }
-<<<<<<< HEAD
-=======
-
-/*===========================================
-  =============== FILE WATCHER ==============
-  ===========================================*/
-internal void
-os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data)
-{
-    c_dynamic_array_create(&watch_data->directory_data, 20);
-}
-
-internal bool8
-os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
-{
-    bool8 result = false;
-    HANDLE event_handle = CreateEventA(null, FALSE, FALSE, null);
-    if(event_handle != null)
-    {
-        HANDLE file_handle = CreateFileA(C_STR(path),
-                                         FILE_LIST_DIRECTORY,
-                                         FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
-                                         null,
-                                         OPEN_EXISTING,
-                                         FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OVERLAPPED,
-                                         null);
-        if(file_handle == INVALID_HANDLE_VALUE)
-        {
-            log_error("Could not open file: '%s' error was: '%d'...\n", path, HRESULT_FROM_WIN32(GetLastError()));
-            CloseHandle(event_handle);
-
-            return(result);
-        }
-
-        string_t copied = c_string_make_copy(&watcher->watcher_arena, path);
-        windows_directory_data_t *directory = c_arena_push_struct(&watcher->watcher_arena, windows_directory_data_t);
-        directory->overlapped_data.hEvent = event_handle;
-        directory->overlapped_data.Offset = 0;
-        directory->file_handle            = file_handle;
-        directory->filename               = copied;
-        directory->notify_data            = c_arena_push_size(&watcher->watcher_arena, watcher->notify_buffer_size);
-
-        c_dynamic_array_append_value(&watcher->os_watch_data.directory_data, copied);
-        os_file_watcher_issue_async_update(watcher, directory);
-    
-        result = true;
-    }
-
-    return(result);
-}
-
-internal void
-os_file_watcher_issue_async_update(file_watcher_t *watcher, windows_directory_data_t *directory_data)
-{
-    Assert(directory_data->file_handle != INVALID_HANDLE_VALUE);
-
-    u32 notify_flags = 0;
-    if(watcher->events_to_monitor & (FWC_EVENT_ADDED|FWC_EVENT_MOVED|FWC_EVENT_DELETED))
-    {
-        notify_flags |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_CREATION;
-    }
-    if(watcher->events_to_monitor & FWC_EVENT_MODIFIED)
-    {
-        notify_flags |= FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE;
-    }
-    if(watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
-    {
-        notify_flags |= FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_ATTRIBUTES;
-    }
-
-    BOOL success = ReadDirectoryChangesW(directory_data->file_handle,
-                                         directory_data->notify_data,
-                                         watcher->notify_buffer_size,
-                                         watcher->watch_recursively,
-                                         notify_flags,
-                                         null,
-                                        &directory_data->overlapped_data,
-                                         null);
-    if(!success)
-    {
-        log_error("ReadDirectoryChanges() failed for directory: '%s'... error: '%d'...\n",
-                  directory_data->filename.data, HRESULT_FROM_WIN32(GetLastError()));
-        watcher->issues_when_checking = true;
-    }
-}
->>>>>>> parent of f5bf99c (rip overcomplicated file watcher)
