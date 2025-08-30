@@ -190,26 +190,19 @@ c_string_to_const_array(string_t string)
     return((const char *)string.data);
 }
 
-internal string_t
-c_string_override_file_separators(string_t string)
+internal void 
+c_string_override_file_separators(string_t *string)
 {
-    string_t result;
-
     for(u32 string_index = 0;
-        string_index < string.count;
+        string_index < string->count;
         ++string_index)
     {
-        char *character = (char*)(string.data + string_index);
+        char *character = (char*)(string->data + string_index);
         if(*character == '\\')
         {
             *character = '/';
         }
     }
-
-    result.data  = string.data;
-    result.count = string.count;
-
-    return(result);
 }
 
 

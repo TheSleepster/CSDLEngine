@@ -591,11 +591,6 @@ os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_dat
 {
 }
 
-internal void
-os_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes)
-{
-}
-
 internal string_t
 c_string_utf8_to_wide(string_t input)
 {
@@ -686,8 +681,12 @@ os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t 
     if(!success)
     {
         HRESULT error = GetLastError();
-        log_error("ReadDirectoryChanges() failed for directory: '%s'... error: '%d'...\n",
-                  directory_data->filename.data, error);
+        if(watcher->is_verbose)
+        {
+            log_error("ReadDirectoryChanges() failed for directory: '%s'... error: '%d'...\n",
+                      directory_data->filename.data, error);
+        }
+
         watcher->issues_when_checking = true;
     }
 }
@@ -729,7 +728,7 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
             if(bytes_transferred == 0)
             {
                 // NOTE(Sleepster): This means we've overflowed our buffer... 
-                os_file_watcher_add_change_event(watcher, watch_data->filename, watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
+                c_file_watcher_add_change_event(watcher, watch_data->filename, watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
                 continue;
             }
 
@@ -773,7 +772,10 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                                         event_data->FileName, event_data->FileNameLength / sizeof(WCHAR),
                                         filename, filename_count, null, null);
                     filename[filename_count] = '\0';
-                    string_t filename_str = c_string_override_file_separators(STR(filename));
+
+                    string_t filename_str = STR(filename);
+                    filename_str = c_string_concat(&global_context.temporary_arena, watch_data->filename, filename_str);
+                    c_string_override_file_separators(&filename_str);
 
                     if(watcher->watch_recursively                  &&
                        ((change_events & FWC_EVENT_MODIFIED) != 0) &&
@@ -782,7 +784,7 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                         change_events |= FWC_EVENT_SCAN_CHILDREN;
                     }
 
-                    os_file_watcher_add_change_event(watcher, filename_str, watch_data, change_events);
+                    c_file_watcher_add_change_event(watcher, filename_str, watch_data, change_events);
                 }
             }
         }
@@ -792,11 +794,13 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
             if (error == ERROR_IO_INCOMPLETE)
             {
                 // Still pending; nothing to do this tick.
-                log_info("IO PENDING...\n");
+                if(watcher->is_verbose) log_info("IO PENDING...\n");
                 continue;
             }
         }
 
         os_file_watcher_issue_check(watcher, watch_data);
     }
+
+    c_file_watcher_emit_changes(watcher);
 }

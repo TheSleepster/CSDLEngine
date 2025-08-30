@@ -43,7 +43,7 @@ internal inline u32         c_string_find_first_char_from_left(string_t string, 
 internal inline u32         c_string_find_first_char_from_right(string_t string, char character);
 internal inline string_t    c_string_get_filename_from_path(string_t filepath);
 internal inline string_t    c_string_get_file_ext_from_path(string_t filepath);
-internal        string_t    c_string_override_file_separators(string_t string);
+internal        void        c_string_override_file_separators(string_t *string);
 
 // MACROS
 #define STR(x)   (string_t){.data = (byte*)x, .count = c_string_length(x)}

@@ -27,9 +27,10 @@
 #define FILE_WATCHER_MAX_CHANGES 128
 #define FILE_WATCHER_MAX_PATHS_TO_WATCH 256
 
-typedef struct file_watcher              file_watcher_t;
+typedef struct file_watcher                 file_watcher_t;
+typedef struct file_watcher_recorded_change file_watcher_recorded_change_t;
 
-#define FILE_WATCHER_CALLBACK(name) void name(file_watcher_t *watcher, s32 event, void *user_data)
+#define FILE_WATCHER_CALLBACK(name) void name(file_watcher_t *watcher, file_watcher_recorded_change_t *change, void *user_data)
 typedef FILE_WATCHER_CALLBACK(file_watcher_callback_t);
 
 typedef enum file_watcher_change_event
@@ -47,16 +48,17 @@ typedef enum file_watcher_change_event
 
 typedef struct file_watcher_recorded_change
 {
-    string_t                    full_path;
-    file_watcher_change_event_t changes;
-    u64                         last_change_timestamp;
+    string_t full_path;
+    u32      changes;
+    u64      last_change_timestamp;
 }file_watcher_recorded_change_t;
 
 typedef struct file_watcher
 {
+    bool8                          is_valid;
+    bool8                          is_verbose;
     // NOTE(Sleepster): this has an arena mainly for copy string.
     memory_arena_t                 watcher_arena;
-    bool8                          is_valid;
     
     file_watcher_callback_t       *callback;
     file_watcher_change_event      events_to_monitor;
@@ -78,9 +80,11 @@ typedef struct file_watcher
 /*===========================================
   ============ API DEFINITIONS ==============
   ===========================================*/
-internal        file_watcher_t  c_file_watcher_create(file_watcher_change_event_t events_to_monitor, bool8 recursive, file_watcher_callback_t *callback, void *user_data);
+internal        file_watcher_t  c_file_watcher_create(file_watcher_change_event_t events_to_monitor, bool8 recursive, file_watcher_callback_t *callback, void *user_data, bool8 verbose);
 internal inline void            c_file_watcher_add_path(file_watcher_t *watcher, string_t filepath);
 internal inline void            c_file_watcher_issue_check_for_single_path(file_watcher_t *watcher, os_file_check_event_data_t *watch_data);
 internal        void            c_file_watcher_issue_check_over_all_paths(file_watcher_t *watcher);
+internal        void            c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes);
+internal        void            c_file_watcher_emit_changes(file_watcher_t *watcher);
 
 #endif

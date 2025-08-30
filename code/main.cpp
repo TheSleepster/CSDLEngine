@@ -60,6 +60,11 @@
 
 global bool8 running;
 
+FILE_WATCHER_CALLBACK(test_callback)
+{
+    log_info("Change data is for file: '%s'... Last modtime was: '%ul'...\n", change->full_path.data, change->last_change_timestamp);
+}
+
 internal void
 c_process_window_events(input_manager_t *input_manager)
 {
@@ -118,7 +123,7 @@ main(int argc, char **argv)
 
         float64 delta_time = 0.0f;
 
-        file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, null, null);
+        file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, null, true);
         c_file_watcher_add_path(&watcher, STR("../run_tree/res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
 
