@@ -4,9 +4,6 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
-#define NO_MIN_MAX
-#include <windows.h>
-
 
 #include "c_types.h"
 #include "c_base.h"
@@ -585,8 +582,6 @@ os_mutex_unlock(os_mutex_t *mutex)
 
     return(result);
 }
-<<<<<<< HEAD
-=======
 
 /*===========================================
   =============== FILE WATCHER ==============
@@ -770,4 +765,3 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
         os_file_watcher_issue_check(watcher, watch_data);
     }
 }
->>>>>>> 418a07df52fb204379925e56d5c8db80ebd2b720
