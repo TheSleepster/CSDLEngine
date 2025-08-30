@@ -404,7 +404,9 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
             {
                 visit_file_data->is_directory = false;
                 if(visit_file_data->function != null)
+                {
                     visit_file_data->function(visit_file_data, visit_file_data->user_data);
+                }
             }
             
             success = FindNextFile(find_handle, &find_data);
@@ -728,40 +730,18 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
             if(bytes_transferred == 0)
             {
                 // NOTE(Sleepster): This means we've overflowed our buffer... 
-                c_file_watcher_add_change_event(watcher, watch_data->filename, watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
+                c_file_watcher_add_change_event(watcher, watch_data->filename, STR(""), watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
                 continue;
             }
 
             if(bytes_transferred > 0)
             {
+                string_t new_filename = {};
+
                 for(FILE_NOTIFY_INFORMATION *event_data = (FILE_NOTIFY_INFORMATION*)watch_data->notify_data;
                     event_data;
                     event_data = os_file_watcher_move_info_forward(event_data))
                 {
-                    u32 change_events = 0;
-                    switch(event_data->Action)
-                    {
-                        case FILE_ACTION_ADDED:
-                        {
-                            change_events |= FWC_EVENT_ADDED;
-                        }break;
-                        case FILE_ACTION_MODIFIED:
-                        {
-                            change_events |= FWC_EVENT_MODIFIED;
-                        }break;
-                        case FILE_ACTION_RENAMED_OLD_NAME:
-                        case FILE_ACTION_RENAMED_NEW_NAME:
-                        {
-                            change_events |= FWC_EVENT_MOVED;
-                        }break;
-                        case FILE_ACTION_REMOVED:
-                        {
-                            change_events |= FWC_EVENT_DELETED;
-                        }break;
-                        default:
-                        {
-                        }break;
-                    }
                     char filename[512];
                     int filename_count = WideCharToMultiByte(CP_UTF8,
                                                              0,
@@ -777,14 +757,46 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                     filename_str = c_string_concat(&global_context.temporary_arena, watch_data->filename, filename_str);
                     c_string_override_file_separators(&filename_str);
 
-                    if(watcher->watch_recursively                  &&
-                       ((change_events & FWC_EVENT_MODIFIED) != 0) &&
-                       os_directory_exists(filename_str))
+                    u32 change_events = 0;
+                    switch(event_data->Action)
                     {
-                        change_events |= FWC_EVENT_SCAN_CHILDREN;
-                    }
+                        case FILE_ACTION_ADDED:
+                        {
+                            change_events |= FWC_EVENT_ADDED;
+                        };
+                        case FILE_ACTION_MODIFIED:
+                        {
+                            change_events |= FWC_EVENT_MODIFIED;
 
-                    c_file_watcher_add_change_event(watcher, filename_str, watch_data, change_events);
+                            if(watcher->watch_recursively                 &&
+                              ((change_events & FWC_EVENT_MODIFIED) != 0) &&
+                               os_directory_exists(filename_str))
+                            {
+                                change_events |= FWC_EVENT_SCAN_CHILDREN;
+                            }
+
+                            c_file_watcher_add_change_event(watcher, filename_str, new_filename, watch_data, change_events);
+                        }break;
+                        case FILE_ACTION_RENAMED_OLD_NAME:
+                        {
+                            change_events |= FWC_EVENT_MOVED|FWC_EVENT_RENAMED;
+                            watch_data->old_filename = c_string_make_copy(&global_context.temporary_arena, filename_str);
+                        }break;
+                        case FILE_ACTION_RENAMED_NEW_NAME:
+                        {
+                            change_events |= FWC_EVENT_MOVED|FWC_EVENT_RENAMED;
+                            c_file_watcher_add_change_event(watcher, filename_str, watch_data->old_filename, watch_data, change_events);
+                        }break;
+                        case FILE_ACTION_REMOVED:
+                        {
+                            change_events |= FWC_EVENT_DELETED;
+
+                            c_file_watcher_add_change_event(watcher, filename_str, new_filename, watch_data, change_events);
+                        }break;
+                        default:
+                        {
+                        }break;
+                    }
                 }
             }
         }

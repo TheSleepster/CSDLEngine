@@ -62,7 +62,11 @@ c_file_watcher_process_changes(file_watcher_t *watcher)
 }
 
 internal void
-c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes)
+c_file_watcher_add_change_event(file_watcher_t *watcher,
+                                string_t fullname,
+                                string_t old_filename,
+                                os_file_check_event_data_t *watch_data,
+                                u32 changes)
 {
     for(u32 file_change_index = 0;
         file_change_index < watcher->change_count;
@@ -82,6 +86,7 @@ c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_f
     new_change.full_path             = fullname;
     new_change.changes               = changes;
     new_change.last_change_timestamp = SDL_GetTicks();
+    new_change.old_filename          = old_filename;
 
     watcher->observed_changes[watcher->change_count] = new_change;
     watcher->change_count++;

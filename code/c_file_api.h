@@ -21,6 +21,17 @@ typedef void* os_handle_t;
 typedef int os_handle_t;
 #endif
 
+typedef enum file_extension
+{
+    FILE_EXT_INVALID,
+    FILE_EXT_TTF,
+    FILE_EXT_WAV,
+    FILE_EXT_PNG,
+    FILE_EXT_GLSL,
+    FILE_EXT_OS_DLL,
+    FILE_EXT_COUNT
+}file_extension_t;
+
 typedef struct file
 {
     os_handle_t handle;
@@ -112,6 +123,7 @@ internal inline file_data_t       c_file_get_data(string_t filepath);
 internal inline bool8             c_file_replace_or_rename(string_t old_file, string_t new_file);
 internal inline mapped_file_t     c_file_map(string_t filepath);
 internal inline bool8             c_file_unmap(mapped_file_t *map_data);
+internal        u32               c_file_ext_string_to_enum(string_t file_ext);
     
 internal inline bool8             c_directory_exists(string_t filepath);
 

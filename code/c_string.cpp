@@ -96,8 +96,8 @@ internal string_t
 c_string_sub_from_right(string_t string, u32 index)
 {
     string_t result;
-    result.data  = (string.data + string.count) - index;
-    result.count = index;
+    result.data  = string.data  + (index + 1);
+    result.count = string.count - (index + 1);
 
     return(result);
 }
@@ -203,6 +203,18 @@ c_string_override_file_separators(string_t *string)
             *character = '/';
         }
     }
+}
+
+internal string_t
+c_string_get_filename_from_path_and_ext(string_t filepath)
+{
+    string_t result;
+    u32 first_break  = c_string_find_first_char_from_right(filepath, '/');
+    result           = c_string_sub_from_right(filepath, first_break);
+    u32 second_break = c_string_find_first_char_from_left(result, '.');
+    result.count     = second_break;
+
+    return(result);
 }
 
 

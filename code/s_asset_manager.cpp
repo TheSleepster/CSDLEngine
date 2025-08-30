@@ -113,14 +113,14 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
     FT_Error error = FT_Init_FreeType(&asset_manager->font_catalog.font_lib);
     if(error != 0)
     {
-        Assert(0);
+        Assert(false);
     }
     
-    asset_manager->font_catalog.font_allocator       = c_za_create(asset_manager->font_memory_capacity);
-    asset_manager->font_catalog.font_hash            = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->font_catalog.font_allocator = c_za_create(asset_manager->font_memory_capacity);
+    asset_manager->font_catalog.font_hash      = c_hash_table_create(memory3, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
 
-    asset_manager->sound_catalog.sound_allocator     = c_za_create(asset_manager->sound_memory_capacity);
-    asset_manager->sound_catalog.sound_hash          = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
+    asset_manager->sound_catalog.sound_allocator = c_za_create(asset_manager->sound_memory_capacity);
+    asset_manager->sound_catalog.sound_hash      = c_hash_table_create(memory4, MANAGER_HASH_TABLE_SIZE, asset_slot_t*);
 
     // NOTE(Sleepster): Read asset file data
     {

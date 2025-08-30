@@ -60,10 +60,74 @@
 
 global bool8 running;
 
+#ifdef INTERNAL_DEBUG
 FILE_WATCHER_CALLBACK(test_callback)
 {
+    asset_manager_t *asset_manager = (asset_manager_t *)user_data;
     log_info("Change data is for file: '%s'... Last modtime was: '%ul'...\n", change->full_path.data, change->last_change_timestamp);
+    u32 ext = c_file_ext_string_to_enum(c_string_get_file_ext_from_path(change->full_path));
+
+    hash_table_t *asset_table = null;
+    bool8 is_asset = false;
+    switch(ext)
+    {
+        case FILE_EXT_TTF:
+        {
+            asset_table = &asset_manager->font_catalog.font_hash;
+            is_asset = true;
+        }break;
+        case FILE_EXT_WAV:
+        {
+            asset_table = &asset_manager->sound_catalog.sound_hash;
+            is_asset = true;
+        }break;
+        case FILE_EXT_PNG:
+        {
+            asset_table = &asset_manager->texture_catalog.texture_hash;
+            is_asset = true;
+        }break;
+        case FILE_EXT_GLSL:
+        {
+            //asset_table = &asset_manager->shader_catalog.shader_hash;
+            is_asset = true;
+        }break;
+        case FILE_EXT_OS_DLL:
+        {
+            //asset_table = &asset_manager->shader_catalog.shader_hash;
+        }break;
+        default: {}break;
+    }
+
+    if(asset_table)
+    {
+        string_t filename     = c_string_get_filename_from_path_and_ext(change->full_path);
+        string_t old_filename = c_string_get_filename_from_path_and_ext(change->old_filename);
+
+        asset_slot_t *slot = (asset_slot_t *)c_hash_get_value(asset_table, filename);
+        if(slot)
+        {
+            slot->slot_state = ASS_RELOADING;
+            // NOTE(Sleepster): If the file has been moved, it's been renamed. Change the hash to reflect this.
+            if((change->changes & FWC_EVENT_RENAMED) != 0)
+            {
+                u64 old_hash_value = c_hash_create_key_index(asset_table, old_filename.data, old_filename.count);
+                slot->filename     = filename;
+                c_hash_clear_index(asset_table, old_hash_value);
+
+                c_hash_insert_kv_pair(asset_table, slot->filename, slot);
+            }
+        }
+        else
+        {
+            log_info("Asset by name: '%s' cannot be found in this hash table...\n", change->full_path.data);
+        }
+    }
+    else if(!asset_table && is_asset)
+    {
+        log_info("Could not find a valid asset table for asset: '%s'...\n", change->full_path.data);
+    }
 }
+#endif
 
 internal void
 c_process_window_events(input_manager_t *input_manager)
@@ -123,7 +187,7 @@ main(int argc, char **argv)
 
         float64 delta_time = 0.0f;
 
-        file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, null, true);
+        file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../run_tree/res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
 

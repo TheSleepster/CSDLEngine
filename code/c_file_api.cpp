@@ -181,6 +181,38 @@ c_file_unmap(mapped_file_t *map_data)
     return(os_file_unmap(map_data));
 }
 
+internal u32
+c_file_ext_string_to_enum(string_t file_extension)
+{
+    u32 result = 0;
+    if(c_string_compare(file_extension, STR(".ttf")))
+    {
+        result = FILE_EXT_TTF;
+    }
+    if(c_string_compare(file_extension, STR(".wav")))
+    {
+        result = FILE_EXT_WAV;
+    }
+    if(c_string_compare(file_extension, STR(".png")))
+    {
+        result = FILE_EXT_PNG;
+    }
+    if(c_string_compare(file_extension, STR(".glsl")))
+    {
+        result = FILE_EXT_GLSL;
+    }
+    if(c_string_compare(file_extension, STR(".dll")))
+    {
+        result = FILE_EXT_OS_DLL;
+    }
+    if(c_string_compare(file_extension, STR(".so")))
+    {
+        result = FILE_EXT_OS_DLL;
+    }
+
+    return(result);
+}
+
 /////////////////
 // DIRECTORY
 ////////////////

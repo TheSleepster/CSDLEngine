@@ -42,13 +42,16 @@ typedef enum file_watcher_change_event
     FWC_EVENT_MOVED            = 1 << 4,
     FWC_EVENT_ATTRIBUTE_CHANGE = 1 << 5,
     FWC_EVENT_SCAN_CHILDREN    = 1 << 6,
-    FWC_EVENT_ALL              = FWC_EVENT_ADDED|FWC_EVENT_MODIFIED|FWC_EVENT_DELETED|FWC_EVENT_MOVED|FWC_EVENT_ATTRIBUTE_CHANGE|FWC_EVENT_SCAN_CHILDREN,
+    FWC_EVENT_RENAMED          = 1 << 7,
+    FWC_EVENT_ALL              = FWC_EVENT_ADDED|FWC_EVENT_MODIFIED|FWC_EVENT_DELETED|FWC_EVENT_MOVED|FWC_EVENT_ATTRIBUTE_CHANGE|FWC_EVENT_SCAN_CHILDREN|FWC_EVENT_RENAMED,
     WFC_EVENT_COUNT,
 }file_watcher_change_event_t;
 
 typedef struct file_watcher_recorded_change
 {
     string_t full_path;
+    string_t old_filename;
+
     u32      changes;
     u64      last_change_timestamp;
 }file_watcher_recorded_change_t;
@@ -84,7 +87,7 @@ internal        file_watcher_t  c_file_watcher_create(file_watcher_change_event_
 internal inline void            c_file_watcher_add_path(file_watcher_t *watcher, string_t filepath);
 internal inline void            c_file_watcher_issue_check_for_single_path(file_watcher_t *watcher, os_file_check_event_data_t *watch_data);
 internal        void            c_file_watcher_issue_check_over_all_paths(file_watcher_t *watcher);
-internal        void            c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes);
+internal        void            c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, string_t old_filename, os_file_check_event_data_t *watch_data, u32 changes);
 internal        void            c_file_watcher_emit_changes(file_watcher_t *watcher);
 
 #endif

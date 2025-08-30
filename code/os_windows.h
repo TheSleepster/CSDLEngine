@@ -18,6 +18,8 @@ typedef void* os_handle_t;
 typedef struct os_file_check_event_data
 {
     string_t   filename;
+    string_t   old_filename;
+
     s32        bytes_returned;
     OVERLAPPED overlapped_data;
     HANDLE     file_handle;

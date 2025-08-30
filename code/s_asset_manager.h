@@ -44,6 +44,7 @@ typedef enum asset_slot_state
     ASS_QUEUED,
     ASS_LOADED,
 
+    ASS_RELOADING,
     ASS_UNLOADING,
 
     ASS_COUNT
