@@ -190,6 +190,29 @@ c_string_to_const_array(string_t string)
     return((const char *)string.data);
 }
 
+internal string_t
+c_string_override_file_separators(string_t string)
+{
+    string_t result;
+
+    char *value = (char*)string.data;
+    while(value)
+    {
+        char character = *value;
+        if(character == '\\')
+        {
+            *value = '/';
+        }
+
+        value++;
+    }
+
+    result.data  = string.data;
+    result.count = string.count;
+
+    return(result);
+}
+
 
 ///////////////////
 // STRING BUILDER

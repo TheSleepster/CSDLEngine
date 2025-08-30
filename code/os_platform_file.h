@@ -49,7 +49,7 @@ internal void          os_directory_visit(string_t filepath, visit_file_data_t *
 internal void  os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data);
 internal bool8 os_file_watcher_add_path(file_watcher_t *watcher, string_t path);
 internal void  os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t *directory_data);
-internal void  os_file_watcher_add_change_event(file_watcher_t *watcher, os_file_check_event_data_t *watch_data, u32 changes);
+internal void  os_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes);
 internal void  os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed);
 
 /*===========================================

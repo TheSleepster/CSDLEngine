@@ -668,7 +668,7 @@ os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t 
 }
 
 internal void
-os_file_watcher_add_change_event(file_watcher_t *watcher, os_file_check_event_data_t *watch_data, u32 changes)
+os_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes)
 {
 }
 
@@ -745,16 +745,25 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                     {
                     }break;
                 }
+                char filename[512];
+                int filename_count = WideCharToMultiByte(CP_UTF8, 0,
+                                                         event_data->FileName,
+                                                         event_data->FileNameLength / sizeof(WCHAR),
+                                                         null, 0, null, null);
+                WideCharToMultiByte(CP_UTF8, 0,
+                                    event_data->FileName, event_data->FileNameLength / sizeof(WCHAR),
+                                    filename, filename_count, null, null);
+                filename[filename_count] = '\0';
+                string_t filename_str = c_string_override_file_separators(STR(filename));
 
-                char *name  = (char*)event_data->FileName;
                 if(watcher->watch_recursively                  &&
                    ((change_events & FWC_EVENT_MODIFIED) != 0) &&
-                   os_directory_exists(STR(name)))
+                   os_directory_exists(filename_str))
                 {
                     change_events |= FWC_EVENT_SCAN_CHILDREN;
                 }
 
-                os_file_watcher_add_change_event(watcher, watch_data, change_events);
+                os_file_watcher_add_change_event(watcher, filename, watch_data, change_events);
             }
         }
         else
