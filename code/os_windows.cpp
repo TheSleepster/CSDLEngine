@@ -585,3 +585,189 @@ os_mutex_unlock(os_mutex_t *mutex)
 
     return(result);
 }
+<<<<<<< HEAD
+=======
+
+/*===========================================
+  =============== FILE WATCHER ==============
+  ===========================================*/
+internal void
+os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data)
+{
+}
+
+internal bool8
+os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
+{
+    bool8 result = false;
+    HANDLE event_handle = CreateEventW(null, FALSE, FALSE, null);
+    if(event_handle != null)
+    {
+        HANDLE file_handle = CreateFileA(C_STR(path),
+                                         FILE_LIST_DIRECTORY,
+                                         FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+                                         null,
+                                         OPEN_EXISTING,
+                                         FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OVERLAPPED,
+                                         null);
+        if(file_handle == INVALID_HANDLE_VALUE)
+        {
+            log_error("Could not open file: '%s' error was: '%d'...\n", path, GetLastError());
+            CloseHandle(event_handle);
+
+            return(result);
+        }
+
+        string_t copied = c_string_make_copy(&watcher->watcher_arena, path);
+        os_file_check_event_data_t *directory = c_arena_push_struct(&watcher->watcher_arena, os_file_check_event_data_t);
+        directory->overlapped_data.hEvent = event_handle;
+        directory->overlapped_data.Offset = 0;
+        directory->file_handle            = file_handle;
+        directory->filename               = copied;
+        directory->notify_data            = c_arena_push_size(&watcher->watcher_arena, watcher->notify_buffer_size);
+
+        u32 count = watcher->os_watch_data.directory_data_count++;
+        watcher->os_watch_data.directory_data[count] = directory;
+        os_file_watcher_issue_check(watcher, directory);
+    
+        result = true;
+    }
+
+    return(result);
+}
+
+internal void
+os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t *directory_data)
+{
+    Assert(directory_data->file_handle != INVALID_HANDLE_VALUE);
+
+    u32 notify_flags = 0;
+    if(watcher->events_to_monitor & (FWC_EVENT_ADDED|FWC_EVENT_MOVED|FWC_EVENT_DELETED))
+    {
+        notify_flags |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_CREATION;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_MODIFIED)
+    {
+        notify_flags |= FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE;
+    }
+    if(watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
+    {
+        notify_flags |= FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_ATTRIBUTES;
+    }
+
+    BOOL success = ReadDirectoryChangesW(directory_data->file_handle,
+                                         directory_data->notify_data,
+                                         watcher->notify_buffer_size,
+                                         watcher->watch_recursively,
+                                         notify_flags,
+                                         null,
+                                        &directory_data->overlapped_data,
+                                         null);
+    if(!success)
+    {
+        HRESULT error = GetLastError();
+        log_error("ReadDirectoryChanges() failed for directory: '%s'... error: '%d'...\n",
+                  directory_data->filename.data, error);
+        watcher->issues_when_checking = true;
+    }
+}
+
+internal void
+os_file_watcher_add_change_event(file_watcher_t *watcher, os_file_check_event_data_t *watch_data, u32 changes)
+{
+}
+
+internal inline FILE_NOTIFY_INFORMATION*
+os_file_watcher_move_info_forward(FILE_NOTIFY_INFORMATION *info)
+{
+    FILE_NOTIFY_INFORMATION *result = null;
+    if(info->NextEntryOffset != 0)
+    {
+        result = (FILE_NOTIFY_INFORMATION*)((byte*)info + info->NextEntryOffset);
+    }
+
+    return(result);
+}
+
+internal void
+os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
+{
+    for(u32 data_index = 0;
+        data_index < watcher->os_watch_data.directory_data_count;
+        ++data_index)
+    {
+        os_file_check_event_data_t *watch_data = watcher->os_watch_data.directory_data[data_index];
+        if(watch_data->read_failed)
+        {
+            watch_data->read_failed = false;
+            os_file_watcher_issue_check(watcher, watch_data);
+            if(watch_data->read_failed) continue;
+        }
+
+        HANDLE file_handle = watch_data->file_handle;
+        Assert(file_handle != null);
+        if(!HasOverlappedIoCompleted(&watch_data->overlapped_data))
+        {
+            continue;
+        }
+
+        u32 bytes_transferred = 0;
+        BOOL success = GetOverlappedResult(file_handle, &watch_data->overlapped_data, (LPDWORD)&bytes_transferred, FALSE);
+        if(success)
+        {
+            if(bytes_transferred == 0)
+            {
+                // NOTE(Sleepster): This means we've overflowed our buffer... 
+                os_file_watcher_add_change_event(watcher, watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
+                continue;
+            }
+
+            for(FILE_NOTIFY_INFORMATION *event_data = (FILE_NOTIFY_INFORMATION*)watch_data->notify_data;
+                event_data;
+                event_data = os_file_watcher_move_info_forward(event_data))
+            {
+                u32 change_events = 0;
+                switch(event_data->Action)
+                {
+                    case FILE_ACTION_ADDED:
+                    {
+                        change_events |= FWC_EVENT_ADDED;
+                    }break;
+                    case FILE_ACTION_MODIFIED:
+                    {
+                        change_events |= FWC_EVENT_MODIFIED;
+                    }break;
+                    case FILE_ACTION_RENAMED_OLD_NAME:
+                    case FILE_ACTION_RENAMED_NEW_NAME:
+                    {
+                        change_events |= FWC_EVENT_MOVED;
+                    }break;
+                    case FILE_ACTION_REMOVED:
+                    {
+                        change_events |= FWC_EVENT_DELETED;
+                    }break;
+                    default:
+                    {
+                    }break;
+                }
+
+                char *name  = (char*)event_data->FileName;
+                if(watcher->watch_recursively                  &&
+                   ((change_events & FWC_EVENT_MODIFIED) != 0) &&
+                   os_directory_exists(STR(name)))
+                {
+                    change_events |= FWC_EVENT_SCAN_CHILDREN;
+                }
+
+                os_file_watcher_add_change_event(watcher, watch_data, change_events);
+            }
+        }
+        else
+        {
+            log_error("Failure to get the overlapped result for file: '%s'...\n", watch_data->filename.data);
+        }
+
+        os_file_watcher_issue_check(watcher, watch_data);
+    }
+}
+>>>>>>> 418a07df52fb204379925e56d5c8db80ebd2b720
