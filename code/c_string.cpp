@@ -195,16 +195,15 @@ c_string_override_file_separators(string_t string)
 {
     string_t result;
 
-    char *value = (char*)string.data;
-    while(value)
+    for(u32 string_index = 0;
+        string_index < string.count;
+        ++string_index)
     {
-        char character = *value;
-        if(character == '\\')
+        char *character = (char*)(string.data + string_index);
+        if(*character == '\\')
         {
-            *value = '/';
+            *character = '/';
         }
-
-        value++;
     }
 
     result.data  = string.data;

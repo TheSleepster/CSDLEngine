@@ -591,6 +591,29 @@ os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_dat
 {
 }
 
+internal void
+os_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes)
+{
+}
+
+internal string_t
+c_string_utf8_to_wide(string_t input)
+{
+    string_t result;
+
+    u32 needed = MultiByteToWideChar(CP_UTF8, 0, (char*)input.data, input.count, null, 0);
+    byte *buffer = c_arena_push_size(&global_context.temporary_arena, sizeof(u16) * needed);
+    u32 count = MultiByteToWideChar(CP_UTF8, 0, (char*)input.data, input.count, (LPWSTR)buffer, needed);
+
+    result.data  = buffer;
+    result.count = count;
+
+    LPWSTR str = (LPWSTR)result.data;
+    str[count] = L'\0';
+
+    return(result);
+}
+
 internal bool8
 os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
 {
@@ -598,7 +621,8 @@ os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
     HANDLE event_handle = CreateEventW(null, FALSE, FALSE, null);
     if(event_handle != null)
     {
-        HANDLE file_handle = CreateFileA(C_STR(path),
+        string_t wide_string = c_string_utf8_to_wide(path);
+        HANDLE file_handle = CreateFileW((LPWSTR)wide_string.data,
                                          FILE_LIST_DIRECTORY,
                                          FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
                                          null,
@@ -619,7 +643,7 @@ os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
         directory->overlapped_data.Offset = 0;
         directory->file_handle            = file_handle;
         directory->filename               = copied;
-        directory->notify_data            = c_arena_push_size(&watcher->watcher_arena, watcher->notify_buffer_size);
+        directory->notify_data            = c_arena_push_size(&watcher->watcher_arena, KB(10));
 
         u32 count = watcher->os_watch_data.directory_data_count++;
         watcher->os_watch_data.directory_data[count] = directory;
@@ -650,9 +674,10 @@ os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t 
         notify_flags |= FILE_NOTIFY_CHANGE_SECURITY | FILE_NOTIFY_CHANGE_ATTRIBUTES;
     }
 
+    memset(&directory_data->overlapped_data, 0, sizeof(OVERLAPPED));
     BOOL success = ReadDirectoryChangesW(directory_data->file_handle,
                                          directory_data->notify_data,
-                                         watcher->notify_buffer_size,
+                                         KB(10),
                                          watcher->watch_recursively,
                                          notify_flags,
                                          null,
@@ -665,11 +690,6 @@ os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t 
                   directory_data->filename.data, error);
         watcher->issues_when_checking = true;
     }
-}
-
-internal void
-os_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, os_file_check_event_data_t *watch_data, u32 changes)
-{
 }
 
 internal inline FILE_NOTIFY_INFORMATION*
@@ -701,10 +721,6 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
 
         HANDLE file_handle = watch_data->file_handle;
         Assert(file_handle != null);
-        if(!HasOverlappedIoCompleted(&watch_data->overlapped_data))
-        {
-            continue;
-        }
 
         u32 bytes_transferred = 0;
         BOOL success = GetOverlappedResult(file_handle, &watch_data->overlapped_data, (LPDWORD)&bytes_transferred, FALSE);
@@ -713,62 +729,72 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
             if(bytes_transferred == 0)
             {
                 // NOTE(Sleepster): This means we've overflowed our buffer... 
-                os_file_watcher_add_change_event(watcher, watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
+                os_file_watcher_add_change_event(watcher, watch_data->filename, watch_data, FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
                 continue;
             }
 
-            for(FILE_NOTIFY_INFORMATION *event_data = (FILE_NOTIFY_INFORMATION*)watch_data->notify_data;
-                event_data;
-                event_data = os_file_watcher_move_info_forward(event_data))
+            if(bytes_transferred > 0)
             {
-                u32 change_events = 0;
-                switch(event_data->Action)
+                for(FILE_NOTIFY_INFORMATION *event_data = (FILE_NOTIFY_INFORMATION*)watch_data->notify_data;
+                    event_data;
+                    event_data = os_file_watcher_move_info_forward(event_data))
                 {
-                    case FILE_ACTION_ADDED:
+                    u32 change_events = 0;
+                    switch(event_data->Action)
                     {
-                        change_events |= FWC_EVENT_ADDED;
-                    }break;
-                    case FILE_ACTION_MODIFIED:
-                    {
-                        change_events |= FWC_EVENT_MODIFIED;
-                    }break;
-                    case FILE_ACTION_RENAMED_OLD_NAME:
-                    case FILE_ACTION_RENAMED_NEW_NAME:
-                    {
-                        change_events |= FWC_EVENT_MOVED;
-                    }break;
-                    case FILE_ACTION_REMOVED:
-                    {
-                        change_events |= FWC_EVENT_DELETED;
-                    }break;
-                    default:
-                    {
-                    }break;
-                }
-                char filename[512];
-                int filename_count = WideCharToMultiByte(CP_UTF8, 0,
-                                                         event_data->FileName,
-                                                         event_data->FileNameLength / sizeof(WCHAR),
-                                                         null, 0, null, null);
-                WideCharToMultiByte(CP_UTF8, 0,
-                                    event_data->FileName, event_data->FileNameLength / sizeof(WCHAR),
-                                    filename, filename_count, null, null);
-                filename[filename_count] = '\0';
-                string_t filename_str = c_string_override_file_separators(STR(filename));
+                        case FILE_ACTION_ADDED:
+                        {
+                            change_events |= FWC_EVENT_ADDED;
+                        }break;
+                        case FILE_ACTION_MODIFIED:
+                        {
+                            change_events |= FWC_EVENT_MODIFIED;
+                        }break;
+                        case FILE_ACTION_RENAMED_OLD_NAME:
+                        case FILE_ACTION_RENAMED_NEW_NAME:
+                        {
+                            change_events |= FWC_EVENT_MOVED;
+                        }break;
+                        case FILE_ACTION_REMOVED:
+                        {
+                            change_events |= FWC_EVENT_DELETED;
+                        }break;
+                        default:
+                        {
+                        }break;
+                    }
+                    char filename[512];
+                    int filename_count = WideCharToMultiByte(CP_UTF8,
+                                                             0,
+                                                             event_data->FileName,
+                                                             event_data->FileNameLength / sizeof(WCHAR),
+                                                             null, 0, null, null);
+                    WideCharToMultiByte(CP_UTF8, 0,
+                                        event_data->FileName, event_data->FileNameLength / sizeof(WCHAR),
+                                        filename, filename_count, null, null);
+                    filename[filename_count] = '\0';
+                    string_t filename_str = c_string_override_file_separators(STR(filename));
 
-                if(watcher->watch_recursively                  &&
-                   ((change_events & FWC_EVENT_MODIFIED) != 0) &&
-                   os_directory_exists(filename_str))
-                {
-                    change_events |= FWC_EVENT_SCAN_CHILDREN;
-                }
+                    if(watcher->watch_recursively                  &&
+                       ((change_events & FWC_EVENT_MODIFIED) != 0) &&
+                       os_directory_exists(filename_str))
+                    {
+                        change_events |= FWC_EVENT_SCAN_CHILDREN;
+                    }
 
-                os_file_watcher_add_change_event(watcher, filename, watch_data, change_events);
+                    os_file_watcher_add_change_event(watcher, filename_str, watch_data, change_events);
+                }
             }
         }
         else
         {
-            log_error("Failure to get the overlapped result for file: '%s'...\n", watch_data->filename.data);
+            DWORD error = GetLastError();
+            if (error == ERROR_IO_INCOMPLETE)
+            {
+                // Still pending; nothing to do this tick.
+                log_info("IO PENDING...\n");
+                continue;
+            }
         }
 
         os_file_watcher_issue_check(watcher, watch_data);

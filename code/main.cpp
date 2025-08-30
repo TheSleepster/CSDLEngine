@@ -121,11 +121,12 @@ main(int argc, char **argv)
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, null, null);
         c_file_watcher_add_path(&watcher, STR("../run_tree/res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
-        c_file_watcher_process_changes(&watcher);
 
         running = true;
         while(running)
         {
+            c_file_watcher_process_changes(&watcher);
+
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
 

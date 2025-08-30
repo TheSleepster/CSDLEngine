@@ -15,6 +15,8 @@
 
 typedef struct file file_t;
 
+// TODO(Sleepster): Wide strings? string_u16_t?
+
 // NOTE(Sleepster): A string is essentially just a byte array. The values in here of ASCII size,
 //                  but this could potentially be UTF-8 in the future.  
 typedef struct string
