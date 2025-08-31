@@ -14,6 +14,7 @@
 #include "c_string.h"
 #include "c_file_watcher.h"
 
+#include "c_multithreading_primitives.h"
 #include "c_file_api.h"
 
 /*===========================================
@@ -51,40 +52,6 @@ internal void  os_file_watcher_init_watch_data(memory_arena_t *arena, file_watch
 internal bool8 os_file_watcher_add_path(file_watcher_t *watcher, string_t path);
 internal void  os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t *directory_data);
 internal void  os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed);
-
-/*===========================================
-  ============== MULTITHREADING =============
-  ===========================================*/
-
-typedef struct os_thread
-{
-    os_handle_t handle;
-    u32         thread_id;
-    void       *user_data;
-}os_thread_t;
-
-typedef struct os_mutex
-{
-    os_handle_t handle;
-}os_mutex_t;
-
-typedef struct os_semaphore
-{
-    os_handle_t handle;
-}os_semaphore_t;
-    
-internal inline s32            os_get_cpu_count();
-internal        os_semaphore_t os_semaphore_create(s32 initial_thread_count, s32 max_thread_count);
-internal inline void           os_semaphore_close(os_semaphore_t *semaphore);
-internal inline s32            os_semaphore_release(os_semaphore_t *semaphore, s32 threads_to_release);
-internal inline bool8          os_semaphore_destroy(os_semaphore_t *semaphore);
-internal        os_thread_t    os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle);
-internal inline void           os_thread_wait(os_semaphore_t *semaphore, u64 wait_duration_ms);
-internal inline bool8          os_thread_close_handle(os_thread_t *thread_data);
-internal inline os_mutex_t     os_mutex_create();
-internal inline void           os_mutex_free(os_mutex_t *mutex);
-internal inline bool8          os_mutex_lock(os_mutex_t *mutex);
-internal inline bool8          os_mutex_unlock(os_mutex_t *mutex);
 
 #if OS_WINDOWS
 # include "os_windows.cpp"

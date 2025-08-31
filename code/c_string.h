@@ -27,6 +27,7 @@ typedef struct string
 
 //////////// API DEFINITIONS //////////////
 internal        u32         c_string_length(const char *c_string);
+internal inline bool8       c_string_is_valid(string_t string);
 internal inline string_t    c_string_create(const char *c_string);
 internal inline string_t    c_string_make_heap(memory_arena_t *arena, string_t string);
 internal inline bool8       c_string_compare(string_t A, string_t B);

@@ -226,23 +226,13 @@ internal string_t
 s_asset_font_load_data(memory_arena_t *arena, asset_manager_t *asset_manager, asset_handle_t handle)
 {
     string_t result;
+    Assert(handle.asset_slot);
+    Assert(handle.type == AT_FONT);
 
-    asset_slot_t *slot = handle.asset_slot;
-    if(slot->asset_file_data_offset > 0)
-    {
-        result = c_file_read_arena(arena,
-                                   asset_manager->asset_file_handle.filepath,
-                                   slot->asset_file_data_length,
-                                   slot->asset_file_data_offset);
-    }
-    else
-    {
-        result = c_file_read_arena(arena,
-                                   slot->filename,
-                                   READ_ENTIRE_FILE,
-                                   slot->asset_file_data_offset);
-    }
-
+    result = s_asset_load_data_from_asset_file_or_path(asset_manager,
+                                                       asset_manager->font_catalog.font_allocator,
+                                                       handle.asset_slot,
+                                                       ZA_TAG_FONT); 
     return(result);
 }
 

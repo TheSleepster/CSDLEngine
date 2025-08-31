@@ -1,12 +1,15 @@
 // raddbg 0.9.20 project file
 
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
+recent_file: path: "../code/asset_builder/ab_main.c"
+recent_file: path: "../code/c_string.cpp"
+recent_file: path: "../code/s_multithreading_work_queue.cpp"
+recent_file: path: "../code/main.cpp"
 recent_file: path: "../code/os_windows.cpp"
 recent_file: path: "../code/c_file_watcher.cpp"
-recent_file: path: "../code/main.cpp"
-recent_file: path: "../code/c_string.cpp"
+recent_file: path: "../code/c_hash_table.cpp"
 recent_file: path: "../code/c_array.cpp"
 recent_file: path: "../code/s_audio_manager.cpp"
-recent_file: path: "../code/c_hash_table.cpp"
 recent_file: path: "../code/g_main.cpp"
 recent_file: path: "../code/s_asset_manager.cpp"
 recent_file: path: "../code/s_input_manager.cpp"
@@ -31,7 +34,6 @@ recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_com
 recent_file: path: "../code/c_hash_table.c"
 recent_file: path: "../code/r_asset_shader.c"
 recent_file: path: "D:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memcmp.asm"
-recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
 recent_file: path: "../run_tree/deps/stb/stb_image.h"
 recent_file: path: "../code/os_windows.c"
 recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/string/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/string/strnlen.cpp"
@@ -46,7 +48,6 @@ target:
 {
   executable: "asset_file_builder.exe"
   working_directory: ""
-  arguments: "--generate_enums"
   enabled: 0
 }
 target:
@@ -54,14 +55,4 @@ target:
   executable: "Thor_debug.exe"
   working_directory: ""
   enabled: 1
-}
-breakpoint:
-{
-  source_location: "../code/main.cpp:124:1"
-  hit_count: 0
-}
-breakpoint:
-{
-  source_location: "../code/os_windows.cpp:601:1"
-  hit_count: 1
 }

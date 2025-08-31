@@ -12,6 +12,10 @@
 #include "c_array.h"
 #include "c_debug.h"
 
+#include "c_zone_allocator.h"
+
+typedef struct zone_allocator zone_allocator_t;
+
 // NOTE(Sleepster): The key is simply a string because at the end of the day a string is just a byte array anyway... 
 typedef struct hash_table_entry
 {
@@ -34,7 +38,7 @@ typedef struct hash_table
 const u64 default_fnv_hash_value = 14695981039346656037ULL;
 
 internal        hash_table_t c_hash_table_create_ma(memory_arena_t *arena, u32 max_entries, usize value_size);
-internal        hash_table_t c_hash_table_create_za(zone_allocator_t *zone, u32 max_entries, usize value_size, u32 tag);
+internal        hash_table_t c_hash_table_create_za(zone_allocator_t *zone, u32 max_entries, usize value_size, za_allocation_tag_t tag);
 internal inline hash_table_t c_hash_table_create_(void *memory, u32 max_entries, usize value_size);
 internal        void         c_hash_insert_kv_pair_(hash_table_t *table, string_t key, void *value, usize value_size);
 internal        void*        c_hash_get_value(hash_table_t *table, string_t key);

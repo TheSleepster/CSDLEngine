@@ -11,6 +11,8 @@
 #include "c_types.h"
 #include <stdlib.h>
 
+#include "c_multithreading_primitives.h"
+
 /*===========================================
   =========== ZONE ALLOCATOR API ============
   ===========================================*/
@@ -57,7 +59,7 @@ typedef struct zone_allocator
 
 internal zone_allocator_t* c_za_create(u64 block_size);
 internal void              c_za_destroy(zone_allocator_t *zone);
-internal byte*             c_za_alloc(zone_allocator_t *zone, u64 size_init, u32 tag);
+internal byte*             c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag);
 internal void              c_za_free(zone_allocator_t  *zone, void *data);
 internal void              c_za_free_tag(zone_allocator_t *zone, za_allocation_tag_t tag);
 

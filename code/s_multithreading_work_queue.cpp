@@ -15,13 +15,13 @@ s_work_queue_manager_init(multithreading_work_queue_manager_t *manager)
     os_semaphore_t semaphore = os_semaphore_create(0, threads_to_open);
 
     manager->high_priority_queue.semaphore = semaphore;
-    manager->low_priority_queue.semaphore = semaphore;
+    manager->low_priority_queue.semaphore  = semaphore;
 
     for(s32 thread_index = 0;
         thread_index < threads_to_open;
         ++thread_index)
     {
-        os_thread_t thread_data = os_thread_create(os_work_queue_entry_proc, manager, false);
+        os_thread_t thread_data = os_thread_create((void*)os_work_queue_entry_proc, manager, false);
         os_thread_close_handle(&thread_data);
     }
 }

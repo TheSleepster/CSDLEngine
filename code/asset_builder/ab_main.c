@@ -17,11 +17,15 @@
 #include <c_memory_arena.h>
 #include <c_string.h>
 #include <c_array.h>
-#include <c_file_api.h>
-#include <c_hash_table.h>
 
 #include <os_platform_file.h>
+
+#include <s_multithreading_work_queue.h>
+#include <c_multithreading_primitives.h>
+
 #include <c_zone_allocator.h>
+#include <c_hash_table.h>
+#include <c_file_api.h>
 
 #include <c_zone_allocator.cpp>
 #include <c_memory_arena.cpp>

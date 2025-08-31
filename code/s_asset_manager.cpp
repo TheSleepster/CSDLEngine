@@ -143,6 +143,7 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
     //s_asset_manager_generate_null_views(asset_manager);
 }
 
+// IMPORTANT(Sleepster): ALL ASSET LOADING SHOULD CALL BACK TO THIS FUNCTION 
 internal string_t
 s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
                                           zone_allocator_t   *zone,

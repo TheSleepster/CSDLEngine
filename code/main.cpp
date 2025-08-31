@@ -25,6 +25,7 @@
 #include "c_file_watcher.h"
 #include "c_intrinsics.h"
 #include "c_hash_table.h"
+#include "c_multithreading_primitives.h"
 
 #include "os_platform_file.h"
 
@@ -171,6 +172,9 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
+
+        multithreading_work_queue_manager_t work_manager = {};
+        s_work_queue_manager_init(&work_manager);
         
         render_state_t render_state = {};
         r_init_renderer_data(window, &render_state);
@@ -183,9 +187,6 @@ main(int argc, char **argv)
 
         audio_manager_t audio_manager = {};
         s_audio_manager_init(&audio_manager);
-
-        multithreading_work_queue_manager_t work_manager = {};
-        s_work_queue_manager_init(&work_manager);
 
         u64 performance_counter_frequency = SDL_GetPerformanceFrequency();
         u64 last_tsc                      = SDL_GetPerformanceCounter();

@@ -10,6 +10,8 @@
 #include "c_types.h"
 #include "c_string.h"
 
+#include "c_zone_allocator.h"
+
 // TODO(Sleepster): THREAD SAFE OVERLAPPING IO 
 
 // NOTE(Sleepster): This is stupid... but C doens't make this easier. 
@@ -114,7 +116,7 @@ internal inline bool8             c_file_close(file_t *file);
 internal        u32               c_file_get_read_size(file_t *file, u32 bytes_to_read, u32 file_offset);
 internal        string_t          c_file_read(string_t filepath, u32 bytes_to_read, u32 file_offset);
 internal        string_t          c_file_read_arena(memory_arena_t *arena, string_t filepath, u32 bytes_to_read, u32 file_offset);
-internal        string_t          c_file_read_za(zone_allocator_t *zone, string_t filepath, u32 bytes_to_read, u32 file_offset, u32 tag);
+internal        string_t          c_file_read_za(zone_allocator_t *zone, string_t filepath, u32 bytes_to_read, u32 file_offset, za_allocation_tag_t tag);
 
 internal inline bool8             c_file_open_and_write(string_t filepath, void *data, s64 bytes_to_write, bool8 overwrite);
 internal inline bool8             c_file_write(file_t *file, void *data, s64 bytes_to_write);

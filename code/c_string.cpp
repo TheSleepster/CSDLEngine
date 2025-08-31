@@ -22,6 +22,12 @@ c_string_length(const char *c_string)
     return(result);
 }
 
+internal inline bool8
+c_string_is_valid(string_t string)
+{
+    return((string.count != 0) && (string.data != null));
+}
+
 internal inline string_t
 c_string_create(const char *c_string)
 {

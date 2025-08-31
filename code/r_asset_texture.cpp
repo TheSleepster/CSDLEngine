@@ -100,22 +100,29 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle)
                                                                                asset_manager->texture_catalog.texture_allocator,
                                                                                slot_data,
                                                                                ZA_TAG_TEXTURE);
-    u8 *data = stbi_load_from_memory(slot_data->texture.bitmap.data.data,
-                                     slot_data->texture.bitmap.data.count,
-                                     &slot_data->texture.bitmap.width,
-                                     &slot_data->texture.bitmap.height,
-                                     &slot_data->texture.bitmap.channels,
-                                     BMF_RGBA32);
+    if(c_string_is_valid(slot_data->texture.bitmap.data))
+    {
+        u8 *data = stbi_load_from_memory(slot_data->texture.bitmap.data.data,
+                                         slot_data->texture.bitmap.data.count,
+                                         &slot_data->texture.bitmap.width,
+                                         &slot_data->texture.bitmap.height,
+                                         &slot_data->texture.bitmap.channels,
+                                         BMF_RGBA32);
 
-    s32 data_length = strlen((char *)data);
-    slot_data->texture.bitmap.decompressed_data.data  = data;
-    slot_data->texture.bitmap.decompressed_data.count = data_length;
-    slot_data->texture.bitmap.format = BMF_RGBA32;
-    slot_data->texture.bitmap.stride = 32;
+        s32 data_length = strlen((char *)data);
+        slot_data->texture.bitmap.decompressed_data.data  = data;
+        slot_data->texture.bitmap.decompressed_data.count = data_length;
+        slot_data->texture.bitmap.format = BMF_RGBA32;
+        slot_data->texture.bitmap.stride = 32;
 
 
-    at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, handle);
-    //r_texture_make_gpu(&slot_data->texture, false, TAAFT_NEAREST);
+        at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, handle);
+        //r_texture_make_gpu(&slot_data->texture, false, TAAFT_NEAREST);
+    }
+    else
+    {
+        // TODO(Sleepster): Set the default texture stuff 
+    }
 }
 
 internal asset_handle_t
