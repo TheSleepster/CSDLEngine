@@ -60,6 +60,47 @@
 
 global bool8 running;
 
+typedef struct multithreading_work_queue multithreading_work_queue_t;
+#define WORK_QUEUE_ENTRY_CALLBACK(name) void name(void *user_data);
+typedef WORK_QUEUE_ENTRY_CALLBACK(work_queue_callback_t);
+
+typedef struct multithreading_work_queue_entry
+{
+    bool8                  is_valid;
+
+    void                  *user_data;
+    work_queue_callback_t *callback;
+}multithreading_work_queue_entry_t;
+
+typedef struct multithreading_work_queue
+{
+    u32 volatile                      completion_goal;
+    u32 volatile                      next_entry_to_read;
+    u32 volatile                      next_entry_to_write;
+    u32 volatile                      total_jobs_completed;
+
+    multithreading_work_queue_entry_t entries[512];
+    os_semaphore_t                    semaphore;
+}multithreading_work_queue_t;
+
+typedef struct multithreading_work_queue_manager
+{
+    multithreading_work_queue_t high_priority_queue;
+    multithreading_work_queue_t low_priority_queue;
+}multithreading_work_queue_manager_t;
+
+internal bool8
+c_add_entry_to_work_queue(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data)
+{
+    bool8 result = true;
+
+    // new_entry.callback  = callback;
+    // new_entry.user_data = user_data;
+    // new_entry.is_valid  = true;
+
+    return(result);
+}
+
 #ifdef INTERNAL_DEBUG
 FILE_WATCHER_CALLBACK(test_callback)
 {
