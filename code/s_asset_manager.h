@@ -9,7 +9,7 @@
 #define S_ASSET_MANAGER_H
 #include "c_types.h"
 #include "c_debug.h"
-#include "c_memory.h"
+#include "c_memory_arena.h"
 #include "c_file_api.h"
 #include "c_hash_table.h"
 

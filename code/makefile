@@ -1,6 +1,7 @@
 # WE LITERALLY CANNOT SUPPORT MSVC. NOT THAT WE'D WANT TOO...
 
-CC=clang++
+CXX = clang++
+CC  = clang
 
 ifeq ($(OS),Windows_NT)
     OS_DEFINE = -DOS_WINDOWS=1
@@ -23,7 +24,7 @@ endif
 SILENT ?=
 
 COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/
-COMMON_C_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings
+COMMON_C_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings -Wno-deprecated
 
 BUILD_TYPE ?= debug
 ifeq ($(BUILD_TYPE),release)
@@ -63,11 +64,11 @@ run_asset_file_builder: asset_file_builder
 
 $(ASSET_FILE_BUILDER_OUT): $(ASSET_FILE_BUILDER_SRC) | ../build
 	@echo Building Asset File Builder...
-	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ASSET_FILE_BUILDER_LIBS) -o $@ -MMD -MF ../build/asset_file_builder.d
+	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) -Wno-undefined-internal $(OS_DEFINE) $< $(ASSET_FILE_BUILDER_LIBS) -o $@ -MMD -MF ../build/asset_file_builder.d
 
 $(ENGINE_OUT): $(ENGINE_SRC) | ../build
 	@echo Building Engine...
-	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/engine.d
+	$(SILENT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/engine.d
 
 ../build:
 	mkdir -p ../build
@@ -78,4 +79,5 @@ clean:
 .PHONY: all engine asset_file_builder run_asset_file_builder tests clean
 
 -include ../build/engine.d
+-include ../build/asset_file_builder.d
 -include $(patsubst ../code/tests/%.c,../build/test_%.d,$(TESTS_SRC))

@@ -48,7 +48,7 @@ c_za_destroy(zone_allocator_t *zone)
 }
 
 internal byte*
-c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag)
+c_za_alloc(zone_allocator_t *zone, u64 size_init, u32 tag)
 {
     byte *result = null;
     u64 size = (size_init + 15) & ~15;

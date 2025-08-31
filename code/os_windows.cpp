@@ -502,7 +502,7 @@ os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
     else
     {
         log_error("os_create_thread() failed...\n");
-        result = {};
+        ZeroStruct(result);
     }
 
     return(result);

@@ -10,7 +10,7 @@
 #include "c_base.h"
 #include "c_types.h"
 #include "c_debug.h"
-#include "c_memory.h"
+#include "c_memory_arena.h"
 #include "c_string.h"
 #include "c_array.h"
 #include "c_hash_table.h"
@@ -64,7 +64,7 @@ typedef struct file_watcher
     memory_arena_t                 watcher_arena;
     
     file_watcher_callback_t       *callback;
-    file_watcher_change_event      events_to_monitor;
+    file_watcher_change_event_t    events_to_monitor;
     void                          *user_data;
 
     bool8                          watch_recursively;

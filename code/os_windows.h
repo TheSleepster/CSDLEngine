@@ -30,8 +30,8 @@ typedef struct os_file_check_event_data
 
 typedef struct file_watcher_watch_data
 {
-    os_file_check_event_data *directory_data[256];
-    u32                       directory_data_count;
+    os_file_check_event_data_t *directory_data[256];
+    u32                         directory_data_count;
 }file_watcher_os_watch_data_t;
 
 #define PLATFORM_THREAD_PROC(name) DWORD WINAPI name(void *user_data)

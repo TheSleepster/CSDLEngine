@@ -105,4 +105,6 @@ os_work_queue_entry_proc(void *lpParam)
 }
 #elif OS_LINUX | OS_MAC
 #error "Threading for this OS is not supported..."
+#else
+#error "Threading for this OS is not supported..."
 #endif

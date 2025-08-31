@@ -14,15 +14,17 @@
 #include <c_types.h>
 #include <c_math.h>
 #include <c_debug.h>
-#include <c_memory.h>
+#include <c_memory_arena.h>
 #include <c_string.h>
 #include <c_array.h>
 #include <c_file_api.h>
 #include <c_hash_table.h>
 
-#include "../os_platform_file.h"
+#include <os_platform_file.h>
+#include <c_zone_allocator.h>
 
-#include <c_memory.cpp>
+#include <c_zone_allocator.cpp>
+#include <c_memory_arena.cpp>
 #include <c_string.cpp>
 #include <c_array.cpp>
 #include <c_file_api.cpp>
@@ -33,8 +35,6 @@
 
 #include "ab_packer_info.h"
 #include "../s_asset_manager.h"
-
-//STBIDEF stbi_uc *stbi_load_from_memory   (stbi_uc const *buffer, int len, int *x, int *y, int *channels_in_file, int desired_channels);
 
 internal void
 afb_add_entry(asset_packer_t *packer,

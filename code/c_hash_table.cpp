@@ -34,7 +34,7 @@ c_hash_table_create_ma(memory_arena_t *arena, u32 max_entries, usize value_size)
 }
 
 internal hash_table_t
-c_hash_table_create_za(zone_allocator_t *zone, u32 max_entries, usize value_size, za_allocation_tag_t tag)
+c_hash_table_create_za(zone_allocator_t *zone, u32 max_entries, usize value_size, u32 tag)
 {
     hash_table_t result;
     

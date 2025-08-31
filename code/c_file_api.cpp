@@ -93,7 +93,7 @@ c_file_read_arena(memory_arena_t *arena, string_t filepath, u32 bytes_to_read, u
 }
 
 internal string_t
-c_file_read_za(zone_allocator_t *zone, string_t filepath, u32 bytes_to_read, u32 file_offset, za_allocation_tag_t tag)
+c_file_read_za(zone_allocator_t *zone, string_t filepath, u32 bytes_to_read, u32 file_offset, u32 tag)
 {
     string_t result = {};
     

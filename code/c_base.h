@@ -184,7 +184,7 @@ global float64 machine_epsilon_f64 = 2.220446e-16;
 
 typedef void void_func(void);
 
-#include "c_memory.h"
+#include "c_memory_arena.h"
 #include "c_string.h"
 #include "c_array.h"
 
