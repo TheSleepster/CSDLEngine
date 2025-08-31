@@ -7,31 +7,27 @@
 #include "s_multithreading_work_queue.h"
 #include "os_platform_file.h"
 
-internal multithreading_work_queue_manager_t
-c_work_queue_manager_init()
+internal void 
+s_work_queue_manager_init(multithreading_work_queue_manager_t *manager)
 {
-    multithreading_work_queue_manager_t result = {};
-
-    s32 user_thread_count = os_get_cpu_count();
-    s32 threads_to_open   = user_thread_count / 2;
+    s32 user_thread_count    = os_get_cpu_count();
+    s32 threads_to_open      = user_thread_count / 2;
     os_semaphore_t semaphore = os_semaphore_create(0, threads_to_open);
 
-    result.high_priority_queue.semaphore = semaphore;
-    result.low_priority_queue.semaphore = semaphore;
+    manager->high_priority_queue.semaphore = semaphore;
+    manager->low_priority_queue.semaphore = semaphore;
 
     for(s32 thread_index = 0;
         thread_index < threads_to_open;
         ++thread_index)
     {
-        os_thread_t thread_data = os_thread_create(os_work_queue_entry_proc, &result, false);
+        os_thread_t thread_data = os_thread_create(os_work_queue_entry_proc, manager, false);
         os_thread_close_handle(&thread_data);
     }
-
-    return(result);
 }
 
 internal void 
-c_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data)
+s_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data)
 {
     u32 this_entry_to_write = queue->next_entry_to_write;
     u32 next_entry_to_write = (this_entry_to_write + 1) % ArrayCount(queue->entries);
@@ -51,7 +47,7 @@ c_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t
 }
 
 internal bool8
-c_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
+s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
 {
     bool8 should_sleep = false;
     u32 unincremented_entry_to_read = queue->next_entry_to_read;
@@ -96,11 +92,13 @@ os_work_queue_entry_proc(void *lpParam)
     multithreading_work_queue_manager_t *work_queue_manager = (multithreading_work_queue_manager_t*)lpParam;
     for(;;)
     {
-        if(!c_work_queue_do_next_work_entry(&work_queue_manager->high_priority_queue))
+        if(!s_work_queue_do_next_work_entry(&work_queue_manager->high_priority_queue))
         {
-            if(!c_work_queue_do_next_work_entry(&work_queue_manager->low_priority_queue))
+            if(!s_work_queue_do_next_work_entry(&work_queue_manager->low_priority_queue))
             {
                 os_semaphore_wait(&work_queue_manager->high_priority_queue.semaphore, 0);
+
+                log_info("Thread Sleeping...\n");
             }
         }
     }

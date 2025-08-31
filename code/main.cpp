@@ -18,7 +18,7 @@
 #include "c_types.h"
 #include "c_math.h"
 #include "c_debug.h"
-#include "c_memory.h"
+#include "c_memory_arena.h"
 #include "c_string.h"
 #include "c_array.h"
 #include "c_file_api.h"
@@ -28,6 +28,7 @@
 
 #include "os_platform_file.h"
 
+#include "c_zone_allocator.h"
 #include "s_multithreading_work_queue.h"
 #include "s_asset_manager.h"
 #include "s_audio_manager.h"
@@ -39,7 +40,8 @@
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
-#include "c_memory.cpp"
+#include "c_memory_arena.cpp"
+#include "c_zone_allocator.cpp"
 #include "c_string.cpp"
 #include "c_array.cpp"
 #include "c_file_api.cpp"
@@ -181,6 +183,9 @@ main(int argc, char **argv)
 
         audio_manager_t audio_manager = {};
         s_audio_manager_init(&audio_manager);
+
+        multithreading_work_queue_manager_t work_manager = {};
+        s_work_queue_manager_init(&work_manager);
 
         u64 performance_counter_frequency = SDL_GetPerformanceFrequency();
         u64 last_tsc                      = SDL_GetPerformanceCounter();

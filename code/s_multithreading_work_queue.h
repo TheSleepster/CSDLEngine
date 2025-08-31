@@ -49,9 +49,8 @@ typedef struct multithreading_work_queue_manager
     thread_pool_t               thread_pool;
 }multithreading_work_queue_manager_t;
 
-internal bool8 c_work_queue_do_next_work_entry(multithreading_work_queue_t *queue);
-internal void  c_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data);
-
-internal multithreading_work_queue_manager_t c_work_queue_manager_init();
+internal void  s_work_queue_manager_init(multithreading_work_queue_manager_t *manager);
+internal bool8 s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue);
+internal void  s_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data);
 
 #endif
