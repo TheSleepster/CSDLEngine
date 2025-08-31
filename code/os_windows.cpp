@@ -12,6 +12,8 @@
 
 // TODO(Sleepster): UNICODE 
 
+typedef struct multithreading_work_queue_manager multithreading_work_queue_manager_t;
+
 /////////////////////
 // MEMORY FUNCTIONS
 /////////////////////
@@ -435,7 +437,7 @@ os_get_cpu_count()
 }
 
 internal os_semaphore_t
-os_semaphore_create(s32 initial_thread_count, s32 max_thread_count, string_t semaphore_name)
+os_semaphore_create(s32 initial_thread_count, s32 max_thread_count)
 {
     Assert(initial_thread_count <= max_thread_count);
     os_semaphore_t result = {};
@@ -507,14 +509,14 @@ os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
 }
 
 internal inline void
-os_thread_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
+os_semaphore_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
 {
     Assert(semaphore);
     if(wait_duration_ms == 0)
     {
         wait_duration_ms = INFINITE;
     }
-    WaitForSingleObject(semaphore->handle, wait_duration_ms);
+    WaitForSingleObjectEx(semaphore->handle, wait_duration_ms, FALSE);
 }
 
 internal inline bool8

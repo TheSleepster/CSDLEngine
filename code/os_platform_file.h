@@ -72,11 +72,8 @@ typedef struct os_semaphore
     os_handle_t handle;
 }os_semaphore_t;
     
-#define PLATFORM_THREAD_PROC(name) s32 name(void *user_data)
-typedef PLATFORM_THREAD_PROC(thread_proc_t);
-
 internal inline s32            os_get_cpu_count();
-internal        os_semaphore_t os_semaphore_create(s32 initial_thread_count, s32 max_thread_count, string_t semaphore_name);
+internal        os_semaphore_t os_semaphore_create(s32 initial_thread_count, s32 max_thread_count);
 internal inline void           os_semaphore_close(os_semaphore_t *semaphore);
 internal inline s32            os_semaphore_release(os_semaphore_t *semaphore, s32 threads_to_release);
 internal inline bool8          os_semaphore_destroy(os_semaphore_t *semaphore);

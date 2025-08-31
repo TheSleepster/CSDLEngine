@@ -23,4 +23,8 @@ typedef struct file_watcher_watch_data
     hash_table_t directory_table;
 }file_watcher_os_watch_data_t;
 
+#define PLATFORM_THREAD_PROC(name) void *name(void *user_data)
+typedef PLATFORM_THREAD_PROC(thread_proc_t);
+
+void *os_work_queue_entry_proc(void *user_data);
 #endif

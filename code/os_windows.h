@@ -34,4 +34,8 @@ typedef struct file_watcher_watch_data
     u32                       directory_data_count;
 }file_watcher_os_watch_data_t;
 
+#define PLATFORM_THREAD_PROC(name) DWORD WINAPI name(void *user_data)
+typedef PLATFORM_THREAD_PROC(thread_proc_t);
+
+DWORD WINAPI os_work_queue_entry_proc(void *lpParam);
 #endif
