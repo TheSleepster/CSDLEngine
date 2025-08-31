@@ -21,7 +21,7 @@ s_work_queue_manager_init(multithreading_work_queue_manager_t *manager)
         thread_index < threads_to_open;
         ++thread_index)
     {
-        os_thread_t thread_data = os_thread_create((void*)os_work_queue_entry_proc, manager, false);
+        os_thread_t thread_data = os_thread_create(os_work_queue_entry_proc, manager, false);
         os_thread_close_handle(&thread_data);
     }
 }

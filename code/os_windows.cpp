@@ -488,7 +488,7 @@ os_semaphore_destroy(os_semaphore_t *semaphore)
 }
 
 internal os_thread_t
-os_thread_create(void *proc, void *user_data, bool8 close_handle)
+os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
 {
     Assert(proc);
     
