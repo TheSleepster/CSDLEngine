@@ -35,6 +35,7 @@ string_t valid_arguments[] =
     {.data = (u8*)&("--generate_enums"), .count = 16},
     {.data = (u8*)&("--codegen_file_name"), .count = 19},
     {.data = (u8*)&("--asset_file_name"), .count = 17},
+    {.data = (u8*)&("--set_output_dir"), .count = 16},
     {.data = (u8*)&("--file_ext"), .count = 10},
     {.data = (u8*)&("--help"), .count = 6},
 };

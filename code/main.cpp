@@ -179,7 +179,7 @@ main(int argc, char **argv)
         r_init_renderer_data(window, &render_state);
 
         asset_manager_t asset_manager = {};
-        s_asset_manager_init(&asset_manager, STR("../build/asset_file.wad"));
+        s_asset_manager_init(&asset_manager, STR("asset_file.wad"));
         asset_manager.queue_manager = &work_manager;
 
         input_manager_t input_manager = {};

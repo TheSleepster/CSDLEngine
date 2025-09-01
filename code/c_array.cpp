@@ -96,7 +96,7 @@ c_dynamic_array_create_(usize element_size, usize count)
 internal void
 c_dynamic_array_destroy(dynamic_array_t *array)
 {
-    free(array->data);
+    os_free_memory(array->data, array->total_size);
     memset(array, 0, sizeof(dynamic_array_t));
 }
 

@@ -222,6 +222,7 @@ main(int argc, char **argv)
 
     string_t packed_file_name  = STR("asset_file");
     string_t resource_dir      = STR("../run_tree/res");
+    string_t output_dir        = STR("../run_tree/res/");
     string_t codegen_file_name = STR("../code/GENERATED_asset_enums.h");
     string_t file_ext          = STR(".wad");
     bool8    generate_enums    = false;
@@ -300,6 +301,12 @@ main(int argc, char **argv)
                          file_ext = new_ext;
                         goto break_out;
                     }break;
+                    case 's':
+                    {
+                        if(equals_index == -1) log_error("Attempted to call command '--set_output_dir'...\nhowever the passed argument does not contain an '='...");
+                        string_t new_output_dir = c_string_sub_from_left(arg_string, equals_index);
+                        output_dir = new_output_dir;
+                    }
                     case 'h':
                     {
                         printf("-------Helpful Information-------\n\n");
@@ -330,7 +337,8 @@ break_out:
         continue;
     }
 
-    string_t full_packed_filename = c_string_concat(&packer_arena, packed_file_name, file_ext);
+    string_t full_packed_filename = c_string_concat(&packer_arena, output_dir, packed_file_name);
+    full_packed_filename = c_string_concat(&packer_arena, full_packed_filename, file_ext);
     log_info("Packing assets to file: '%s'...", full_packed_filename.data);
     
     asset_packer_t packer = {};

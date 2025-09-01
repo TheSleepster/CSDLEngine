@@ -1,22 +1,30 @@
 // raddbg 0.9.20 project file
 
-recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
+recent_file: path: "../code/s_asset_manager.cpp"
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_common.inl"
 recent_file: path: "../code/asset_builder/ab_main.c"
+recent_file: path: "../code/os_windows.cpp"
+recent_file: path: "../code/c_file_api.cpp"
+recent_file: path: "../code/c_array.cpp"
+recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/heap/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/heap/free_base.cpp"
 recent_file: path: "../code/c_string.cpp"
 recent_file: path: "../code/s_multithreading_work_queue.cpp"
+recent_file: path: "../code/a_asset_loaded_sound.cpp"
+recent_file: path: "../code/g_main.cpp"
+recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/string/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/string/strnlen.cpp"
+recent_file: path: "../code/r_asset_texture.cpp"
+recent_file: path: "../code/r_render_API.cpp"
+recent_file: path: "../code/r_asset_dynamic_render_font.cpp"
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
+recent_file: path: "D:/a/_work/1/s/src/vctools/crt/vcstartup/src/misc/amd64/chkstk.asm"
+recent_file: path: "../code/c_debug.h"
 recent_file: path: "../code/main.cpp"
-recent_file: path: "../code/os_windows.cpp"
 recent_file: path: "../code/c_file_watcher.cpp"
 recent_file: path: "../code/c_hash_table.cpp"
-recent_file: path: "../code/c_array.cpp"
 recent_file: path: "../code/s_audio_manager.cpp"
-recent_file: path: "../code/g_main.cpp"
-recent_file: path: "../code/s_asset_manager.cpp"
 recent_file: path: "../code/s_input_manager.cpp"
 recent_file: path: "../code/at_atlas_handler.cpp"
 recent_file: path: "../code/r_asset_shader.cpp"
-recent_file: path: "../code/r_asset_texture.cpp"
-recent_file: path: "../code/r_render_API.cpp"
 recent_file: path: "../code/s_asset_manager.c"
 recent_file: path: "../code/r_render_api.c"
 recent_file: path: "../code/r_asset_dynamic_render_font.c"
@@ -30,14 +38,11 @@ recent_file: path: "../code/main.c"
 recent_file: path: "../code/c_string.c"
 recent_file: path: "../code/at_atlas_handler.c"
 recent_file: path: "../code/c_file_api.c"
-recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_common.inl"
 recent_file: path: "../code/c_hash_table.c"
 recent_file: path: "../code/r_asset_shader.c"
 recent_file: path: "D:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memcmp.asm"
 recent_file: path: "../run_tree/deps/stb/stb_image.h"
 recent_file: path: "../code/os_windows.c"
-recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/string/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/string/strnlen.cpp"
-recent_file: path: "../code/c_debug.h"
 recent_file: path: "C:/Program Files (x86)/Windows Kits/10/include/10.0.22621.0/ucrt/stdio.h"
 recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/stdio/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/stdio/output.cpp"
 recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/stdio/mt/objfre/amd64/minkernel/crts/ucrt/inc/corecrt_internal_stdio_output.h"
@@ -47,12 +52,18 @@ recent_file: path: "../code/r_renderer_data.h"
 target:
 {
   executable: "asset_file_builder.exe"
-  working_directory: ""
+  working_directory: "../build"
   enabled: 0
 }
 target:
 {
   executable: "Thor_debug.exe"
-  working_directory: ""
+  working_directory: "../run_tree/res"
   enabled: 1
+  debug_subprocesses: 0
+}
+breakpoint:
+{
+  source_location: "../code/asset_builder/ab_main.c:340:1"
+  hit_count: 0
 }

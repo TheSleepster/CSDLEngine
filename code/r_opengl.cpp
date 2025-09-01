@@ -529,13 +529,13 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
-    string_t font_shader      = c_file_read(STR("../code/shaders/font_shader.glsl"), READ_ENTIRE_FILE, 0);
+    string_t font_shader      = c_file_read(STR("../../code/shaders/font_shader.glsl"), READ_ENTIRE_FILE, 0);
     render_state->font_shader = r_create_shader_program(font_shader, ST_PIXEL_SHADER);
 
-    string_t lighting_shader  = c_file_read(STR("../code/shaders/lighting.glsl"), READ_ENTIRE_FILE, 0);
+    string_t lighting_shader  = c_file_read(STR("../../code/shaders/lighting.glsl"), READ_ENTIRE_FILE, 0);
     render_state->lighting_data.lighting_shader = r_create_shader_program(lighting_shader, ST_PIXEL_SHADER);
 
-    string_t shader_source    = c_file_read(STR("../code/shaders/basic.glsl"), READ_ENTIRE_FILE, 0);
+    string_t shader_source    = c_file_read(STR("../../code/shaders/basic.glsl"), READ_ENTIRE_FILE, 0);
     render_state->test_shader = r_create_shader_program(shader_source, ST_PIXEL_SHADER);
 
     // PRIMARY FRAMEBUFFER SETUP
