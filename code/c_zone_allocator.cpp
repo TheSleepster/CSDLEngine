@@ -175,6 +175,53 @@ c_za_free(zone_allocator_t *zone, void *data)
 }
 
 internal void
+c_za_free_zone_tag(zone_allocator_t *zone, za_allocation_tag_t tag)
+{
+    for(zone_allocator_block_t *current_block = &zone->first_block;
+        current_block;
+        current_block = current_block->next_block)
+    {
+        if(current_block->is_allocated)
+        {
+            if((za_allocation_tag_t)current_block->allocation_tag == tag)
+            {
+                c_za_free(zone, current_block);
+            }
+        }
+    }
+}
+
+internal void
+c_za_free_zone_tag_range(zone_allocator_t *zone, za_allocation_tag_t low_tag, za_allocation_tag_t high_tag)
+{
+    for(zone_allocator_block_t *current_block = &zone->first_block;
+        current_block;
+        current_block = current_block->next_block)
+    {
+        if(current_block->is_allocated)
+        {
+            if((za_allocation_tag_t)current_block->allocation_tag > low_tag &&
+               (za_allocation_tag_t)current_block->allocation_tag < (za_allocation_tag_t)high_tag)
+            {
+                c_za_free_zone_tag(zone, (za_allocation_tag_t)current_block->allocation_tag);
+            }
+        }
+    }
+}
+
+internal void
+c_za_change_zone_tag(zone_allocator_t *zone, void *pointer, za_allocation_tag_t new_tag)
+{
+    zone_allocator_block_t *block = (zone_allocator_block_t *)((byte*)pointer - sizeof(zone_allocator_block_t));
+    if(block->block_id != DEBUG_ZONE_ID)
+    {
+        log_error("Cannot change the tag of this zone, the block_id is invalid...\n");
+    }
+
+    block->allocation_tag = new_tag;
+}
+
+internal void
 c_za_DEBUG_print_block_list(zone_allocator_t *zone)
 {
     zone_allocator_block_t *block = zone->first_block.next_block;

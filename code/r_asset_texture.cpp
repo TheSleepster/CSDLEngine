@@ -118,8 +118,10 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
         slot_data->texture.bitmap.format = BMF_RGBA32;
         slot_data->texture.bitmap.stride = 32;
 
-
-        at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, *handle);
+        if(!handle->texture->is_in_atlas)
+        {
+            at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, *handle);
+        }
         //r_texture_make_gpu(&slot_data->texture, false, TAAFT_NEAREST);
     }
     else

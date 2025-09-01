@@ -78,6 +78,18 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
     return(should_sleep);
 }
 
+internal void
+s_work_queue_finish_all_work(multithreading_work_queue_t *queue)
+{
+    while(queue->total_work_entries_completed != queue->completion_goal)
+    {
+        s_work_queue_do_next_work_entry(queue);
+    }
+
+    queue->completion_goal = 0;
+    queue->total_work_entries_completed = 0;
+}
+
 /* NOTE(Sleepster):
    We have to put this here for some reason... It really bugs me.
    All OS code should just go in the associated OS file.

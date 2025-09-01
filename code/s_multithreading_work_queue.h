@@ -52,5 +52,6 @@ typedef struct multithreading_work_queue_manager
 internal void  s_work_queue_manager_init(multithreading_work_queue_manager_t *manager);
 internal bool8 s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue);
 internal void  s_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data);
+internal void  s_work_queue_finish_all_work(multithreading_work_queue_t *queue);
 
 #endif

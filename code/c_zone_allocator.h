@@ -61,7 +61,9 @@ internal zone_allocator_t* c_za_create(u64 block_size);
 internal void              c_za_destroy(zone_allocator_t *zone);
 internal byte*             c_za_alloc(zone_allocator_t *zone, u64 size_init, za_allocation_tag_t tag);
 internal void              c_za_free(zone_allocator_t  *zone, void *data);
-internal void              c_za_free_tag(zone_allocator_t *zone, za_allocation_tag_t tag);
+internal void              c_za_free_zone_tag(zone_allocator_t *zone, za_allocation_tag_t tag);
+internal void              c_za_free_zone_tag_range(zone_allocator_t *zone, za_allocation_tag_t low_tag, za_allocation_tag_t high_tag);
+internal void              c_za_change_zone_tag(zone_allocator_t *zone, void *pointer, za_allocation_tag_t new_tag);
 
 // DEBUG FUNCTIONS
 internal void c_za_DEBUG_print_block_list(zone_allocator_t *zone);
