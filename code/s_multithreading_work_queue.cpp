@@ -53,7 +53,7 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
     u32 unincremented_entry_to_read = queue->next_entry_to_read;
     u32 next_entry_to_read = (unincremented_entry_to_read + 1) % ArrayCount(queue->entries);
 
-    if(unincremented_entry_to_read != next_entry_to_read)
+    if(unincremented_entry_to_read != queue->next_entry_to_write)
     {
         u32 work_entry_index = AtomicCompareExchange32(&queue->next_entry_to_read,
                                                         next_entry_to_read,
