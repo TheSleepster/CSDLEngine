@@ -671,3 +671,18 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     }
 
 }
+
+internal void
+r_render_single_frame_ex(render_state_t *render_state, asset_manager_t *asset_manager)
+{
+    r_handle_render_prepass(render_state);
+    r_handle_render_opaque_render_groups(render_state);
+    r_handle_render_transparent_render_groups(render_state);
+
+    r_apply_effects(render_state);
+
+    r_handle_blitting(render_state);
+    r_handle_postblit_render_groups(render_state);
+
+    r_swap_buffers();
+}

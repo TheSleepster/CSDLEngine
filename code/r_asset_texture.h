@@ -8,7 +8,7 @@
 
 #define R_ASSET_TEXTURE_H
 #include "c_types.h"
-#include "c_debug.h"
+#include "c_log_assert.h"
 #include "c_memory_arena.h"
 #include "c_file_api.h"
 

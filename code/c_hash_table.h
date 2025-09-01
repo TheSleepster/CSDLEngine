@@ -10,7 +10,7 @@
 #include "c_types.h"
 #include "c_string.h"
 #include "c_array.h"
-#include "c_debug.h"
+#include "c_log_assert.h"
 
 #include "c_zone_allocator.h"
 

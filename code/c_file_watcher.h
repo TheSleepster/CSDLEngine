@@ -9,7 +9,7 @@
 #define C_FILE_WATCHER_H
 #include "c_base.h"
 #include "c_types.h"
-#include "c_debug.h"
+#include "c_log_assert.h"
 #include "c_memory_arena.h"
 #include "c_string.h"
 #include "c_array.h"

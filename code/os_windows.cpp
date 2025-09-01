@@ -421,9 +421,9 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
     c_dynamic_array_destroy(&directories);
 }
 
-/*===========================================
-  ======== MULTITHREADING FUNCTIONS =========
-  ===========================================*/
+/* ===========================================
+   ======== MULTITHREADING FUNCTIONS =========
+   ===========================================*/
 internal inline s32
 os_get_cpu_count()
 {

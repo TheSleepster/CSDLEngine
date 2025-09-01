@@ -9,7 +9,7 @@
 #define AT_ATLAS_HANDLER_H
 #include "c_base.h"
 #include "c_types.h"
-#include "c_debug.h"
+#include "c_log_assert.h"
 #include "c_memory_arena.h"
 #include "c_zone_allocator.h"
 #include "c_string.h"

@@ -20,10 +20,14 @@
     #if ARCH_X64
         #include <emmintrin.h>
         #include <xmmintrin.h>
+        #include <immintrin.h>
 
         #define PopCount16(value) __builtin_popcount((s16)value)
         #define PopCount32(value) __builtin_popcount((s32)value)
         #define PopCount64(value) __builtin_popcount((s64)value)
+
+        // NOTE(Sleepster): Read time stamp counter...
+        #define rdtsc() __rdtsc()
 
     /* ===========================================
        ================== FENCES =================

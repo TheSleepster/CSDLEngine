@@ -17,7 +17,7 @@
 #include "c_base.h"
 #include "c_types.h"
 #include "c_math.h"
-#include "c_debug.h"
+#include "c_log_assert.h"
 #include "c_memory_arena.h"
 #include "c_string.h"
 #include "c_array.h"
@@ -41,6 +41,7 @@
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
+#include "DEBUG_core.cpp"
 #include "c_memory_arena.cpp"
 #include "c_zone_allocator.cpp"
 #include "c_string.cpp"
@@ -72,23 +73,23 @@ FILE_WATCHER_CALLBACK(test_callback)
     u32 ext = c_file_ext_string_to_enum(c_string_get_file_ext_from_path(change->full_path));
 
     hash_table_t *asset_table = null;
-    bool8 is_asset = false;
+    bool8 is_asset            = false;
     switch(ext)
     {
         case FILE_EXT_TTF:
         {
             asset_table = &asset_manager->font_catalog.font_hash;
-            is_asset = true;
+            is_asset    = true;
         }break;
         case FILE_EXT_WAV:
         {
             asset_table = &asset_manager->sound_catalog.sound_hash;
-            is_asset = true;
+            is_asset    = true;
         }break;
         case FILE_EXT_PNG:
         {
             asset_table = &asset_manager->texture_catalog.texture_hash;
-            is_asset = true;
+            is_asset    = true;
         }break;
         case FILE_EXT_GLSL:
         {
@@ -196,12 +197,13 @@ main(int argc, char **argv)
         float64 delta_time = 0.0f;
 
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
-        c_file_watcher_add_path(&watcher, STR("../run_tree/res/"));
+        c_file_watcher_add_path(&watcher, STR("../res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
 
         running = true;
         while(running)
         {
+            DEBUG_TIMED_BLOCK();
             c_file_watcher_process_changes(&watcher);
 
             s_input_manager_reset_controller_states(&input_manager);
@@ -228,3 +230,5 @@ main(int argc, char **argv)
 
     return(0);
 }
+
+DEBUG_record_data_t DEBUG_records[__COUNTER__];

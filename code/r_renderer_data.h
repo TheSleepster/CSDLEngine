@@ -49,6 +49,7 @@ typedef struct render_quad
         };
         vertex_t elements[4];
     };
+
     bool8                 culled;
     vec2_t                center_pos;
     

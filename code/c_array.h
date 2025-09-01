@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 #include "c_types.h"
-#include "c_debug.h"
+#include "c_log_assert.h"
 
 /* TODO:
  * 2.) Switch to OS allocation using Virtual Memory instead of malloc
