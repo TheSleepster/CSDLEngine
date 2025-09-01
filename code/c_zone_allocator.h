@@ -54,8 +54,8 @@ typedef struct zone_allocator
 }zone_allocator_t;
 
 //////////// ZONE ALLOCATOR API DEFINITIONS /////////////
-#define c_za_push_struct(zone, type, tag)        c_za_alloc(zone, sizeof(type), tag);
-#define c_za_push_array(zone, type, count, tag)  c_za_alloc(zone, sizeof(type) * count, tag);
+#define c_za_push_struct(zone, type, tag)        (type*)c_za_alloc(zone, sizeof(type), tag);
+#define c_za_push_array(zone, type, count, tag)  (type*)c_za_alloc(zone, sizeof(type) * count, tag);
 
 internal zone_allocator_t* c_za_create(u64 block_size);
 internal void              c_za_destroy(zone_allocator_t *zone);

@@ -48,7 +48,6 @@
 #include "c_file_api.cpp"
 #include "c_file_watcher.cpp"
 #include "c_hash_table.cpp"
-
 #include "s_multithreading_work_queue.cpp"
 #include "s_asset_manager.cpp"
 #include "s_audio_manager.cpp"
@@ -181,6 +180,7 @@ main(int argc, char **argv)
 
         asset_manager_t asset_manager = {};
         s_asset_manager_init(&asset_manager, STR("../build/asset_file.wad"));
+        asset_manager.queue_manager = &work_manager;
 
         input_manager_t input_manager = {};
         s_input_manager_initialize_keyboard_controller(&input_manager, 0);
@@ -222,7 +222,7 @@ main(int argc, char **argv)
             last_tsc    = current_tsc;
 
             delta_time  = (float32)((float64)delta_tsc / (float64)performance_counter_frequency);
-            log_info("Delta time in seconds: '%.03f'...\n", delta_time);
+            //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
         }
     }
 

@@ -61,6 +61,7 @@ internal loaded_sound_t
 s_asset_load_WAV_file(asset_manager_t *asset_manager, string_t filename, string_t filedata)
 {
     loaded_sound_t result = {};
+    result.filedata = filedata;
     
     WAVE_header_t *file_header = (WAVE_header_t*)filedata.data;
     Assert(file_header->RIFFID == WAVE_chunkID_RIFF);
@@ -110,24 +111,21 @@ s_asset_load_WAV_file(asset_manager_t *asset_manager, string_t filename, string_
 }
 
 internal void
-s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t handle)
+s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t *handle)
 {
-    Assert(handle.type == AT_SOUND);
-
-    asset_slot_t *slot_data = handle.asset_slot;
-    Assert(slot_data->slot_state != ASS_LOADED);
-
-    string_t sample_data = s_asset_load_data_from_asset_file_or_path(asset_manager,
-                                                                     asset_manager->sound_catalog.sound_allocator,
-                                                                     slot_data,
-                                                                     ZA_TAG_SOUND);
-    if(sample_data.data)
+    Assert(handle->type == AT_SOUND);
+    asset_slot_t *slot_data = handle->asset_slot;
+    if(slot_data->slot_state == ASS_UNLOADED || slot_data->slot_state == ASS_RELOADING)
     {
-        slot_data->loaded_sound = s_asset_load_WAV_file(asset_manager, slot_data->filename, sample_data);
+        s_asset_load_data_from_asset_file_or_path(asset_manager,
+                                                 &handle->asset_slot->loaded_sound.filedata,
+                                                  asset_manager->sound_catalog.sound_allocator,
+                                                  slot_data,
+                                                  ZA_TAG_SOUND);
     }
-    else
+    if(c_string_is_valid(slot_data->loaded_sound.filedata))
     {
-        log_error("Failure to load the data for audio file: '%s'...\n", slot_data->filename);
+        slot_data->loaded_sound = s_asset_load_WAV_file(asset_manager, slot_data->filename, slot_data->loaded_sound.filedata);
     }
 }
 
@@ -142,11 +140,9 @@ s_asset_loaded_sound_get(asset_manager_t *asset_manager, string_t name)
         result.is_valid   = true;
         result.type       = AT_SOUND;
         result.asset_slot = valid_slot;
-        if(valid_slot->slot_state == ASS_UNLOADED)
-        {
-            s_asset_loaded_sound_create(asset_manager, result);
-            result.sound = &valid_slot->loaded_sound;
-        }
+
+        s_asset_loaded_sound_create(asset_manager, &result);
+        result.sound = &valid_slot->loaded_sound;
     }
     else
     {

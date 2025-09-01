@@ -126,7 +126,7 @@ typedef struct font_glyph
 internal asset_handle_t                 s_asset_font_get(asset_manager_t *asset_manager, string_t font_name);
 internal u32                            s_UTF8_convert_UTF32(u8 *character);
 internal font_glyph_t*                  s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, u8 *character);
-internal string_t                       s_asset_font_load_data(memory_arena_t *arena, asset_manager_t *asset_manager, asset_handle_t handle);
+internal void                           s_asset_font_load_data(memory_arena_t *arena, asset_manager_t *asset_manager, asset_handle_t handle);
 internal dynamic_render_font_varient_t* s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handle, u32 size);
 internal dynamic_render_font_varient_t* s_asset_font_get_at_size(asset_manager_t *asset_manager, asset_handle_t handle, u32 size);
 #endif

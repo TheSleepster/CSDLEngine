@@ -44,20 +44,20 @@ at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *ha
     Assert(handle.texture                    != null);
     Assert(handle.asset_slot                 != null);
     Assert(handle.asset_slot->filename.data  != null);
-    
-    atlas_handler_hash_table_entry_t *entry = (atlas_handler_hash_table_entry_t *)c_hash_get_value(&handler->contents, handle.asset_slot->filename);
-    if(!entry)
+    if(!handle.texture->is_in_atlas)
     {
-        atlas_handler_hash_table_entry_t entry_data;
-        entry_data.texture_name =  handle.asset_slot->filename;
-        entry_data.texture_data = &handle.asset_slot->texture;
+        atlas_handler_hash_table_entry_t *entry = (atlas_handler_hash_table_entry_t *)c_hash_get_value(&handler->contents, handle.asset_slot->filename);
+        if(!entry)
+        {
+            atlas_handler_hash_table_entry_t entry_data;
+            entry_data.texture_name =  handle.asset_slot->filename;
+            entry_data.texture_data = &handle.asset_slot->texture;
 
-        c_dynamic_array_append_value(&handler->textures_to_pack, handle);
-        c_hash_insert_kv_pair(&handler->contents, entry_data.texture_name, &entry_data);
-    }
-    else
-    {
-        log_warning("This texture: '%s' is already a part of the atlas_handler's contents... Nothing to be done...\n", handle.asset_slot->filename.data);
+            c_dynamic_array_append_value(&handler->textures_to_pack, handle);
+            c_hash_insert_kv_pair(&handler->contents, entry_data.texture_name, &entry_data);
+
+            handle.texture->is_in_atlas = true;
+        }
     }
 }
 

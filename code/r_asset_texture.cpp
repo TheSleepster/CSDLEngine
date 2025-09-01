@@ -89,18 +89,21 @@ s_asset_texture_and_view_create(asset_manager_t  *asset_manager,
 }
 
 internal void
-s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle)
+s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle)
 {
-    Assert(handle.type == AT_BITMAP);
-
-    asset_slot_t *slot_data = handle.asset_slot;
-    Assert(slot_data->slot_state != ASS_LOADED);
+    Assert(handle->type == AT_BITMAP);
+    asset_slot_t *slot_data = handle->asset_slot;
     
-    slot_data->texture.bitmap.data = s_asset_load_data_from_asset_file_or_path(asset_manager,
-                                                                               asset_manager->texture_catalog.texture_allocator,
-                                                                               slot_data,
-                                                                               ZA_TAG_TEXTURE);
-    if(c_string_is_valid(slot_data->texture.bitmap.data))
+    if(slot_data->slot_state == ASS_UNLOADED || slot_data->slot_state == ASS_RELOADING)
+    {
+        s_asset_load_data_from_asset_file_or_path(asset_manager,
+                                                  &handle->asset_slot->texture.bitmap.data, 
+                                                  asset_manager->texture_catalog.texture_allocator,
+                                                  slot_data,
+                                                  ZA_TAG_TEXTURE);
+    }
+
+    if(c_string_is_valid(slot_data->texture.bitmap.data) && slot_data->slot_state == ASS_LOADED)
     {
         u8 *data = stbi_load_from_memory(slot_data->texture.bitmap.data.data,
                                          slot_data->texture.bitmap.data.count,
@@ -116,7 +119,7 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t handle)
         slot_data->texture.bitmap.stride = 32;
 
 
-        at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, handle);
+        at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, *handle);
         //r_texture_make_gpu(&slot_data->texture, false, TAAFT_NEAREST);
     }
     else
@@ -151,10 +154,7 @@ s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
             result.texture     = new_view;
         }
 
-        if(valid_slot->slot_state != ASS_LOADED && valid_slot->slot_state != ASS_QUEUED)
-        {
-            s_asset_texture_load_data(asset_manager, result);
-        }
+        s_asset_texture_load_data(asset_manager, &result);
     }
     else
     {

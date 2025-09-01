@@ -222,18 +222,17 @@ s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_
     return(result);
 }
 
-internal string_t
+internal void 
 s_asset_font_load_data(memory_arena_t *arena, asset_manager_t *asset_manager, asset_handle_t handle)
 {
-    string_t result;
     Assert(handle.asset_slot);
     Assert(handle.type == AT_FONT);
 
-    result = s_asset_load_data_from_asset_file_or_path(asset_manager,
-                                                       asset_manager->font_catalog.font_allocator,
-                                                       handle.asset_slot,
-                                                       ZA_TAG_FONT); 
-    return(result);
+    s_asset_load_data_from_asset_file_or_path(asset_manager,
+                                             &handle.font->loaded_data,
+                                              asset_manager->font_catalog.font_allocator,
+                                              handle.asset_slot,
+                                              ZA_TAG_FONT); 
 }
 
 internal inline bool8
@@ -260,82 +259,85 @@ s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handl
     if(!font->is_initialized)
     {
         font->font_arena  = c_arena_create(MB(200));
-        font->loaded_data = s_asset_font_load_data(&font->font_arena, asset_manager, handle);
         font->pixel_sizes = c_dynamic_array_create(dynamic_render_font_varient_t, 20);
+        s_asset_font_load_data(&font->font_arena, asset_manager, handle);
 
-        Assert(font->loaded_data.data);
         font->is_initialized = true;
     }
-    FT_Error error = FT_New_Memory_Face(asset_manager->font_catalog.font_lib,
-                                        font->loaded_data.data,
-                                        font->loaded_data.count,
-                                        0,
-                                       &font->font_face);
-    if(error == 0)
-    {
-        result = c_arena_push_struct(&font->font_arena, dynamic_render_font_varient_t);
 
-        result->parent     = font;
-        result->first_page = c_arena_push_struct(&font->font_arena, dynamic_render_font_page_t);
+    if(handle.asset_slot->slot_state == ASS_LOADED)
+    {
+        FT_Error error = FT_New_Memory_Face(asset_manager->font_catalog.font_lib,
+                                            font->loaded_data.data,
+                                            font->loaded_data.count,
+                                            0,
+                                            &font->font_face);
+        if(error == 0)
+        {
+            result = c_arena_push_struct(&font->font_arena, dynamic_render_font_varient_t);
+
+            result->parent     = font;
+            result->first_page = c_arena_push_struct(&font->font_arena, dynamic_render_font_page_t);
         
-        result->first_page->glyph_lookup  = c_hash_table_create_ma(&result->parent->font_arena, 1000, sizeof(font_glyph_t));
-        result->first_page->owner_varient = result;
-        result->first_page->next_page     = null;
+            result->first_page->glyph_lookup  = c_hash_table_create_ma(&result->parent->font_arena, 1000, sizeof(font_glyph_t));
+            result->first_page->owner_varient = result;
+            result->first_page->next_page     = null;
 
-        error = FT_Set_Pixel_Sizes(font->font_face, 0, size);
-        Assert(!error);
+            error = FT_Set_Pixel_Sizes(font->font_face, 0, size);
+            Assert(!error);
 
-        float64 font_scale_to_pixels = font->font_face->size->metrics.y_scale / (64.0 * 65536.0);
-        result->pixel_size    = size;
-        result->line_spacing  = (s64)floor(font_scale_to_pixels * font->font_face->height    + 0.5);
-        result->max_ascender  = (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMax + 0.5);
-        result->max_descender = (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMin + 0.5);
+            float64 font_scale_to_pixels = font->font_face->size->metrics.y_scale / (64.0 * 65536.0);
+            result->pixel_size    = size;
+            result->line_spacing  = (s64)floor(font_scale_to_pixels * font->font_face->height    + 0.5);
+            result->max_ascender  = (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMax + 0.5);
+            result->max_descender = (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMin + 0.5);
 
-        // NOTE(Sleepster): Using 'm' as the baseline character
-        u32 glyph_index = FT_Get_Char_Index(font->font_face, 'm');
-        if(glyph_index)
-        {
-            FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
-            result->y_center_offset = (s32)(0.5f * FT_ROUND(font->font_face->glyph->metrics.horiBearingY) + 0.5f);
+            // NOTE(Sleepster): Using 'm' as the baseline character
+            u32 glyph_index = FT_Get_Char_Index(font->font_face, 'm');
+            if(glyph_index)
+            {
+                FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
+                result->y_center_offset = (s32)(0.5f * FT_ROUND(font->font_face->glyph->metrics.horiBearingY) + 0.5f);
+            }
+
+            glyph_index = FT_Get_Char_Index(font->font_face, 'M');
+            if(glyph_index)
+            {
+                FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
+                result->em_width = FT_ROUND(font->font_face->glyph->metrics.width);
+            }
+
+            glyph_index = FT_Get_Char_Index(font->font_face, 'T');
+            if(glyph_index)
+            {
+                FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
+                result->typical_ascender = FT_ROUND(font->font_face->glyph->metrics.horiBearingY);
+            }
+
+            glyph_index = FT_Get_Char_Index(font->font_face, 'g');
+            if(glyph_index)
+            {
+                FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
+                result->typical_descender = FT_ROUND(font->font_face->glyph->metrics.horiBearingY - font->font_face->glyph->metrics.height);
+            }
+
+            error = FT_Select_Charmap(font->font_face, FT_ENCODING_UNICODE);
+            if(error)
+            {
+                log_error("Failure to set the charmap to unicode.... supplied font does not support Unicode...\n");
+            }
+
+            bool8 success = s_asset_font_set_unknown_character(result,        0xfffd); // Replacement character
+            if(!success) success = s_asset_font_set_unknown_character(result, 0x2022); // bullet char
+            if(!success) success = s_asset_font_set_unknown_character(result, (u32)'?');
+            if(!success) log_warning("Unable to set the unknown character for this font...\n");
+
+            c_dynamic_array_append_value(&font->pixel_sizes, *result);
         }
-
-        glyph_index = FT_Get_Char_Index(font->font_face, 'M');
-        if(glyph_index)
+        else
         {
-            FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
-            result->em_width = FT_ROUND(font->font_face->glyph->metrics.width);
+            log_error("Freetype failed too create a new memory face...\n");
         }
-
-        glyph_index = FT_Get_Char_Index(font->font_face, 'T');
-        if(glyph_index)
-        {
-            FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
-            result->typical_ascender = FT_ROUND(font->font_face->glyph->metrics.horiBearingY);
-        }
-
-        glyph_index = FT_Get_Char_Index(font->font_face, 'g');
-        if(glyph_index)
-        {
-            FT_Load_Glyph(font->font_face, glyph_index, FT_LOAD_DEFAULT);
-            result->typical_descender = FT_ROUND(font->font_face->glyph->metrics.horiBearingY - font->font_face->glyph->metrics.height);
-        }
-
-        error = FT_Select_Charmap(font->font_face, FT_ENCODING_UNICODE);
-        if(error)
-        {
-            log_error("Failure to set the charmap to unicode.... supplied font does not support Unicode...\n");
-        }
-
-        bool8 success = s_asset_font_set_unknown_character(result,        0xfffd); // Replacement character
-        if(!success) success = s_asset_font_set_unknown_character(result, 0x2022); // bullet char
-        if(!success) success = s_asset_font_set_unknown_character(result, (u32)'?');
-        if(!success) log_warning("Unable to set the unknown character for this font...\n");
-
-        c_dynamic_array_append_value(&font->pixel_sizes, *result);
-    }
-    else
-    {
-        log_error("Freetype failed too create a new memory face...\n");
     }
     
     return(result);

@@ -115,6 +115,8 @@ typedef struct playing_sound
 
 typedef struct asset_manager
 {
+    multithreading_work_queue_manager_t *queue_manager;
+    
     // NOTE(Sleepster): READ ONLY... DO NOT MODIFY THESE BEYOND THE INIT FUNCTION
     u64               texture_memory_capacity;
     u64               shader_memory_capacity;
@@ -174,6 +176,6 @@ typedef struct asset_manager
 
 internal void     s_asset_manager_read_asset_file_entries(asset_manager_t *asset_manager, string_t entry_data, asset_file_table_of_contents_t *table_of_contents);
 internal void     s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filepath);
-internal string_t s_asset_load_data_from_asset_file_or_path(asset_manager_t *asset_manager, zone_allocator_t *zone, asset_slot_t *slot_data, za_allocation_tag_t tag);
+internal void     s_asset_load_data_from_asset_file_or_path(asset_manager_t *asset_manager, string_t *out_data, zone_allocator_t *zone, asset_slot_t *slot_data, za_allocation_tag_t tag);
 
 #endif

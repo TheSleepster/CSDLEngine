@@ -20,6 +20,7 @@ c_za_create(u64 block_size)
     result              = (zone_allocator_t*)base;
     result->base        = (u8*)base + sizeof(zone_allocator_t);
     result->capacity    = block_size;
+    result->mutex       = os_mutex_create();
 
 
     zone_allocator_block_t *block      = (zone_allocator_block_t *)(result->base);

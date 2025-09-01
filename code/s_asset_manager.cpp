@@ -143,33 +143,74 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
     //s_asset_manager_generate_null_views(asset_manager);
 }
 
+typedef struct s_asset_system_work_data
+{
+    asset_manager_t    *asset_manager;
+    zone_allocator_t   *zone;
+    asset_slot_t       *slot_data;
+    za_allocation_tag_t tag;
+
+    string_t           *out_string;
+}s_asset_system_work_data_t;
+
+void
+s_asset_load_data_async(void *user_data)
+{
+    s_asset_system_work_data_t *work_data = (s_asset_system_work_data_t*)user_data;
+    
+    string_t result = {};
+    if(os_mutex_lock(&work_data->zone->mutex))
+    {
+        if(work_data->slot_data->asset_file_data_offset > 0)
+        {
+            result = c_file_read_za(work_data->zone,
+                                    work_data->asset_manager->asset_file_handle.filepath,
+                                    work_data->slot_data->asset_file_data_length,
+                                    work_data->slot_data->asset_file_data_offset,
+                                    work_data->tag);
+        }
+        else
+        {
+            Assert(work_data->slot_data->filename.data != null);
+            result = c_file_read_za(work_data->zone,
+                                    work_data->slot_data->filename,
+                                    READ_ENTIRE_FILE,
+                                    0,
+                                    work_data->tag);
+        }
+
+        if(c_string_is_valid(result))
+        {
+            *work_data->out_string = result;
+             work_data->slot_data->slot_state = ASS_LOADED;
+        }
+        else
+        {
+            log_warning("Asset data for file '%s' is not yet loaded...\n", work_data->slot_data->filename.data);
+        }
+
+        c_za_free(work_data->zone, work_data);
+        os_mutex_unlock(&work_data->zone->mutex);
+    }
+}
+
 // IMPORTANT(Sleepster): ALL ASSET LOADING SHOULD CALL BACK TO THIS FUNCTION 
-internal string_t
+internal void 
 s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
+                                          string_t           *out_data,
                                           zone_allocator_t   *zone,
                                           asset_slot_t       *slot_data,
                                           za_allocation_tag_t tag)
 {
-    string_t result = {};
-    if(slot_data->asset_file_data_offset > 0)
-    {
-        result = c_file_read_za(zone,
-                                asset_manager->asset_file_handle.filepath,
-                                slot_data->asset_file_data_length,
-                                slot_data->asset_file_data_offset,
-                                tag);
-    }
-    else
-    {
-        Assert(slot_data->filename.data != null);
-        result = c_file_read_za(zone,
-                                slot_data->filename,
-                                READ_ENTIRE_FILE,
-                                0,
-                                tag);
-    }
-    slot_data->slot_state = ASS_LOADED;
+    multithreading_work_queue_t *high_priority_queue = &asset_manager->queue_manager->high_priority_queue;
+    slot_data->slot_state = ASS_QUEUED;
 
-    return(result);
+    s_asset_system_work_data_t *work_data = c_za_push_struct(zone, s_asset_system_work_data_t, tag);
+    work_data->asset_manager =  asset_manager;
+    work_data->zone          =  zone;
+    work_data->slot_data     =  slot_data;
+    work_data->tag           =  tag;
+    work_data->out_string    =  out_data;
+    s_work_queue_add_entry(high_priority_queue, &s_asset_load_data_async, work_data);
 }
 

@@ -105,7 +105,7 @@ s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager
             {
                 if(sound->next_sound_handle.is_valid && sound->next_sound_handle.sound != sound->sound_handle.sound)
                 {
-                    s_asset_loaded_sound_create(asset_manager, sound->next_sound_handle); 
+                    s_asset_loaded_sound_create(asset_manager, &sound->next_sound_handle); 
                 }
 
                 u32 mixing_count               = total_samples_to_mix;
@@ -151,7 +151,7 @@ s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager
             }
             else
             {
-                s_asset_loaded_sound_create(asset_manager, sound->sound_handle); 
+                s_asset_loaded_sound_create(asset_manager, &sound->sound_handle); 
             }
         }
 

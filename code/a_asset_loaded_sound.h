@@ -65,6 +65,8 @@ typedef struct WAVE_file_iterator
 
 typedef struct loaded_sound
 {
+    string_t filedata;
+
     s16 *sample_data;
     s32  sample_count;
 
@@ -74,7 +76,7 @@ typedef struct loaded_sound
 /*===========================================
   ============= LOADED SOUND API ============
   ===========================================*/
-internal void           s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t handle);
+internal void           s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t *handle);
 internal asset_handle_t s_asset_loaded_sound_get(asset_manager_t *asset_manager, string_t name);
 internal loaded_sound_t s_asset_load_WAV_file(asset_manager_t *asset_manager, string_t filename, string_t filedata);
 
