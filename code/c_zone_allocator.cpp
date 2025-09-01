@@ -186,6 +186,7 @@ c_za_free_zone_tag(zone_allocator_t *zone, za_allocation_tag_t tag)
             if((za_allocation_tag_t)current_block->allocation_tag == tag)
             {
                 c_za_free(zone, current_block);
+                log_info("Freed block with tag: '%d'...\n", tag);
             }
         }
     }
@@ -194,6 +195,7 @@ c_za_free_zone_tag(zone_allocator_t *zone, za_allocation_tag_t tag)
 internal void
 c_za_free_zone_tag_range(zone_allocator_t *zone, za_allocation_tag_t low_tag, za_allocation_tag_t high_tag)
 {
+    log_info("Freed blocks with tag range: '%d' to '%d'...\n", low_tag, high_tag);
     for(zone_allocator_block_t *current_block = &zone->first_block;
         current_block;
         current_block = current_block->next_block)
@@ -204,6 +206,7 @@ c_za_free_zone_tag_range(zone_allocator_t *zone, za_allocation_tag_t low_tag, za
                (za_allocation_tag_t)current_block->allocation_tag < (za_allocation_tag_t)high_tag)
             {
                 c_za_free_zone_tag(zone, (za_allocation_tag_t)current_block->allocation_tag);
+                log_info("Freed block with tag: '%d'...\n", current_block->allocation_tag);
             }
         }
     }

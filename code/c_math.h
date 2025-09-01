@@ -843,7 +843,7 @@ vec4_create(float32 A)
     vec4_t result;
     // TODO(Sleepster): Perhaps make this a 32 bit -> 128bit SIMD function???
     // (128bit load)
-    result.SSE = _mm_setr_ps(A, A, A, A);
+    result.SSE = _mm_set_ps1(A);
 
     return(result);
 }
@@ -852,7 +852,7 @@ internal inline vec4_t
 vec4_create_float4(float32 A, float32 B, float32 C, float32 D)
 {
     vec4_t result;
-    result.SSE = _mm_setr_ps(A, B, C, D);
+    result.SSE = _mm_set_ps(A, B, C, D);
 
     return(result);
 }
@@ -862,7 +862,7 @@ vec4_scale(vec4_t A, float32 B)
 {
     vec4_t result;
 
-    __m128 B_vector = _mm_setr_ps(B, B, B, B);
+    __m128 B_vector = _mm_set_ps1(B);
     result.SSE      = _mm_mul_ps(A.SSE, B_vector);
 
     return(result);
@@ -891,7 +891,7 @@ vec4_normalize(vec4_t A)
 {
     vec4_t result;
     float32 magnitude     = vec4_length(A);
-    __m128  magnitude_reg = _mm_setr_ps(magnitude, magnitude, magnitude, magnitude);
+    __m128  magnitude_reg = _mm_set_ps1(magnitude);
 
     result.SSE = _mm_div_ps(A.SSE, magnitude_reg);
     return(result);
@@ -1101,7 +1101,7 @@ internal inline ivec4_t
 ivec4_create_int32(s32 A, s32 B, s32 C, s32 D)
 {
     ivec4_t result;
-    result.SSE = _mm_setr_epi32(A, B, C, D);
+    result.SSE = _mm_set_epi32(A, B, C, D);
 
     return(result);
 }
@@ -1640,7 +1640,7 @@ internal inline mat4_t
 mat4_reduce(mat4_t A, float32 B)
 {
     mat4_t result;
-    __m128 scaler_vector = _mm_setr_ps(B, B, B, B);
+    __m128 scaler_vector = _mm_set_ps1(B);
 
     result.columns[0].SSE = _mm_div_ps(A.columns[0].SSE, scaler_vector);
     result.columns[1].SSE = _mm_div_ps(A.columns[1].SSE, scaler_vector);
