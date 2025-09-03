@@ -16,7 +16,7 @@ r_add_texture_to_texture_list(render_group_t *group, u32 textureID)
         u32 ID = group->textureIDs[ID_index];
         if(ID == textureID) return;
     }
-    Assert(group->desired_texture_count+ 1 < MAX_TEXTURES);
+    Assert(group->desired_texture_count + 1 < MAX_TEXTURES);
 
     group->textureIDs[group->desired_texture_count] = textureID;
     group->desired_texture_count += 1;
@@ -83,7 +83,7 @@ r_create_render_quad(render_state_t       *render_state,
                 index < 4;
                 ++index)
             {
-                result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->desired_texture_count;
+                result.elements[index].vTextureIndex = gpu_texture_id;
             }
 
             vec2_t uv_min =  texture_offset;

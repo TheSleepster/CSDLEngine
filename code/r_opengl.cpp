@@ -196,6 +196,24 @@ r_make_shader_object(string_t shader_source, string_t shader_prefix, GLenum shad
 }
 
 internal void
+r_gl_debug_callback(GLenum Source, GLenum Type, GLuint ID, GLenum Severity,
+                    GLsizei Length, const GLchar *Message, const void *UserParam)
+{
+    if(Severity == GL_DEBUG_SEVERITY_LOW)
+    {
+        log_info("OPENGL MESSAGE:\n\t%s\n", Message);
+    }
+    if(Severity == GL_DEBUG_SEVERITY_MEDIUM)
+    {
+        log_warning("OPENGL MESSAGE:\n\t%s\n", Message);
+    }
+    if(Severity == GL_DEBUG_SEVERITY_HIGH)
+    {
+        log_error("OPENGL MESSAGE:\n\t%s\n", Message);
+    }
+}
+
+internal void
 r_compile_pixel_shader(GPU_shader_t *shader, string_t shader_source)
 {
     string_t vertex_shader_prefix   = STR("#version 430 core\n#define VERTEX_SHADER\n");
@@ -477,6 +495,9 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     Assert(render_state->draw_frame_arena.base != null);
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
+    render_state->backend_framebuffer_width  = 320;
+    render_state->backend_framebuffer_height = 180;
+
     bool8 success = SDL_GL_MakeCurrent(window, context);
     if(success)
     {
@@ -490,6 +511,10 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
     glEnable(GL_FRAMEBUFFER_SRGB);
     SDL_GL_SetSwapInterval(0);
+
+    glDebugMessageCallback(&r_gl_debug_callback, null);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glEnable(GL_DEBUG_OUTPUT);
 
     u32 index_buffer[MAX_INDICES];
     u32 index_offset = 0;
@@ -546,8 +571,8 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
     // PRIMARY FRAMEBUFFER SETUP
     {
-        u32 render_engine_width  = 320;
-        u32 render_engine_height = 180;
+        u32 render_engine_width  = render_state->backend_framebuffer_width;
+        u32 render_engine_height = render_state->backend_framebuffer_height;
 
         glGenFramebuffers(1, &render_state->primary_framebuffer.ID);
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
@@ -645,7 +670,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     draw_frame_t *draw_frame = &render_state->draw_frame;
     {
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
-        glViewport(0, 0, 320, 180);
+        glViewport(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height);
     
         glEnable(GL_DEPTH_TEST);
         glClearDepth(0.0f);
@@ -711,9 +736,13 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
             }
         }
 
+        // NOTE(Sleepster): PERFORM EFFECT APPLICATION 
+        {
+        }
+
         glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->primary_framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, 320, 180, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -721,6 +750,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     // NOTE(Sleepster): POST BLIT RENDERING 
     {
         glViewport(0, 0, 1920, 1080);
+        glDepthMask(GL_TRUE);
         if(draw_frame->postblit_pass_data.opaque_render_group_counter > 0)
         {
             for(u32 group_index = 0;

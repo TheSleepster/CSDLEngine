@@ -8,6 +8,7 @@
 #define COLOR_RED    ((vec4_t){1.0, 0.0, 0.0, 1.0})
 #define COLOR_GREEN  ((vec4_t){0.0, 1.0, 0.0, 1.0})
 #define COLOR_BLUE   ((vec4_t){0.0, 0.0, 1.0, 1.0})
+#define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
 
 global bool8 initialized_stuff;
 global dynamic_render_font_varient_t *varient;
@@ -45,8 +46,8 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){16, 16}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
     //asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("arial"));
-    asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
-    //asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
+    //asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
+    asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
     asset_handle_t block_handle = s_asset_texture_get(asset_manager, STR("block"));
     asset_handle_t test_handle  = s_asset_loaded_sound_get(asset_manager, STR("Test2"));
     if(!initialized_stuff || audio_manager->first_playing_sound == null)
@@ -77,9 +78,9 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_begin_renderpass(render_state, &test_group4);
     r_draw_string(asset_manager,
                   render_state,
-                  STR("What is the meaning of life?\nIs it why we work?"),
+                  STR("This is a test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
                   font_handle,
-                  48,
+                  24,
                   vec2_create_float(-800, 500),
                   COLOR_WHITE,
                   RQO_NONE);
