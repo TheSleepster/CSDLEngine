@@ -56,9 +56,9 @@ internal inline void                   c_arena_clear_block(memory_arena_t *arena
 internal inline void                   c_arena_reset(memory_arena_t *arena);
 
 // MACROS
-#define c_arena_push_struct(arena, type)                 (type*)c_arena_push_size(arena, sizeof(type))
-#define c_arena_push_array(arena, type, count)           (type*)c_arena_push_size(arena, (sizeof(type)) * count)
-#define c_bootstrap_allocate_struct(type, member, alloc) (type*)bootstrap_allocate_struct_(sizeof(type), OffsetOf(type, member), alloc)
+#define c_arena_push_struct(arena, type)                                 (type*)c_arena_push_size(arena,   sizeof(type))
+#define c_arena_push_array(arena, type, count)                           (type*)c_arena_push_size(arena,  (sizeof(type)) * count)
+#define c_arena_bootstrap_allocate_struct(type, member, allocation_size) (type*)bootstrap_allocate_struct_(sizeof(type), OffsetOf(type, member), allocation_size)
 ////////////////////////////////////////////////////////
 
 #endif

@@ -10,16 +10,16 @@ internal void
 r_add_texture_to_texture_list(render_group_t *group, u32 textureID)
 {
     for(u32 ID_index = 0;
-        ID_index < group->texture_count;
+        ID_index < group->desired_texture_count;
         ++ID_index)
     {
         u32 ID = group->textureIDs[ID_index];
         if(ID == textureID) return;
     }
-    Assert(group->texture_count + 1 < MAX_TEXTURES);
+    Assert(group->desired_texture_count+ 1 < MAX_TEXTURES);
 
-    group->textureIDs[group->texture_count] = textureID;
-    group->texture_count += 1;
+    group->textureIDs[group->desired_texture_count] = textureID;
+    group->desired_texture_count += 1;
 }
 
 internal render_quad_t
@@ -46,12 +46,13 @@ r_create_render_quad(render_state_t       *render_state,
     /* NOTE(Sleepster): We are using an Orthographic projection matrix.
      * In OpenGL and Vulkan, the depth values are always normalized between -1 and 1
      */
-    float32 near_value        = -1;
-    float32 far_value         =  1;
+    float32 near_value = -1;
+    float32 far_value  =  1;
 
     float32 depth_step        = (far_value - near_value) / MAX_RENDER_LAYERS;
     float32 layer_depth_value = near_value  + (render_group_data->render_layer * depth_step);
 
+    result.layer_depth            = layer_depth_value;
     result.top_left.vPosition     = vec3_create_float(left, top,     layer_depth_value);
     result.top_right.vPosition    = vec3_create_float(right, top,    layer_depth_value);
     result.bottom_left.vPosition  = vec3_create_float(left, bottom,  layer_depth_value);
@@ -82,7 +83,7 @@ r_create_render_quad(render_state_t       *render_state,
                 index < 4;
                 ++index)
             {
-                result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->texture_count;
+                result.elements[index].vTextureIndex = render_state->draw_frame.active_render_group->desired_texture_count;
             }
 
             vec2_t uv_min =  texture_offset;
@@ -143,9 +144,9 @@ r_draw_texture_ex(render_state_t       *render_state,
     {
         render_group_t *active_render_group = render_state->draw_frame.active_render_group;
         
-        active_render_group->buffer_quads[active_render_group->quad_count] = quad_init;
+        active_render_group->quad_buffer[active_render_group->quad_count] = quad_init;
 
-        result = &active_render_group->buffer_quads[active_render_group->quad_count];
+        result = &active_render_group->quad_buffer[active_render_group->quad_count];
         if(render_options & RQO_SHADOWCASTER)
         {
             if(!render_state->draw_frame.shadow_casters)
@@ -154,7 +155,7 @@ r_draw_texture_ex(render_state_t       *render_state,
             }
 
             shadow_caster2D_t caster = {};
-            caster.quad_data = active_render_group->buffer_quads[active_render_group->quad_count];
+            caster.quad_data = active_render_group->quad_buffer[active_render_group->quad_count];
 
             render_state->draw_frame.shadow_casters[render_state->draw_frame.shadow_caster_counter] = caster; 
             render_state->draw_frame.shadow_caster_counter += 1;
@@ -275,7 +276,7 @@ r_draw_string(asset_manager_t       *asset_manager,
             if(character == '\n' || character == '\r')
             {
                 draw_position.x  = position.x;
-                draw_position.y -= varient->typical_ascender * 2;
+                draw_position.y -= varient->line_spacing;
 
                 continue;
             }
@@ -288,7 +289,8 @@ r_draw_string(asset_manager_t       *asset_manager,
             else
             {
                 r_draw_texture_ex(render_state,
-                                  vec2_create_float(floorf(draw_position.x + glyph->offset_x), floorf(draw_position.y - glyph->ascent) + glyph->offset_y),
+                                  vec2_create_float(floorf(draw_position.x + glyph->offset_x),
+                                                    floorf(draw_position.y - glyph->offset_y)),
                                   glyph->glyph_render_size,
                                   color,
                                   0.0f,
@@ -365,20 +367,26 @@ r_handle_lighting_data(render_state_t *render_state)
 
 
 internal inline render_group_desc_t
-r_build_renderpass_desc(GPU_shader_t          *desired_shader,
-                         u32                    render_layer,
-                         mat4_t                 view_matrix,
-                         mat4_t                 projection_matrix,
-                         render_group_effects_t render_effects)
+r_build_renderpass_desc(GPU_shader_t                     *desired_shader,
+                        u32                               render_layer,
+                        mat4_t                            view_matrix,
+                        mat4_t                            projection_matrix,
+                        render_group_effects_t            render_effects        = RGE_None,
+                        render_group_desired_render_phase render_phase          = RGP_MainGamePass,
+                        render_group_primitive_type_t     primitive_type        = RGPT_Quads,
+                        bool8                             supports_transparency = false)
 {
     Assert(render_layer <= MAX_RENDER_LAYERS);
     
     render_group_desc_t result;
-    result.shader            = desired_shader;
-    result.render_layer      = render_layer;
-    result.view_matrix       = view_matrix;
-    result.projection_matrix = projection_matrix;
-    result.render_effects    = render_effects;
+    result.shader                = desired_shader;
+    result.render_layer          = render_layer;
+    result.view_matrix           = view_matrix;
+    result.projection_matrix     = projection_matrix;
+    result.desired_effects       = render_effects;
+    result.desired_phase         = render_phase;
+    result.primitive_type        = primitive_type;
+    result.supports_transparency = supports_transparency;
 
     return(result);
 }
@@ -389,11 +397,13 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
     u64 result = 0;
     u64 hash_value = 14695981039346656037ULL;
 
-    hash_value = c_fnv_hash_value((u8*)render_pass_desc->shader,             sizeof(GPU_shader_t*),          hash_value);
-    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->render_effects,    sizeof(render_group_effects_t), hash_value);
-    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->render_layer,      sizeof(u32),                    hash_value);
-    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->view_matrix,       sizeof(mat4_t),                 hash_value);
-    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->projection_matrix, sizeof(mat4_t),                 hash_value);
+    hash_value = c_fnv_hash_value((u8*) render_pass_desc->shader,            sizeof(GPU_shader_t*),                       hash_value);
+    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->desired_effects,   sizeof(render_group_effects_t),              hash_value);
+    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->desired_phase,     sizeof(render_group_desired_render_phase_t), hash_value);
+    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->primitive_type,    sizeof(render_group_primitive_type_t),       hash_value);
+    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->render_layer,      sizeof(u32),                                 hash_value);
+    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->view_matrix,       sizeof(mat4_t),                              hash_value);
+    hash_value = c_fnv_hash_value((u8*)&render_pass_desc->projection_matrix, sizeof(mat4_t),                              hash_value);
 
     result = hash_value;
     return(result);
@@ -402,22 +412,52 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
 internal void
 r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc)
 {
-    Assert(render_pass_desc->render_layer <= MAX_RENDER_LAYERS);
-
-    u64 pass_id = r_get_renderpass_desc_id(render_pass_desc);
-    if(render_state->draw_frame.render_groups == null || !render_state->draw_frame.initialized)
+    if(!render_state->draw_frame.is_initialized)
     {
-        render_state->draw_frame.render_groups = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
-        render_state->draw_frame.initialized   = true;
+        render_state->draw_frame.preblit_pass_data.opaque_render_groups      = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+        render_state->draw_frame.preblit_pass_data.transparent_render_groups = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+
+        render_state->draw_frame.postblit_pass_data.opaque_render_groups      = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+        render_state->draw_frame.postblit_pass_data.transparent_render_groups = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+
+        render_state->draw_frame.is_initialized   = true;
     }
-    Assert(render_state->draw_frame.render_groups != null);
+
+    Assert(render_pass_desc->render_layer <= MAX_RENDER_LAYERS);
+    u32             *render_group_counter_ptr = null;
+    render_group_t **render_group_array       = null;
+
+    render_phase_data_t *render_phase_data = null;
+    switch(render_pass_desc->desired_phase)
+    {
+        case RGP_MainGamePass: render_phase_data = &render_state->draw_frame.preblit_pass_data;  break;
+        case RGP_PostBlitPass: render_phase_data = &render_state->draw_frame.postblit_pass_data; break;
+        default: InvalidCodePath; break;
+    }
+    Assert(render_phase_data);
+
+    if(render_pass_desc->supports_transparency)
+    {
+        render_group_array       =  render_phase_data->transparent_render_groups;
+        render_group_counter_ptr = &render_phase_data->transparent_render_group_counter;
+    }
+    else
+    {
+        render_group_array       =  render_phase_data->opaque_render_groups;
+        render_group_counter_ptr = &render_phase_data->opaque_render_group_counter;
+    }
+    u32 render_group_count = *render_group_counter_ptr;
+
+    Assert(render_group_array       != null);
+    Assert(render_group_counter_ptr != null);
     
+    u64 pass_id = r_get_renderpass_desc_id(render_pass_desc);
     render_group_t *active_group = null;
     for(u32 pass_index = 0;
-        pass_index < render_state->draw_frame.render_group_counter;
+        pass_index < render_group_count;
         ++pass_index)
     {
-        render_group_t *found = render_state->draw_frame.render_groups[pass_index];
+        render_group_t *found = render_group_array[pass_index];
         u64 found_pass_id = r_get_renderpass_desc_id(&found->render_desc);
         if(found_pass_id == pass_id)
         {
@@ -430,22 +470,13 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
     {
         active_group = c_arena_push_struct(&render_state->draw_frame_arena, render_group_t);
         active_group->render_desc   = *render_pass_desc;
-        active_group->buffer_quads  = c_arena_push_array(&render_state->draw_frame_arena, render_quad_t, MAX_QUADS);
+        active_group->quad_buffer   = c_arena_push_array(&render_state->draw_frame_arena, render_quad_t, MAX_QUADS);
         active_group->vertex_buffer = c_arena_push_array(&render_state->draw_frame_arena, vertex_t,      MAX_VERTICES);
         Assert(active_group != null);
 
-        u32 old_layer_mask = render_state->draw_frame.render_layer_mask;
-        render_state->draw_frame.render_layer_mask |= 1 << render_pass_desc->render_layer;
-        if(old_layer_mask != render_state->draw_frame.render_layer_mask)
-        {
-            render_state->draw_frame.used_render_layers[render_state->draw_frame.used_render_layer_count] = render_pass_desc->render_layer;
-            render_state->draw_frame.used_render_layer_count++;
-        }
-
-        render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter] = active_group;
-        Assert(render_state->draw_frame.render_groups[render_state->draw_frame.render_group_counter] != null);
-
-        render_state->draw_frame.render_group_counter += 1;
+        render_group_array[render_group_count] = active_group;
+        Assert(render_group_array[render_group_count] != null);
+        *render_group_counter_ptr += 1;
     }
 
     render_state->draw_frame.active_render_group = active_group;
@@ -459,45 +490,153 @@ r_end_renderpass(render_state_t *render_state)
     render_state->draw_frame.active_render_group = null;
 }
 
+// TODO(Sleepster): MULTITHREAD THIS
 internal void
 r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state)
 {
+    // TODO(Sleepster): Is this really where we want this too live?
     at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
+    draw_frame_t *draw_frame = &render_state->draw_frame;
     
-    render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
-                                                              render_group_t*,
-                                                              render_state->draw_frame.render_group_counter);
-    c_radix_sort(render_state->draw_frame.render_groups,
-                 sorted_layer_buffer,
-                 render_state->draw_frame.render_group_counter,
-                 sizeof(render_group_t*),
-                 IntFromPtr(OffsetOf(render_group_t, render_desc.render_layer)),
-                 8);
-    
-    // TODO(Sleepster): MULTITHREAD THIS
-    for(u32 render_group_idx = 0;
-        render_group_idx < render_state->draw_frame.render_group_counter;
-        ++render_group_idx)
+    // NOTE(Sleepster): PREBLIT GROUP SETUP 
     {
-        render_group_t *render_group = (render_group_t*)render_state->draw_frame.render_groups[render_group_idx];
-        for(u32 quad_index = 0;
-            quad_index < render_group->quad_count;
-            ++quad_index)
+        if(draw_frame->preblit_pass_data.opaque_render_group_counter > 0)
         {
-            render_quad_t *quad  = render_group->buffer_quads + quad_index;
-            vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
+            for(u32 render_group_idx = 0;
+                render_group_idx < draw_frame->preblit_pass_data.opaque_render_group_counter;
+                ++render_group_idx)
+            {
+                render_group_t *render_group = (render_group_t*)draw_frame->preblit_pass_data.opaque_render_groups[render_group_idx];
+                for(u32 quad_index = 0;
+                    quad_index < render_group->quad_count;
+                    ++quad_index)
+                {
+                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
+                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
 
-            vertex_t *top_left     = buffer_ptr + 0;
-            vertex_t *top_right    = buffer_ptr + 1;
-            vertex_t *bottom_right = buffer_ptr + 2;
-            vertex_t *bottom_left  = buffer_ptr + 3;
+                    vertex_t *top_left     = buffer_ptr + 0;
+                    vertex_t *top_right    = buffer_ptr + 1;
+                    vertex_t *bottom_right = buffer_ptr + 2;
+                    vertex_t *bottom_left  = buffer_ptr + 3;
 
-            *top_left     = quad->top_left;
-            *top_right    = quad->top_right;
-            *bottom_left  = quad->bottom_left;
-            *bottom_right = quad->bottom_right;
+                    *top_left     = quad->top_left;
+                    *top_right    = quad->top_right;
+                    *bottom_left  = quad->bottom_left;
+                    *bottom_right = quad->bottom_right;
 
-            render_group->vertex_count += 4;
+                    render_group->vertex_count += 4;
+                }
+            }
+        }
+
+        if(draw_frame->preblit_pass_data.transparent_render_group_counter > 0)
+        {
+            render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
+                                                                      render_group_t*,
+                                                                      draw_frame->preblit_pass_data.transparent_render_group_counter);
+            c_radix_sort(draw_frame->preblit_pass_data.transparent_render_groups,
+                         sorted_layer_buffer,
+                         draw_frame->preblit_pass_data.transparent_render_group_counter,
+                         sizeof(render_group_t*),
+                         IntFromPtr(OffsetOf(render_group_t, render_desc.render_layer)),
+                         8);
+            for(u32 render_group_idx = 0;
+                render_group_idx < draw_frame->preblit_pass_data.transparent_render_group_counter;
+                ++render_group_idx)
+            {
+                render_group_t  *render_group = (render_group_t*)draw_frame->preblit_pass_data.transparent_render_groups[render_group_idx];
+        
+                for(u32 quad_index = 0;
+                    quad_index < render_group->quad_count;
+                    ++quad_index)
+                {
+                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
+                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
+
+                    vertex_t *top_left     = buffer_ptr + 0;
+                    vertex_t *top_right    = buffer_ptr + 1;
+                    vertex_t *bottom_right = buffer_ptr + 2;
+                    vertex_t *bottom_left  = buffer_ptr + 3;
+
+                    *top_left     = quad->top_left;
+                    *top_right    = quad->top_right;
+                    *bottom_left  = quad->bottom_left;
+                    *bottom_right = quad->bottom_right;
+
+                    render_group->vertex_count += 4;
+                }
+            }
+        }
+    }
+
+    // NOTE(Sleepster): POSTBLIT GROUP SETUP 
+    {
+        if(draw_frame->postblit_pass_data.opaque_render_group_counter > 0)
+        {
+            for(u32 render_group_idx = 0;
+                render_group_idx < draw_frame->postblit_pass_data.opaque_render_group_counter;
+                ++render_group_idx)
+            {
+                render_group_t *render_group = (render_group_t*)draw_frame->postblit_pass_data.opaque_render_groups[render_group_idx];
+                for(u32 quad_index = 0;
+                    quad_index < render_group->quad_count;
+                    ++quad_index)
+                {
+                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
+                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
+
+                    vertex_t *top_left     = buffer_ptr + 0;
+                    vertex_t *top_right    = buffer_ptr + 1;
+                    vertex_t *bottom_right = buffer_ptr + 2;
+                    vertex_t *bottom_left  = buffer_ptr + 3;
+
+                    *top_left     = quad->top_left;
+                    *top_right    = quad->top_right;
+                    *bottom_left  = quad->bottom_left;
+                    *bottom_right = quad->bottom_right;
+
+                    render_group->vertex_count += 4;
+                }
+            }
+        }
+
+        if(draw_frame->postblit_pass_data.transparent_render_group_counter > 0)
+        {
+            render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
+                                                                      render_group_t*,
+                                                                      draw_frame->postblit_pass_data.transparent_render_group_counter);
+            c_radix_sort(draw_frame->postblit_pass_data.transparent_render_groups,
+                         sorted_layer_buffer,
+                         draw_frame->postblit_pass_data.transparent_render_group_counter,
+                         sizeof(render_group_t*),
+                         IntFromPtr(OffsetOf(render_group_t, render_desc.render_layer)),
+                         8);
+            for(u32 render_group_idx = 0;
+                render_group_idx < draw_frame->postblit_pass_data.transparent_render_group_counter;
+                ++render_group_idx)
+            {
+                render_group_t  *render_group = (render_group_t*)draw_frame->postblit_pass_data.transparent_render_groups[render_group_idx];
+        
+                for(u32 quad_index = 0;
+                    quad_index < render_group->quad_count;
+                    ++quad_index)
+                {
+                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
+                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
+
+                    vertex_t *top_left     = buffer_ptr + 0;
+                    vertex_t *top_right    = buffer_ptr + 1;
+                    vertex_t *bottom_right = buffer_ptr + 2;
+                    vertex_t *bottom_left  = buffer_ptr + 3;
+
+                    *top_left     = quad->top_left;
+                    *top_right    = quad->top_right;
+                    *bottom_left  = quad->bottom_left;
+                    *bottom_right = quad->bottom_right;
+
+                    render_group->vertex_count += 4;
+                }
+            }
         }
     }
 }

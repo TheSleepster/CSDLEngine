@@ -52,11 +52,15 @@ typedef struct render_quad
 
     bool8                 culled;
     vec2_t                center_pos;
+    float32               layer_depth;
     
     u32                   texture_id;
     render_quad_options_t options;
 }render_quad_t;
 
+typedef struct render_line
+{
+}render_line_t;
 
 ///////////////////////
 // RENDER GROUPS 
@@ -90,63 +94,92 @@ typedef struct shadow_caster2D
 
 typedef enum render_group_effects
 {
-    RGE_None     = 0x00,
-    RGE_Lighting = 0x01,
-    RGE_Bloom    = 0x02,
+    RGE_None     = 1 << 0,
+    RGE_Lighting = 1 << 1,
+    RGE_Bloom    = 1 << 2,
     RGE_Count
 }render_group_effects_t;
 
+typedef enum render_group_desired_render_phase
+{
+    RGP_Invalid      = 1 << 0,
+    RGP_MainGamePass = 1 << 1,
+    RGP_PostBlitPass = 1 << 2,
+}render_group_desired_render_phase_t;
+
+typedef enum render_group_primitive_type
+{
+    RGPT_Invalid,
+    RGPT_Quads,
+    RGPT_Lines,
+    RGPT_Count,
+}render_group_primitive_type_t;
+
 typedef struct render_group_desc
 {
-    GPU_shader_t          *shader;
-    render_group_effects_t render_effects;
-    u32                    render_layer;
+    GPU_shader_t                       *shader;
+    render_group_effects_t              desired_effects;
+    render_group_desired_render_phase_t desired_phase;
+    render_group_primitive_type_t       primitive_type;
+    u32                                 render_layer;
 
-    mat4_t                 view_matrix;
-    mat4_t                 projection_matrix;
+    mat4_t                              view_matrix;
+    mat4_t                              projection_matrix;
+
+    bool32                              supports_transparency;
 }render_group_desc_t;
 
 typedef struct render_group
 {
     render_group_desc_t render_desc;
 
+    render_quad_t      *quad_buffer;
+    u32                 quad_count;
+
+    render_line_t      *line_buffer;
+    u32                 line_count;
+
     vertex_t           *vertex_buffer;
     u32                 vertex_count;
 
-    render_quad_t      *buffer_quads;
-    u32                 quad_count;
-
-    u32                 textureIDs[MAX_TEXTURES];
-    u32                 texture_count;
-    u32                 bound_textures;
+    u32 textureIDs[MAX_TEXTURES];
+    u32 desired_texture_count;
+    u32 GPU_bound_texture_counter;
 }render_group_t;
-
 
 ///////////////////////
 // RENDER DATA
+///////////////////////
+typedef struct render_phase_data
+{
+    render_group_t  **opaque_render_groups;
+    render_group_t  **transparent_render_groups;
+
+    u32               opaque_render_group_counter;
+    u32               transparent_render_group_counter;
+}render_phase_data_t;
 
 typedef struct draw_frame
 {
-    bool8                 initialized;
-    
-    render_group_t      **render_groups;
-    render_group_t       *active_render_group;
-    u32                   render_group_counter;
+    bool8               is_initialized;
 
-    // NOTE(Sleepster): bitmask 
-    u32                   render_layer_mask;
-    u32                   used_render_layer_count;
-    u32                   used_render_layers[MAX_RENDER_LAYERS];
+    render_phase_data_t preblit_pass_data;
+    render_phase_data_t postblit_pass_data;
 
-    point_light_t        *point_lights;
-    u32                   light_counter;
+    render_group_t     *active_render_group;
 
-    shadow_caster2D_t    *shadow_casters;
-    u32                   shadow_caster_counter;
+    point_light_t      *point_lights;
+    u32                 light_counter;
+
+    shadow_caster2D_t  *shadow_casters;
+    u32                 shadow_caster_counter;
 }draw_frame_t;
 
 typedef struct render_state
 {
+    u32            backend_framebuffer_width;
+    u32            backend_framebuffer_height;
+    
     u32            primary_vao_id;
     u32            primary_vbo_id;
     u32            primary_ebo_id;

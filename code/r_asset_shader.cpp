@@ -111,10 +111,10 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
         {
             if(working_group != null && uniform_data->type == SUT_TEXTURE_BINDING && update_texture_bindings)
             {
-                u32 texture_id = working_group->textureIDs[working_group->bound_textures];
-                glActiveTexture(GL_TEXTURE0 + working_group->bound_textures);
+                u32 texture_id = working_group->textureIDs[working_group->GPU_bound_texture_counter];
+                glActiveTexture(GL_TEXTURE0 + working_group->GPU_bound_texture_counter);
                 glBindTexture(GL_TEXTURE_2D, texture_id);
-                working_group->bound_textures++;
+                working_group->GPU_bound_texture_counter++;
 
                 // TODO(Sleepster): This is redundant... please don't do it every time 
                 u32 sampler_data[MAX_TEXTURES];
@@ -124,7 +124,7 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
                 {
                     sampler_data[sampler_index] = sampler_index;
                 }
-                glUniform1iv(uniform_data->location_id, MAX_TEXTURES, (const GLint *)sampler_data);
+                //glUniform1iv(uniform_data->location_id, MAX_TEXTURES, (const GLint *)sampler_data);
             }
             else
             {

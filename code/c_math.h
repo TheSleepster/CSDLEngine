@@ -852,7 +852,7 @@ internal inline vec4_t
 vec4_create_float4(float32 A, float32 B, float32 C, float32 D)
 {
     vec4_t result;
-    result.SSE = _mm_set_ps(A, B, C, D);
+    result.SSE = _mm_setr_ps(A, B, C, D);
 
     return(result);
 }

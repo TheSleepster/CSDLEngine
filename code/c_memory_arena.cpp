@@ -37,7 +37,7 @@ c_arena_push_size(memory_arena_t *arena, u64 size_init)
     byte *result = null;
 
     u8 *offset_ptr = ((u8*)arena->base + arena->used);
-    u64 size = (size_init + 15) & ~15;
+    u64 size = Align16(size_init);
     if((arena->used + size) >= arena->capacity)
     {
         if(arena->block_size == 0)

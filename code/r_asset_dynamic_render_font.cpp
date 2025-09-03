@@ -95,15 +95,14 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
     }
 
     FT_Face font_face = page->owner_varient->parent->font_face;
+    s32 glyph_width   = font_face->glyph->bitmap.width;
+    s32 row_height    = font_face->glyph->bitmap.rows;
 
     glyph->offset_x   = (s16)(font_face->glyph->bitmap_left);
-    glyph->offset_y   = (s16)(font_face->glyph->bitmap_top);
+    glyph->offset_y   = (s16)(row_height - font_face->glyph->bitmap_top);
 
     glyph->advance    = (s16)(font_face->glyph->advance.x >> 6);
     glyph->ascent     = (s16)(font_face->glyph->metrics.horiBearingY >> 6);
-
-    s32 glyph_width   = font_face->glyph->bitmap.width;
-    s32 row_height    = font_face->glyph->bitmap.rows;
 
     glyph->glyph_render_size = vec2_create_float(glyph_width, row_height);
     vec2_t bitmap_offset     = s_font_atlas_find_next_free_line(page, glyph_width, row_height);
@@ -121,7 +120,7 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
             column < glyph_width;
             ++column)
         {
-            uint8  source = font_face->glyph->bitmap.buffer[(row_height- 1 - row) * font_face->glyph->bitmap.pitch + column];
+            uint8  source = font_face->glyph->bitmap.buffer[(row_height - 1 - row) * font_face->glyph->bitmap.pitch + column];
             uint8 *dest   = (u8 *)page->font_atlas.bitmap.data.data + (((u32)bitmap_offset.y + row) * page->font_atlas.bitmap.width + ((uint32)bitmap_offset.x + column)) * 4;
 
             dest[0] = source;
@@ -288,9 +287,9 @@ s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handl
 
             float64 font_scale_to_pixels = font->font_face->size->metrics.y_scale / (64.0 * 65536.0);
             result->pixel_size    = size;
-            result->line_spacing  = (s64)floor(font_scale_to_pixels * font->font_face->height    + 0.5);
-            result->max_ascender  = (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMax + 0.5);
-            result->max_descender = (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMin + 0.5);
+            result->line_spacing  =  (s64)floor(font_scale_to_pixels * font->font_face->height    + 0.5);
+            result->max_ascender  =  (s64)floor(font_scale_to_pixels * font->font_face->bbox.yMax + 0.5);
+            result->max_descender = -(s64)floor(font_scale_to_pixels * font->font_face->bbox.yMin + 0.5);
 
             // NOTE(Sleepster): Using 'm' as the baseline character
             u32 glyph_index = FT_Get_Char_Index(font->font_face, 'm');

@@ -225,12 +225,17 @@ r_compile_pixel_shader(GPU_shader_t *shader, string_t shader_source)
     glDeleteShader(fragment_shader);
 }
 
+internal string_t
+r_preprocess_shader_data(string_t shader_source)
+{
+    return(shader_source);
+}
+
 internal GPU_shader_t
 r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
 {
     GPU_shader_t result;
     result.shader_source = shader_source;
-    
     switch(shader_type)
     {
         case ST_PIXEL_SHADER:
@@ -426,6 +431,7 @@ r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type
 internal void 
 r_texture_create_from_bitmap(bitmap_t *bitmap)
 {
+    Assert(false);
 }
 
 internal inline void
@@ -557,7 +563,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 
-                     LIGHTMAP_SIZE, LIGHTMAP_SIZE, 0, 
+                     render_engine_width, render_engine_height, 0, 
                      GL_RGBA, GL_UNSIGNED_BYTE, null);
 
         glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer);
@@ -569,15 +575,15 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 
                      render_engine_width, render_engine_height, 0, 
-                     GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, null);
+                     GL_DEPTH_COMPONENT, GL_FLOAT, null);
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer,      0);
 
-        GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, (const GLenum *)&draw_buffers);
+        GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT};
+        glDrawBuffers(ArrayCount(draw_buffers), (const GLenum *)&draw_buffers);
     }
     
     // LIGHTING FRAMEBUFFER SETUP
@@ -606,7 +612,6 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
                                0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-
 } 
 
 internal void
@@ -636,53 +641,134 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
     }
 
-    glEnable(GL_DEPTH_TEST);
-    glClearDepth(0.0f);
-    glDepthFunc(GL_GREATER);
-    glDepthMask(GL_TRUE);
-
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-    r_handle_renderpass_data(asset_manager, render_state);
-
-    glBindVertexArray(render_state->primary_vao_id);
-    for(u32 group_index = 0;
-        group_index < render_state->draw_frame.render_group_counter;
-        ++group_index)
+    // NOTE(Sleepster): PRE BLIT RENDERING
+    draw_frame_t *draw_frame = &render_state->draw_frame;
     {
-        render_group_t *group = render_state->draw_frame.render_groups[group_index];
-        Assert(group);
-        
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        
-        glUseProgram(group->render_desc.shader->program_id);
-        r_update_shader_gpu_data(group, group->render_desc.shader, true);
+        glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
+        glViewport(0, 0, 320, 180);
+    
+        glEnable(GL_DEPTH_TEST);
+        glClearDepth(0.0f);
+        glDepthFunc(GL_GREATER);
+        glDepthMask(GL_TRUE);
 
-        glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendEquation(GL_FUNC_ADD);
+    
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-        glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+        r_handle_renderpass_data(asset_manager, render_state);
+        glBindVertexArray(render_state->primary_vao_id);
+
+        if(draw_frame->preblit_pass_data.opaque_render_group_counter > 0)
+        {
+            for(u32 group_index = 0;
+                group_index < draw_frame->preblit_pass_data.opaque_render_group_counter;
+                ++group_index)
+            {
+                render_group_t *group = draw_frame->preblit_pass_data.opaque_render_groups[group_index];
+                Assert(group);
+        
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+        
+                glUseProgram(group->render_desc.shader->program_id);
+                r_update_shader_gpu_data(group, group->render_desc.shader, true);
+
+                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+            }
+        }
+
+        if(draw_frame->preblit_pass_data.transparent_render_group_counter > 0)
+        {
+            glDepthMask(GL_FALSE);
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glBlendEquation(GL_FUNC_ADD);
+
+            for(u32 group_index = 0;
+                group_index < draw_frame->preblit_pass_data.transparent_render_group_counter;
+                ++group_index)
+            {
+                render_group_t *group = draw_frame->preblit_pass_data.transparent_render_groups[group_index];
+                Assert(group);
+        
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+        
+                glUseProgram(group->render_desc.shader->program_id);
+                r_update_shader_gpu_data(group, group->render_desc.shader, true);
+
+                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+            }
+        }
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->primary_framebuffer.ID);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, 320, 180, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-}
+    // NOTE(Sleepster): POST BLIT RENDERING 
+    {
+        glViewport(0, 0, 1920, 1080);
+        if(draw_frame->postblit_pass_data.opaque_render_group_counter > 0)
+        {
+            for(u32 group_index = 0;
+                group_index < draw_frame->postblit_pass_data.opaque_render_group_counter;
+                ++group_index)
+            {
+                render_group_t *group = draw_frame->postblit_pass_data.opaque_render_groups[group_index];
+                Assert(group);
+        
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+        
+                glUseProgram(group->render_desc.shader->program_id);
+                r_update_shader_gpu_data(group, group->render_desc.shader, true);
 
-internal void
-r_render_single_frame_ex(render_state_t *render_state, asset_manager_t *asset_manager)
-{
-    r_handle_render_prepass(render_state);
-    r_handle_render_opaque_render_groups(render_state);
-    r_handle_render_transparent_render_groups(render_state);
+                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
 
-    r_apply_effects(render_state);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+            }
+        }
 
-    r_handle_blitting(render_state);
-    r_handle_postblit_render_groups(render_state);
+        if(draw_frame->postblit_pass_data.transparent_render_group_counter > 0)
+        {
+            glDepthMask(GL_FALSE);
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glBlendEquation(GL_FUNC_ADD);
 
-    r_swap_buffers();
+            for(u32 group_index = 0;
+                group_index < draw_frame->postblit_pass_data.transparent_render_group_counter;
+                ++group_index)
+            {
+                render_group_t *group = draw_frame->postblit_pass_data.transparent_render_groups[group_index];
+                Assert(group);
+        
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+        
+                glUseProgram(group->render_desc.shader->program_id);
+                r_update_shader_gpu_data(group, group->render_desc.shader, true);
+
+                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+            }
+        }
+    }
 }

@@ -157,6 +157,10 @@
 // NOTE(Sleepster): Linux Kernel compile time assert! It unfortunately only tells you if the the condition fails... not how it fails... Unlucky!
 #define StaticAssert(condition) ((void)sizeof(char[2*!!(condition) - 1]))
 
+#define Align4(value) ((value  + 3)  & ~3)
+#define Align8(value) ((value  + 7)  & ~7)
+#define Align16(value) ((value + 15) & ~15)
+
 #include "c_types.h"
 
 global s8  MIN_S8  = (s8) 0x80;
