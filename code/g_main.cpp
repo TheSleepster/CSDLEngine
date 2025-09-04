@@ -16,6 +16,8 @@ global dynamic_render_font_varient_t *varient;
 internal void
 r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager)
 {
+    draw_frame_t *draw_frame = &render_state->draw_frame;
+
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();
 
@@ -25,6 +27,10 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                                   projection_matrix,
                                                                   RGE_None);
     r_begin_renderpass(render_state, &test_group_desc);
+    r_update_shader_uniform_data(&render_state->test_shader, STR("uProjectionMatrix"), &draw_frame->active_render_group->render_desc.projection_matrix.values);
+    r_update_shader_uniform_data(&render_state->test_shader, STR("uViewMatrix"),       &draw_frame->active_render_group->render_desc.view_matrix.values);
+    r_update_shader_uniform_data(&render_state->test_shader, STR("uEffectMask"),       &draw_frame->active_render_group->render_desc.desired_effects);
+
     r_draw_rect(render_state, (vec2_t){ 0,   0},  (vec2_t){16, 16}, (vec4_t){1, 0, 0, 1}, 45,   RQO_NONE);
     r_draw_rect(render_state, (vec2_t){ 20,  0},  (vec2_t){16, 16}, (vec4_t){1, 0, 1, 1}, 20,   RQO_NONE);
     r_draw_rect(render_state, (vec2_t){ 40,  0},  (vec2_t){16, 16}, (vec4_t){0, 0, 1, 1}, 15,   RQO_NONE);
@@ -45,11 +51,11 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_begin_renderpass(render_state, &test_group3);
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){16, 16}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
-    asset_handle_t arial_font_handle  = s_asset_font_get(asset_manager, STR("arial"));
-    //asset_handle_t font_handle  = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
-    asset_handle_t atari_font_handle  = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
-    asset_handle_t block_handle = s_asset_texture_get(asset_manager, STR("block"));
-    //asset_handle_t test_handle  = s_asset_loaded_sound_get(asset_manager, STR("Test2"));
+    asset_handle_t lm_font_handle     = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
+    asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
+    asset_handle_t atari_font_handle = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
+    asset_handle_t block_handle      = s_asset_texture_get(asset_manager, STR("block"));
+    //asset_handle_t test_handle       = s_asset_loaded_sound_get(asset_manager, STR("Test2"));
     if(!initialized_stuff || audio_manager->first_playing_sound == null)
     {
         if(audio_manager->playing_sound_arena.is_initialized == false)
@@ -76,6 +82,10 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGE_None,
                                                               RGP_PostBlitPass);
     r_begin_renderpass(render_state, &test_group4);
+
+    r_update_shader_uniform_data(&render_state->font_shader, STR("uProjectionMatrix"), &draw_frame->active_render_group->render_desc.projection_matrix.values);
+    r_update_shader_uniform_data(&render_state->font_shader, STR("uViewMatrix"),       &draw_frame->active_render_group->render_desc.view_matrix.values);
+
     r_draw_string(asset_manager,
                   render_state,
                   STR("This is a test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
@@ -93,9 +103,28 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                   vec2_create_float(-800, -300),
                   COLOR_WHITE,
                   RQO_NONE);
+
+    r_draw_string(asset_manager,
+                  render_state,
+                  STR("This is another test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE.\nHere's even more text to see if it's lagging the hell out of us."),
+                  arial_font_handle,
+                  24,
+                  vec2_create_float(300, 300),
+                  COLOR_WHITE,
+                  RQO_NONE);
+
+    r_draw_string(asset_manager,
+                  render_state,
+                  STR("This is a final test of the font rendering. We'll try glyphs like:\n/-{}*?()':_[]!^!<>=&[]#$|~`+%\\@\nIf these work then we're gucci. \nWOOOOO THEY ALL WORK THIS IS INCREDIBLE. NOW HOW ABOUT:\nABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+                  lm_font_handle,
+                  24,
+                  vec2_create_float(-900, 300),
+                  COLOR_WHITE,
+                  RQO_NONE);
+
     r_end_renderpass(render_state);
 
-    render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->font_shader,
+    render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->test_shader,
                                                               2,
                                                               view_matrix,
                                                               projection_matrix,
@@ -106,6 +135,18 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_begin_renderpass(render_state, &test_group5);
     r_draw_rect(render_state, vec2_create_float(10, 40), vec2_create_float(20, 20), vec4_create_float4(1.0f, 0.0f, 0.0f, 0.05f), 0, RQO_NONE);
     r_draw_rect(render_state, vec2_create_float(10, 40), vec2_create_float(20, 20), vec4_create_float4(1.0f, 0.0f, 0.0f, 0.05f), 0, RQO_NONE);
+    r_end_renderpass(render_state);
+
+    render_group_desc_t test_group6 = r_build_renderpass_desc(&render_state->test_shader,
+                                                              2,
+                                                              view_matrix,
+                                                              projection_matrix,
+                                                              RGE_None,
+                                                              RGP_PostBlitPass,
+                                                              RGPT_Lines,
+                                                              true);
+    r_begin_renderpass(render_state, &test_group6);
+    r_create_render_line(render_state, vec2_create_float(-100.0, -70), vec2_create_float(100, -70), 1.0f, COLOR_WHITE);
     r_end_renderpass(render_state);
 }
 

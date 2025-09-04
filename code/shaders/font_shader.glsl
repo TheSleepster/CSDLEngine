@@ -9,6 +9,7 @@ layout(location = 4) in uint vTextureIndex;
 
 uniform mat4 uProjectionMatrix;
 uniform mat4 uViewMatrix;
+uniform uint uEffectMask;
 
 out      vec4 vOutColor;
 out      vec2 vOutUVData;
@@ -28,10 +29,10 @@ main()
 
 in       vec4 vOutColor;
 in       vec2 vOutUVData;
-in  flat uint vOutTextureIndex;
+in flat  uint vOutTextureIndex;
+in flat  uint vOutEffectMask;
 
-out vec4 vFragColor;
-
+layout(location = 0) out vec4 vFragColor;
 uniform sampler2D uTest[32];
 
 void

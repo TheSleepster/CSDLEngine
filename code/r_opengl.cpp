@@ -512,6 +512,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     }
 
     glEnable(GL_FRAMEBUFFER_SRGB);
+    glEnable(GL_LINE_SMOOTH);
     SDL_GL_SetSwapInterval(0);
 
     glDebugMessageCallback(&r_gl_debug_callback, null);
@@ -580,36 +581,57 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
 
         glGenTextures(1, &render_state->primary_framebuffer.color_attachment0);
+        glGenTextures(1, &render_state->primary_framebuffer.color_attachment1);
         glGenTextures(1, &render_state->primary_framebuffer.depth_buffer);
 
-        glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0);
+        // NOTE(Sleepster): PRIMARY RGBA32 TEXTURE 
+        {
+            glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 
-                     render_engine_width, render_engine_height, 0, 
-                     GL_RGBA, GL_UNSIGNED_BYTE, null);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 
+                         render_engine_width, render_engine_height, 0, 
+                         GL_RGBA, GL_UNSIGNED_BYTE, null);
+        }
 
-        glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer);
+        // NOTE(Sleepster): MRT R8 TEXTURE 
+        {
+            glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment1);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8_SNORM, 
+                         render_engine_width, render_engine_height, 0, 
+                         GL_RED, GL_UNSIGNED_BYTE, null);
+        }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 
-                     render_engine_width, render_engine_height, 0, 
-                     GL_DEPTH_COMPONENT, GL_FLOAT, null);
+        // NOTE(Sleepster): 24 BIT DEPTH TEXTURE 
+        {
+            glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 
+                         render_engine_width, render_engine_height, 0, 
+                         GL_DEPTH_COMPONENT, GL_FLOAT, null);
+        }
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment1, 0);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer,      0);
 
-        GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0};
+        GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
         glDrawBuffers(ArrayCount(draw_buffers), (const GLenum *)&draw_buffers);
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE)
@@ -646,6 +668,32 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     }
 
 } 
+
+internal void
+r_issue_render_group_draw(render_state *render_state, render_group_t *group)
+{
+    Assert(group);
+
+    glUseProgram(group->render_desc.shader->program_id);
+    r_update_shader_gpu_data(group, group->render_desc.shader, true);
+    glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
+
+    switch(group->render_desc.primitive_type)
+    {
+        case RGPT_Quads:
+        {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+            glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+        }break;
+        case RGPT_Lines:
+        {
+            glLineWidth(1.0f);
+            glDrawArrays(GL_LINES, 0, group->line_count * 2);
+        }break;
+        default: {InvalidCodePath;}break;
+    }
+}
 
 internal void
 r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_state)
@@ -701,19 +749,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
                 ++group_index)
             {
                 render_group_t *group = draw_frame->preblit_pass_data.opaque_render_groups[group_index];
-                Assert(group);
-        
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        
-                glUseProgram(group->render_desc.shader->program_id);
-                r_update_shader_gpu_data(group, group->render_desc.shader, true);
-
-                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+                r_issue_render_group_draw(render_state, group);
             }
         }
 
@@ -728,19 +764,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
                 ++group_index)
             {
                 render_group_t *group = draw_frame->preblit_pass_data.transparent_render_groups[group_index];
-                Assert(group);
-        
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        
-                glUseProgram(group->render_desc.shader->program_id);
-                r_update_shader_gpu_data(group, group->render_desc.shader, true);
-
-                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+                r_issue_render_group_draw(render_state, group);
             }
         }
 
@@ -748,6 +772,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         {
         }
 
+        // TODO(Sleepster): Check if there needs to be a blit. If there doesn't need to be a blit, don't blit...  
         glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->primary_framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -766,19 +791,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
                 ++group_index)
             {
                 render_group_t *group = draw_frame->postblit_pass_data.opaque_render_groups[group_index];
-                Assert(group);
-        
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        
-                glUseProgram(group->render_desc.shader->program_id);
-                r_update_shader_gpu_data(group, group->render_desc.shader, true);
-
-                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+                r_issue_render_group_draw(render_state, group);
             }
         }
 
@@ -793,19 +806,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
                 ++group_index)
             {
                 render_group_t *group = draw_frame->postblit_pass_data.transparent_render_groups[group_index];
-                Assert(group);
-        
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-                r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        
-                glUseProgram(group->render_desc.shader->program_id);
-                r_update_shader_gpu_data(group, group->render_desc.shader, true);
-
-                glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+                r_issue_render_group_draw(render_state, group);
             }
         }
     }

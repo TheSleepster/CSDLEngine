@@ -121,7 +121,7 @@ s_asset_loaded_sound_create(asset_manager_t *asset_manager, asset_handle_t *hand
                                                  &handle->asset_slot->loaded_sound.filedata,
                                                   asset_manager->sound_catalog.sound_allocator,
                                                   slot_data,
-                                                  ZA_TAG_SOUND);
+                                                  ZA_TAG_CACHE);
     }
     if(c_string_is_valid(slot_data->loaded_sound.filedata))
     {

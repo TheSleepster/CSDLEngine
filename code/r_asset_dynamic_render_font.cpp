@@ -231,7 +231,7 @@ s_asset_font_load_data(memory_arena_t *arena, asset_manager_t *asset_manager, as
                                              &handle.font->loaded_data,
                                               asset_manager->font_catalog.font_allocator,
                                               handle.asset_slot,
-                                              ZA_TAG_FONT); 
+                                              ZA_TAG_CACHE); 
 }
 
 internal inline bool8

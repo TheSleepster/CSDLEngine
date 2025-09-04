@@ -10,6 +10,7 @@
 
 #define MAX_QUADS    (2500)
 #define MAX_VERTICES (MAX_QUADS * 4)
+#define MAX_LINES    (MAX_VERTICES / 2)
 #define MAX_INDICES  (MAX_QUADS * 6)
 
 #include "c_types.h"
@@ -35,6 +36,7 @@ typedef enum render_quad_options
 {
     RQO_NONE         = 0X00,
     RQO_SHADOWCASTER = 0X01,
+    RQO_EMISIVE      = 0x02,
     RQO_COUNT,
 }render_quad_options_t;
 
@@ -62,6 +64,18 @@ typedef struct render_quad
 
 typedef struct render_line
 {
+    union
+    {
+        struct
+        {
+            vertex_t start_point;
+            vertex_t end_point;
+        };
+        vertex_t elements[2];
+    };
+
+    bool8   culled;
+    float32 layer_depth;
 }render_line_t;
 
 ///////////////////////
@@ -98,7 +112,6 @@ typedef enum render_group_effects
 {
     RGE_None     = 1 << 0,
     RGE_Lighting = 1 << 1,
-    RGE_Bloom    = 1 << 2,
     RGE_Count
 }render_group_effects_t;
 
@@ -149,9 +162,6 @@ typedef struct render_group
     u32 GPU_bound_texture_counter;
 }render_group_t;
 
-///////////////////////
-// RENDER DATA
-///////////////////////
 typedef struct render_phase_data
 {
     render_group_t  **opaque_render_groups;
@@ -160,6 +170,10 @@ typedef struct render_phase_data
     u32               opaque_render_group_counter;
     u32               transparent_render_group_counter;
 }render_phase_data_t;
+
+///////////////////////
+// RENDER DATA
+///////////////////////
 
 typedef struct draw_frame
 {
@@ -175,6 +189,9 @@ typedef struct draw_frame
 
     shadow_caster2D_t  *shadow_casters;
     u32                 shadow_caster_counter;
+
+    render_quad_t      *emmisive_quads;
+    u32                 emmisive_quad_counter;
 }draw_frame_t;
 
 typedef struct render_state
@@ -196,6 +213,7 @@ typedef struct render_state
     {
         u32 ID;
         u32 color_attachment0;
+        u32 color_attachment1;
         u32 depth_buffer;
     }primary_framebuffer;
 

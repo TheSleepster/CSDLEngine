@@ -33,6 +33,8 @@ r_create_render_quad(render_state_t       *render_state,
                      u32                   gpu_texture_id,
                      render_quad_options_t render_options)
 {
+    Assert(render_state->draw_frame.active_render_group->render_desc.primitive_type == RGPT_Quads);
+
     render_quad_t result = {};
     result.options = render_options;
 
@@ -309,6 +311,43 @@ r_draw_string(asset_manager_t       *asset_manager,
     }
 }
 
+internal render_line_t* 
+r_create_render_line(render_state_t *render_state, 
+                     vec2_t          start_point,
+                     vec2_t          end_point,
+                     float32         thickness,
+                     vec4_t          color)
+{
+    render_line_t *result = null;
+    render_group_t *active_group = render_state->draw_frame.active_render_group;
+    Assert(active_group->render_desc.primitive_type == RGPT_Lines);
+    
+    if(!active_group->line_buffer)
+    {
+        active_group->line_buffer = c_arena_push_array(&render_state->draw_frame_arena, render_line_t, MAX_LINES);
+    }
+    float32 near_value = -1;
+    float32 far_value  =  1;
+
+    float32 depth_step        = (far_value - near_value) / MAX_RENDER_LAYERS;
+    float32 layer_depth_value = near_value  + (active_group->render_desc.render_layer * depth_step);
+
+    render_line_t new_line = {};
+    new_line.layer_depth           = layer_depth_value;
+    new_line.start_point.vPosition = vec2_expand_vec3(start_point, layer_depth_value);
+    new_line.end_point.vPosition   = vec2_expand_vec3(end_point, layer_depth_value);
+    new_line.start_point.vColor    = color;
+    new_line.end_point.vColor      = color;
+
+    new_line.start_point.vTextureIndex = MAX_U32;
+    new_line.end_point.vTextureIndex   = MAX_U32;
+
+     result = active_group->line_buffer + active_group->line_count++;
+    *result = new_line;
+
+    return(result);
+}
+
 ////////////////////
 // LIGHTING
 ////////////////////
@@ -414,8 +453,8 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
 {
     if(!render_state->draw_frame.is_initialized)
     {
-        render_state->draw_frame.preblit_pass_data.opaque_render_groups      = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
-        render_state->draw_frame.preblit_pass_data.transparent_render_groups = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+        render_state->draw_frame.preblit_pass_data.opaque_render_groups       = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+        render_state->draw_frame.preblit_pass_data.transparent_render_groups  = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
 
         render_state->draw_frame.postblit_pass_data.opaque_render_groups      = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
         render_state->draw_frame.postblit_pass_data.transparent_render_groups = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
@@ -490,6 +529,55 @@ r_end_renderpass(render_state_t *render_state)
     render_state->draw_frame.active_render_group = null;
 }
 
+internal void
+r_fill_render_group_vertex_buffer(render_group_t *render_group)
+{
+    switch(render_group->render_desc.primitive_type)
+    {
+        case RGPT_Quads:
+        {
+            for(u32 quad_index = 0;
+                quad_index < render_group->quad_count;
+                ++quad_index)
+            {
+                render_quad_t *quad  = render_group->quad_buffer   + quad_index;
+                vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
+
+                vertex_t *top_left     = buffer_ptr + 0;
+                vertex_t *top_right    = buffer_ptr + 1;
+                vertex_t *bottom_right = buffer_ptr + 2;
+                vertex_t *bottom_left  = buffer_ptr + 3;
+
+                *top_left     = quad->top_left;
+                *top_right    = quad->top_right;
+                *bottom_left  = quad->bottom_left;
+                *bottom_right = quad->bottom_right;
+
+                render_group->vertex_count += 4;
+            }
+        }break;
+        case RGPT_Lines:
+        {
+            for(u32 line_index = 0;
+                line_index < render_group->line_count;
+                ++line_index)
+            {
+                render_line_t *line  = render_group->line_buffer   + line_index;
+                vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
+
+                vertex_t *starting_point = buffer_ptr + 0;
+                vertex_t *ending_point   = buffer_ptr + 1;
+
+                *starting_point = line->start_point;
+                *ending_point   = line->end_point;
+
+                render_group->vertex_count += 2;
+            }
+        }break;
+        default: {InvalidCodePath;}break;
+    }
+}
+
 // TODO(Sleepster): MULTITHREAD THIS
 internal void
 r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state)
@@ -507,25 +595,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t *render_group = (render_group_t*)draw_frame->preblit_pass_data.opaque_render_groups[render_group_idx];
-                for(u32 quad_index = 0;
-                    quad_index < render_group->quad_count;
-                    ++quad_index)
-                {
-                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
-                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
-
-                    vertex_t *top_left     = buffer_ptr + 0;
-                    vertex_t *top_right    = buffer_ptr + 1;
-                    vertex_t *bottom_right = buffer_ptr + 2;
-                    vertex_t *bottom_left  = buffer_ptr + 3;
-
-                    *top_left     = quad->top_left;
-                    *top_right    = quad->top_right;
-                    *bottom_left  = quad->bottom_left;
-                    *bottom_right = quad->bottom_right;
-
-                    render_group->vertex_count += 4;
-                }
+                r_fill_render_group_vertex_buffer(render_group);
             }
         }
 
@@ -545,26 +615,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t  *render_group = (render_group_t*)draw_frame->preblit_pass_data.transparent_render_groups[render_group_idx];
-        
-                for(u32 quad_index = 0;
-                    quad_index < render_group->quad_count;
-                    ++quad_index)
-                {
-                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
-                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
-
-                    vertex_t *top_left     = buffer_ptr + 0;
-                    vertex_t *top_right    = buffer_ptr + 1;
-                    vertex_t *bottom_right = buffer_ptr + 2;
-                    vertex_t *bottom_left  = buffer_ptr + 3;
-
-                    *top_left     = quad->top_left;
-                    *top_right    = quad->top_right;
-                    *bottom_left  = quad->bottom_left;
-                    *bottom_right = quad->bottom_right;
-
-                    render_group->vertex_count += 4;
-                }
+                r_fill_render_group_vertex_buffer(render_group);
             }
         }
     }
@@ -578,25 +629,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t *render_group = (render_group_t*)draw_frame->postblit_pass_data.opaque_render_groups[render_group_idx];
-                for(u32 quad_index = 0;
-                    quad_index < render_group->quad_count;
-                    ++quad_index)
-                {
-                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
-                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
-
-                    vertex_t *top_left     = buffer_ptr + 0;
-                    vertex_t *top_right    = buffer_ptr + 1;
-                    vertex_t *bottom_right = buffer_ptr + 2;
-                    vertex_t *bottom_left  = buffer_ptr + 3;
-
-                    *top_left     = quad->top_left;
-                    *top_right    = quad->top_right;
-                    *bottom_left  = quad->bottom_left;
-                    *bottom_right = quad->bottom_right;
-
-                    render_group->vertex_count += 4;
-                }
+                r_fill_render_group_vertex_buffer(render_group);
             }
         }
 
@@ -616,26 +649,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t  *render_group = (render_group_t*)draw_frame->postblit_pass_data.transparent_render_groups[render_group_idx];
-        
-                for(u32 quad_index = 0;
-                    quad_index < render_group->quad_count;
-                    ++quad_index)
-                {
-                    render_quad_t *quad  = render_group->quad_buffer   + quad_index;
-                    vertex_t *buffer_ptr = render_group->vertex_buffer + render_group->vertex_count;
-
-                    vertex_t *top_left     = buffer_ptr + 0;
-                    vertex_t *top_right    = buffer_ptr + 1;
-                    vertex_t *bottom_right = buffer_ptr + 2;
-                    vertex_t *bottom_left  = buffer_ptr + 3;
-
-                    *top_left     = quad->top_left;
-                    *top_right    = quad->top_right;
-                    *bottom_left  = quad->bottom_left;
-                    *bottom_right = quad->bottom_right;
-
-                    render_group->vertex_count += 4;
-                }
+                r_fill_render_group_vertex_buffer(render_group);
             }
         }
     }

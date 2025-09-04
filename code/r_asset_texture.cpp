@@ -100,7 +100,7 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
                                                   &handle->asset_slot->texture.bitmap.data, 
                                                   asset_manager->texture_catalog.texture_allocator,
                                                   slot_data,
-                                                  ZA_TAG_TEXTURE);
+                                                  ZA_TAG_CACHE);
     }
 
     if(c_string_is_valid(slot_data->texture.bitmap.data) && slot_data->slot_state == ASS_LOADED)
