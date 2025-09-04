@@ -20,6 +20,7 @@
 ////////////////////////////////////////
 // RENDERING PRIMITIVES 
 
+#pragma pack(push, 1)
 typedef struct vertex
 {
     vec3_t vPosition;
@@ -28,6 +29,7 @@ typedef struct vertex
     vec3_t vVSNormals;
     u32    vTextureIndex;
 }vertex_t;
+#pragma pack(pop)
 
 typedef enum render_quad_options
 {

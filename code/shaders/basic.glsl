@@ -32,7 +32,7 @@ in  flat uint vOutTextureIndex;
 
 out vec4 vFragColor;
 
-layout(binding = 0) uniform sampler2D uTest[32];
+uniform sampler2D uTest[32];
 
 void
 main()

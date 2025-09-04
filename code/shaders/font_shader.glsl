@@ -32,7 +32,7 @@ in  flat uint vOutTextureIndex;
 
 out vec4 vFragColor;
 
-layout(binding = 0) uniform sampler2D uTest;
+uniform sampler2D uTest[32];
 
 void
 main()
@@ -40,7 +40,7 @@ main()
     vec4 TextureColor = vec4(1.0);
     if(vOutTextureIndex != U32_MAX)
     {
-        TextureColor = texture(uTest, vOutUVData, 0);
+        TextureColor = texture(uTest[vOutTextureIndex], vOutUVData, 0);
         if(TextureColor.a == 0.0)
         {
             discard;

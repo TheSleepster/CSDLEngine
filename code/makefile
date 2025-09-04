@@ -6,7 +6,7 @@ CC  = clang
 ifeq ($(OS),Windows_NT)
     OS_DEFINE = -DOS_WINDOWS=1
     PLATFORM_LIBS = -lopengl32 -luser32 -lgdi32 -lwinmm -lshell32 -lole32 -luuid -lversion -ladvapi32 -lsetupapi -lcfgmgr32 -loleaut32 -limm32
-	LDFLAGS = -Wl,/IGNORE:4099
+	LDFLAGS = -Wl,/IGNORE:4099 -Wl,/STACK:157286400
     EXE_EXT = .exe
     DEV_NULL = NUL
 else
@@ -23,7 +23,7 @@ endif
 
 SILENT ?=
 
-COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/
+COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/ 
 COMMON_C_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings -Wno-deprecated
 
 BUILD_TYPE ?= debug
