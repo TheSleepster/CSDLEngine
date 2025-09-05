@@ -1,12 +1,12 @@
-#if !defined(C_SRINSICS_H)
+#if !defined(C_INTRINSICS_H)
 /* ========================================================================
-   $File: c_srinsics.h $
+   $File: c_intrinsics.h $
    $Date: Tue, 29 Jul 25: 05:18PM $
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
 
-#define C_SRINSICS_H
+#define C_INTRINSICS_H
 
 #include "c_types.h"
 
@@ -121,7 +121,7 @@
        =================== ATOMIC COMPARE EXCHANGE =================
        ============================================================= */
         #define AtomicCompareExchange16(ptr, exchange, comparand) ({        \
-            s16 _expected = (s16)(comparand    );                           \
+            s16 _expected = (s16)(comparand);                               \
             __atomic_compare_exchange_n((volatile s16*)(ptr), &_expected,   \
                                         (s16)(exchange), 0,                 \
                                         __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);\
