@@ -41,6 +41,8 @@
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
+global float64 delta_time = 0.0f;
+
 #include "DEBUG_core.cpp"
 #include "c_memory_arena.cpp"
 #include "c_zone_allocator.cpp"
@@ -194,8 +196,6 @@ main(int argc, char **argv)
         u64 current_tsc                   = 0;
         u64 delta_tsc                     = 0;
 
-        float64 delta_time = 0.0f;
-
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
@@ -203,7 +203,6 @@ main(int argc, char **argv)
         running = true;
         while(running)
         {
-            DEBUG_TIMED_BLOCK();
             c_file_watcher_process_changes(&watcher);
 
             s_input_manager_reset_controller_states(&input_manager);
@@ -223,7 +222,7 @@ main(int argc, char **argv)
             delta_tsc   = current_tsc - last_tsc;
             last_tsc    = current_tsc;
 
-            delta_time  = (float32)((float64)delta_tsc / (float64)performance_counter_frequency);
+            delta_time  = (float32)(((float64)delta_tsc * 1000.0) / (float64)performance_counter_frequency);
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
         }
     }
@@ -232,3 +231,4 @@ main(int argc, char **argv)
 }
 
 DEBUG_record_data_t DEBUG_records[__COUNTER__];
+u32 DEBUG_record_counter = ArrayCount(DEBUG_records);

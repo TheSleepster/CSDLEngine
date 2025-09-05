@@ -23,20 +23,41 @@ at_atlas_handler_create(asset_manager_t  *asset_manager,
     r_texture_make_gpu(&handler.atlas, false, TAAFT_NEAREST);
     void *hash_table_memory  = c_za_alloc(zone, 1024 * sizeof(atlas_handler_hash_table_entry_t), ZA_TAG_TEXTURE);
     
-    handler.contents         = c_hash_table_create(hash_table_memory, 1024, atlas_handler_hash_table_entry_t*);
-    handler.textures_to_pack = c_dynamic_array_create(asset_handle_t, 64);
-    handler.bitmap_cursor_x  = 0;
-    handler.bitmap_cursor_y  = 0;
-    handler.tallest_y        = 0;
-
-    handler.is_initialized   = true;
+    handler.contents           = c_hash_table_create(hash_table_memory, 1024, atlas_handler_hash_table_entry_t*);
+    handler.textures_to_pack   = c_dynamic_array_create(asset_handle_t, 64);
+    handler.textures_to_update = c_dynamic_array_create(asset_handle_t, 64);
+    handler.bitmap_cursor_x    = 0;
+    handler.bitmap_cursor_y    = 0;
+    handler.tallest_y          = 0;
+    handler.is_initialized     = true;
 
     return(handler);
 }
 
 internal void
+at_atlas_handler_update_entry(asset_manager_t *asset_manager, atlas_handler_t *handler, asset_handle_t handle)
+{
+    DEBUG_TIMED_BLOCK();
+
+    Assert(handler->is_initialized  == true);
+    Assert(handle.texture           != null);
+    Assert(handle.asset_slot        != null);
+    Assert(handle.texture->uv_min   != null);
+    Assert(handle.texture->uv_max   != null);
+
+    u32 x_max = floorf(handle.texture->uv_max->x);
+    u32 y_max = floorf(handle.texture->uv_max->y);
+    if(x_max > 0 && y_max > 0)
+    {
+        c_dynamic_array_append_value(&handler->textures_to_update, handle);
+    }
+}
+
+internal void
 at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *handler, asset_handle_t handle)
 {
+    DEBUG_TIMED_BLOCK();
+
     Assert(handler->is_initialized           == true);
     Assert(handler->atlas_width               >  0);
     Assert(handler->atlas_height              >  0);
@@ -64,15 +85,18 @@ at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *ha
 internal void
 at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *handler)
 {
+    DEBUG_TIMED_BLOCK();
+
     Assert(handler->is_initialized     == true);
     Assert(handler->atlas_width         >  0);
     Assert(handler->atlas_height        >  0);
     Assert(handler->atlas.bitmap.data.count >=  0);
 
+    bool8 is_dirty = false;
+
+    string_t *bitmap_data = &handler->atlas.bitmap.data;
     if(handler->textures_to_pack.indices_used > 0)
     {
-        string_t *bitmap_data = &handler->atlas.bitmap.data;
-
         for(u32 texture_index = 0;
             texture_index < handler->textures_to_pack.indices_used;
             ++texture_index)
@@ -83,21 +107,24 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
 
             string_t *texture_data = &texture->bitmap.decompressed_data;
             for(s32 y_index = 0;
-                y_index < texture->bitmap.width;
+                y_index < texture->bitmap.height;
                 ++y_index)
             {
                 for(s32 x_index = 0;
-                    x_index < texture->bitmap.height;
+                    x_index < texture->bitmap.width;
                     ++x_index)
                 {
-                    u32 atlas_offset   = ((handler->bitmap_cursor_y + y_index)  * handler->atlas_width +
-                                          (handler->bitmap_cursor_x + x_index)) * handler->atlas.bitmap.channels;
+                    u32 atlas_offset = ((handler->bitmap_cursor_y + y_index) * handler->atlas_width +
+                                        (handler->bitmap_cursor_x + x_index)) * handler->atlas.bitmap.channels;
+
                     u32 texture_offset = (y_index * texture->bitmap.width + x_index) * texture->bitmap.channels;
+
                     for(s32 channel_index = 0;
                         channel_index < texture->bitmap.channels;
                         ++channel_index)
                     {
-                        bitmap_data->data[atlas_offset + channel_index] = texture_data->data[texture_offset + channel_index];
+                        bitmap_data->data[atlas_offset + channel_index] =
+                            texture_data->data[texture_offset + channel_index];
                     }
                 }
             }
@@ -121,15 +148,60 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
                 handler->bitmap_cursor_y += handler->tallest_y;
             }
 
+            is_dirty = true;
             s_asset_texture_destroy_data(asset_manager, *asset_handle);
         }
-
-
         c_dynamic_array_reset(&handler->textures_to_pack);
-        r_texture_update_from_bitmap(asset_manager, &handler->atlas);
     }
-    else
+
+    if(handler->textures_to_update.indices_used > 0)
     {
-        //log_warning("Called to build an atlas, however there are no textures to be packed...\n");
+        for(u32 texture_index = 0;
+            texture_index < handler->textures_to_update.indices_used;
+            ++texture_index)
+        {
+            asset_handle_t *asset_handle = (asset_handle_t*)c_dynamic_array_get(&handler->textures_to_update, texture_index);
+            texture2D_t    *texture      = &asset_handle->asset_slot->texture;
+            Assert(texture);
+
+            string_t       *texture_data = &texture->bitmap.decompressed_data;
+            if(texture_data->data)
+            {
+                texture_view_t *texture_view = asset_handle->texture;
+
+                for(s32 y_index = 0;
+                    y_index < texture->bitmap.height;
+                    ++y_index)
+                {
+                    for(s32 x_index = 0;
+                        x_index < texture->bitmap.width;
+                        ++x_index)
+                    {
+                        u32 atlas_offset   = ((texture_view->uv_min->y + y_index) * handler->atlas_width +
+                                              (texture_view->uv_min->x + x_index)) * handler->atlas.bitmap.channels;
+
+                        u32 texture_offset = (y_index * texture->bitmap.width + x_index) * texture->bitmap.channels;
+                        for(s32 channel_index = 0;
+                            channel_index < texture->bitmap.channels;
+                            ++channel_index)
+                        {
+                            bitmap_data->data[atlas_offset + channel_index] =
+                                texture_data->data[texture_offset + channel_index];
+                        }
+                    }
+                }
+
+                log_trace("Texture: '%s' has been updated in the atlas...\n", asset_handle->asset_slot->filename.data);
+                is_dirty = true;
+                s_asset_texture_destroy_data(asset_manager, *asset_handle);
+            }
+        }
+        c_dynamic_array_reset(&handler->textures_to_update);
+    }
+
+    if(is_dirty)
+    {
+        r_texture_update_from_bitmap(asset_manager, &handler->atlas);
+        log_trace("Updated atlas...\n");
     }
 }

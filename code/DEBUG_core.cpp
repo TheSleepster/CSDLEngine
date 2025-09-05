@@ -12,9 +12,17 @@
    This is like 1/4 of the way done, I just need to create DEBUG gui first with a new renderer...
  */
 
+#if INTERNAL_DEBUG
 #define DEBUG_TIMED_BLOCK__(number, ...) timed_block_t DEBUG_timed_block_##number(__FILE__, __FUNCTION__, __COUNTER__, __LINE__)
 #define DEBUG_TIMED_BLOCK_(number, ...)  DEBUG_TIMED_BLOCK__(number, ##__VA_ARGS__) 
 #define DEBUG_TIMED_BLOCK(...)           DEBUG_TIMED_BLOCK_(__LINE__, ##__VA_ARGS__)
+
+#else
+
+#define DEBUG_TIMED_BLOCK__(number, ...)
+#define DEBUG_TIMED_BLOCK_(number, ...) 
+#define DEBUG_TIMED_BLOCK(...)          
+#endif
 
 struct DEBUG_record_data_t
 {
@@ -28,6 +36,8 @@ struct DEBUG_record_data_t
 
 extern DEBUG_record_data_t DEBUG_records[];
 
+extern u32 DEBUG_record_counter;
+
 struct timed_block_t
 {
     DEBUG_record_data_t *current_record;
@@ -39,11 +49,12 @@ struct timed_block_t
         current_record->block_name         = block_name;
         current_record->line_number        = line_number;
         current_record->hit_count         += hit_count;
-        current_record->total_cycle_count -= rdtsc();
+        current_record->total_cycle_count -= SDL_GetPerformanceCounter();
     }
 
    ~timed_block_t()
     {
-        current_record->total_cycle_count += rdtsc();
+        current_record->total_cycle_count += SDL_GetPerformanceCounter();
     }
 };
+

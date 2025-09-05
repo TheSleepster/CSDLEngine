@@ -49,12 +49,13 @@ s_asset_manager_read_asset_file_entries(asset_manager_t                *asset_ma
         entry.data_offset_from_start_of_file = *((u64*)first_entry);
         first_entry  += sizeof(u64);
 
-        asset_slot_t *slot_data  = c_arena_push_struct(&asset_manager->manager_arena, asset_slot_t);
-        slot_data->asset_type    = entry.type;
-        slot_data->slot_state    = ASS_UNLOADED;
-        slot_data->asset_id      = entry.ID;
-        slot_data->asset_file_id = entry.file_ID;
-        slot_data->filename      = c_string_make_copy(&asset_manager->manager_arena, entry.name);
+        asset_slot_t *slot_data    = c_arena_push_struct(&asset_manager->manager_arena, asset_slot_t);
+        slot_data->asset_type      = entry.type;
+        slot_data->slot_state      = ASS_UNLOADED;
+        slot_data->asset_id        = entry.ID;
+        slot_data->asset_file_id   = entry.file_ID;
+        slot_data->filename        = c_string_make_copy(&asset_manager->manager_arena, entry.name);
+        slot_data->system_filepath = c_string_make_copy(&asset_manager->manager_arena, entry.filepath);
 
         slot_data->asset_file_data_offset = entry.data_offset_from_start_of_file;
         slot_data->asset_file_data_length = entry.entry_data.count;
@@ -149,7 +150,8 @@ typedef struct s_asset_system_work_data
     zone_allocator_t   *zone;
     asset_slot_t       *slot_data;
     za_allocation_tag_t tag;
-
+   
+    bool8               is_reloading;
     string_t           *out_string;
 }s_asset_system_work_data_t;
 
@@ -161,7 +163,8 @@ s_asset_load_data_async(void *user_data)
     string_t result = {};
     if(os_mutex_lock(&work_data->zone->mutex))
     {
-        if(work_data->slot_data->asset_file_data_offset > 0)
+        if(work_data->slot_data->asset_file_data_offset > 0 &&
+           !work_data->is_reloading)
         {
             result = c_file_read_za(work_data->zone,
                                     work_data->asset_manager->asset_file_handle.filepath,
@@ -169,11 +172,11 @@ s_asset_load_data_async(void *user_data)
                                     work_data->slot_data->asset_file_data_offset,
                                     work_data->tag);
         }
-        else
+        else if(work_data->is_reloading || work_data->slot_data->asset_file_data_offset == 0)
         {
             Assert(work_data->slot_data->filename.data != null);
             result = c_file_read_za(work_data->zone,
-                                    work_data->slot_data->filename,
+                                    work_data->slot_data->system_filepath,
                                     READ_ENTIRE_FILE,
                                     0,
                                     work_data->tag);
@@ -200,7 +203,8 @@ s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
                                           string_t           *out_data,
                                           zone_allocator_t   *zone,
                                           asset_slot_t       *slot_data,
-                                          za_allocation_tag_t tag)
+                                          za_allocation_tag_t tag,
+                                          bool8               is_reloading = false)
 {
     multithreading_work_queue_t *high_priority_queue = &asset_manager->queue_manager->high_priority_queue;
     slot_data->slot_state = ASS_QUEUED;
@@ -211,6 +215,7 @@ s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
     work_data->slot_data     =  slot_data;
     work_data->tag           =  tag;
     work_data->out_string    =  out_data;
+    work_data->is_reloading  =  is_reloading;
     s_work_queue_add_entry(high_priority_queue, &s_asset_load_data_async, work_data);
 }
 

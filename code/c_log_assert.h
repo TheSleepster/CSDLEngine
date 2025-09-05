@@ -28,10 +28,11 @@ typedef enum debug_log_level
 
 #define Log(log_level, message, ...) _log(log_level, message, __FILE__, __LINE__, ##__VA_ARGS__)
 
-#define log_info(message, ...)    Log(SL_LOG_INFO,    message, ##__VA_ARGS__)
-#define log_warning(message, ...) Log(SL_LOG_WARNING, message, ##__VA_ARGS__)
-#define log_error(message, ...)   Log(SL_LOG_ERROR,   message, ##__VA_ARGS__)
-#define log_fatal(message, ...)   Log(SL_LOG_FATAL,   message, ##__VA_ARGS__)
+#define log_trace(message, ...)    Log(SL_LOG_TRACE,   message, ##__VA_ARGS__)
+#define log_info(message, ...)     Log(SL_LOG_INFO,    message, ##__VA_ARGS__)
+#define log_warning(message, ...)  Log(SL_LOG_WARNING, message, ##__VA_ARGS__)
+#define log_error(message, ...)    Log(SL_LOG_ERROR,   message, ##__VA_ARGS__)
+#define log_fatal(message, ...)    Log(SL_LOG_FATAL,   message, ##__VA_ARGS__)
 
 internal void
 _log(debug_log_level_t log_level, const char *message, char *file, int32 line, ...)

@@ -56,6 +56,7 @@ typedef struct asset_slot
     asset_type_t       asset_type;
 
     string_t           filename;
+    string_t           system_filepath;
     
     s32                asset_id;
     s32                asset_file_id;
@@ -176,6 +177,6 @@ typedef struct asset_manager
 
 internal void     s_asset_manager_read_asset_file_entries(asset_manager_t *asset_manager, string_t entry_data, asset_file_table_of_contents_t *table_of_contents);
 internal void     s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filepath);
-internal void     s_asset_load_data_from_asset_file_or_path(asset_manager_t *asset_manager, string_t *out_data, zone_allocator_t *zone, asset_slot_t *slot_data, za_allocation_tag_t tag);
+internal void     s_asset_load_data_from_asset_file_or_path(asset_manager_t *asset_manager, string_t *out_data, zone_allocator_t *zone, asset_slot_t *slot_data, za_allocation_tag_t tag, bool8 is_reloading);
 
 #endif

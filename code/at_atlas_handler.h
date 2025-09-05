@@ -41,6 +41,7 @@ typedef struct atlas_handler
 
     hash_table_t      contents;
     dynamic_array_t   textures_to_pack;
+    dynamic_array_t   textures_to_update;
 
     s32               bitmap_cursor_x;
     s32               bitmap_cursor_y;
@@ -52,6 +53,7 @@ typedef struct atlas_handler
 ////////////////////
 internal atlas_handler_t at_atlas_handler_create(asset_manager_t  *asset_manager, zone_allocator_t *zone, s32 atlas_width, s32 atlas_height);
 internal void            at_atlas_handler_add_texture(asset_manager_t *asset_manager, atlas_handler_t *handler, asset_handle_t handle);
+internal void            at_atlas_handler_update_entry(asset_manager_t *asset_manager, atlas_handler_t *handler, asset_handle_t handle);
 internal void            at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *handler);
 ////////////////////
 

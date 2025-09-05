@@ -463,6 +463,8 @@ r_texture_delete(texture_view_t *view)
 internal void
 r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture)
 {
+    DEBUG_TIMED_BLOCK();
+    
     glBindTexture(GL_TEXTURE_2D, texture->view->GPU_textureID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -672,6 +674,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 internal void
 r_issue_render_group_draw(render_state *render_state, render_group_t *group)
 {
+    DEBUG_TIMED_BLOCK();
     Assert(group);
 
     glUseProgram(group->render_desc.shader->program_id);
@@ -698,6 +701,8 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
 internal void
 r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_state)
 {
+    DEBUG_TIMED_BLOCK();
+
     glEnable(GL_BLEND);
 
     r_handle_lighting_data(render_state);

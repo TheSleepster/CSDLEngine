@@ -51,9 +51,10 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_begin_renderpass(render_state, &test_group3);
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){16, 16}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
-    asset_handle_t lm_font_handle     = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
-    asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
-    asset_handle_t atari_font_handle = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
+    // asset_handle_t lm_font_handle     = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
+    // asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
+    // asset_handle_t atari_font_handle = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
+
     asset_handle_t block_handle      = s_asset_texture_get(asset_manager, STR("block"));
     //asset_handle_t test_handle       = s_asset_loaded_sound_get(asset_manager, STR("Test2"));
     if(!initialized_stuff || audio_manager->first_playing_sound == null)
@@ -85,42 +86,6 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
 
     r_update_shader_uniform_data(&render_state->font_shader, STR("uProjectionMatrix"), &draw_frame->active_render_group->render_desc.projection_matrix.values);
     r_update_shader_uniform_data(&render_state->font_shader, STR("uViewMatrix"),       &draw_frame->active_render_group->render_desc.view_matrix.values);
-
-    r_draw_string(asset_manager,
-                  render_state,
-                  STR("This is a test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
-                  atari_font_handle,
-                  24,
-                  vec2_create_float(-800, 500),
-                  COLOR_WHITE,
-                  RQO_NONE);
-
-    r_draw_string(asset_manager,
-                  render_state,
-                  STR("This is another test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
-                  arial_font_handle,
-                  24,
-                  vec2_create_float(-800, -300),
-                  COLOR_WHITE,
-                  RQO_NONE);
-
-    r_draw_string(asset_manager,
-                  render_state,
-                  STR("This is another test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE.\nHere's even more text to see if it's lagging the hell out of us."),
-                  arial_font_handle,
-                  24,
-                  vec2_create_float(300, 300),
-                  COLOR_WHITE,
-                  RQO_NONE);
-
-    r_draw_string(asset_manager,
-                  render_state,
-                  STR("This is a final test of the font rendering. We'll try glyphs like:\n/-{}*?()':_[]!^!<>=&[]#$|~`+%\\@\nIf these work then we're gucci. \nWOOOOO THEY ALL WORK THIS IS INCREDIBLE. NOW HOW ABOUT:\nABCDEFGHIJKLMNOPQRSTUVWXYZ"),
-                  lm_font_handle,
-                  24,
-                  vec2_create_float(-900, 300),
-                  COLOR_WHITE,
-                  RQO_NONE);
 
     r_end_renderpass(render_state);
 

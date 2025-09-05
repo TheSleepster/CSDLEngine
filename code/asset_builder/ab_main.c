@@ -239,7 +239,7 @@ main(int argc, char **argv)
         s32 equals_index = c_string_find_first_char_from_left(arg_string, '=');
         if(equals_index != -1)
         {
-            arg_string = c_string_sub_from_left(arg_string, equals_index);
+            command_name = c_string_sub_from_left(arg_string, equals_index);
         }
 
         string_t prefix = arg_string;
@@ -251,22 +251,22 @@ main(int argc, char **argv)
         }
 
         command_name = c_string_make_copy(&packer_arena, arg_string);
-        c_string_advance_by(&command_name, 2);
-
+        command_name.count = equals_index - 1;
         for(u32 v_arg_index = 0;
             v_arg_index < ArrayCount(valid_arguments);
             ++v_arg_index)
         {
             string_t valid_argument = valid_arguments[v_arg_index];
-            if(c_string_compare(valid_argument, arg_string))
+            if(c_string_compare(valid_argument, command_name))
             {
-                char first_char = command_name.data[0];
+                char first_char = command_name.data[2];
                 switch(first_char)
                 {
                     case 'r':
                     {
                         if(equals_index == -1) log_error("Attempted to call command '--resource_dir'...\nhowever the passed argument does not contain an '='...");
-                        string_t directory_name = c_string_sub_from_left(arg_string, equals_index);
+                        string_t directory_name = c_string_sub_from_left(arg_string, equals_index + 1);
+                        log_info("Set resource_dir to: '%s'...\n", directory_name.data);
 
                         resource_dir = directory_name;
                         goto break_out;
@@ -288,7 +288,7 @@ main(int argc, char **argv)
                     case 'a':
                     {
                         if(equals_index == -1) log_error("Attempted to call command '--asset_file_name'...\nhowever the passed argument does not contain an '='...");
-                        string_t new_filename = c_string_sub_from_left(arg_string, equals_index);
+                        string_t new_filename = c_string_sub_from_left(arg_string, equals_index + 1);
 
                         packed_file_name = new_filename;
                         goto break_out;
@@ -296,7 +296,7 @@ main(int argc, char **argv)
                     case 'f':
                     {
                         if(equals_index == -1) log_error("Attempted to call command '--file_ext'...\nhowever the passed argument does not contain an '='...");
-                        string_t new_ext = c_string_sub_from_left(arg_string, equals_index);
+                        string_t new_ext = c_string_sub_from_left(arg_string, equals_index + 1);
 
                          file_ext = new_ext;
                         goto break_out;
@@ -304,8 +304,11 @@ main(int argc, char **argv)
                     case 's':
                     {
                         if(equals_index == -1) log_error("Attempted to call command '--set_output_dir'...\nhowever the passed argument does not contain an '='...");
-                        string_t new_output_dir = c_string_sub_from_left(arg_string, equals_index);
+                        string_t new_output_dir = c_string_sub_from_left(arg_string, equals_index + 1);
                         output_dir = new_output_dir;
+                        log_info("Set output_dir to: '%s'...\n", new_output_dir.data);
+
+                        goto break_out;
                     }
                     case 'h':
                     {
@@ -337,6 +340,7 @@ break_out:
         continue;
     }
 
+    output_dir = c_string_concat(&packer_arena, output_dir, STR("/"));
     string_t full_packed_filename = c_string_concat(&packer_arena, output_dir, packed_file_name);
     full_packed_filename = c_string_concat(&packer_arena, full_packed_filename, file_ext);
     log_info("Packing assets to file: '%s'...", full_packed_filename.data);

@@ -91,6 +91,8 @@ s_asset_texture_and_view_create(asset_manager_t  *asset_manager,
 internal void
 s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle)
 {
+    DEBUG_TIMED_BLOCK();
+    
     Assert(handle->type == AT_BITMAP);
     asset_slot_t *slot_data = handle->asset_slot;
     
@@ -100,16 +102,20 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
                                                   &handle->asset_slot->texture.bitmap.data, 
                                                   asset_manager->texture_catalog.texture_allocator,
                                                   slot_data,
-                                                  ZA_TAG_CACHE);
+                                                  ZA_TAG_CACHE,
+                                                  slot_data->slot_state == ASS_RELOADING ? true : false);
+        at_atlas_handler_update_entry(asset_manager, &asset_manager->texture_catalog.primary_handler, *handle);
     }
 
-    if(c_string_is_valid(slot_data->texture.bitmap.data) && slot_data->slot_state == ASS_LOADED)
+    if(c_string_is_valid(slot_data->texture.bitmap.data) &&
+       slot_data->slot_state == ASS_LOADED)
     {
+        stbi_set_flip_vertically_on_load(1);
         u8 *data = stbi_load_from_memory(slot_data->texture.bitmap.data.data,
                                          slot_data->texture.bitmap.data.count,
-                                         &slot_data->texture.bitmap.width,
-                                         &slot_data->texture.bitmap.height,
-                                         &slot_data->texture.bitmap.channels,
+                                        &slot_data->texture.bitmap.width,
+                                        &slot_data->texture.bitmap.height,
+                                        &slot_data->texture.bitmap.channels,
                                          BMF_RGBA32);
 
         s32 data_length = strlen((char *)data);
@@ -133,6 +139,8 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
 internal asset_handle_t
 s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
 {
+    DEBUG_TIMED_BLOCK();
+
     asset_handle_t result = {};
 
     asset_slot_t *valid_slot = (asset_slot_t *)c_hash_get_value(&asset_manager->texture_catalog.texture_hash, asset_key);
@@ -154,6 +162,7 @@ s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
             texture_view_t *new_view = s_asset_texture_view_generate(asset_manager, valid_slot, texture_data);
             texture_data->view = new_view;
             result.texture     = new_view;
+
         }
 
         s_asset_texture_load_data(asset_manager, &result);
@@ -171,15 +180,21 @@ s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
 internal inline void
 s_asset_texture_destroy_data(asset_manager_t *asset_manager, asset_handle_t handle)
 {
-    bitmap_t *bitmap = &handle.asset_slot->texture.bitmap;
+    DEBUG_TIMED_BLOCK();
+
+    bitmap_t *bitmap_data = &handle.asset_slot->texture.bitmap;
 
     c_za_DEBUG_validate_block_list(asset_manager->texture_catalog.texture_allocator);
-    c_za_free(asset_manager->texture_catalog.texture_allocator, bitmap->data.data);
+    c_za_free(asset_manager->texture_catalog.texture_allocator, bitmap_data->data.data);
 
     free(handle.asset_slot->texture.bitmap.decompressed_data.data);
+    handle.asset_slot->texture.bitmap.decompressed_data.data = null;
     handle.asset_slot->texture.bitmap.decompressed_data.count = 0;
 
-    bitmap->data.count = 0;
+    handle.asset_slot->texture.bitmap.data.count = 0;
+    handle.asset_slot->texture.bitmap.data.data  = null;
+
+    bitmap_data->data.count = 0;
     handle.asset_slot->slot_state = ASS_UNLOADED;
 }
 
