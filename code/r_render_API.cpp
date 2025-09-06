@@ -320,7 +320,8 @@ r_draw_string(asset_manager_t       *asset_manager,
 internal void
 DEBUG_display_records(asset_manager_t *asset_manager,
                       render_state_t  *render_state,
-                      asset_handle_t   font)
+                      asset_handle_t   font,
+                      float32          delta_time)
 {
     vec2_t starting_pos  = vec2_create_float(-960, 500);
     for(u32 record_index = 0;

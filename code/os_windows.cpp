@@ -421,6 +421,30 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
     c_dynamic_array_destroy(&directories);
 }
 
+internal void*
+os_load_library(string_t filepath)
+{
+    void *result = null;
+    result = (void*)LoadLibraryA(C_STR(filepath));
+
+    return(result);
+}
+
+internal void
+os_unload_library(void *library)
+{
+    FreeLibrary((HMODULE)library);
+}
+
+internal void*
+os_get_proc_address(void *library, string_t procedure)
+{
+    void *result = null;
+    result = (void*)GetProcAddress((HMODULE)library, C_STR(procedure));
+
+    return(result);
+}
+
 /* ===========================================
    ======== MULTITHREADING FUNCTIONS =========
    ===========================================*/

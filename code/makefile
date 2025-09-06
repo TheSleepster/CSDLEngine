@@ -8,9 +8,11 @@ ifeq ($(OS),Windows_NT)
     PLATFORM_LIBS = -lopengl32 -luser32 -lgdi32 -lwinmm -lshell32 -lole32 -luuid -lversion -ladvapi32 -lsetupapi -lcfgmgr32 -loleaut32 -limm32
 	LDFLAGS = -Wl,/IGNORE:4099 -Wl,/STACK:157286400
     EXE_EXT = .exe
+    DLL_EXT = .dll
     DEV_NULL = NUL
 else
     UNAME_S := $(shell uname -s)
+	DLL_EXT = .so
     ifeq ($(UNAME_S),Linux)
         OS_DEFINE = -DOS_LINUX=1
         PLATFORM_LIBS = -lX11 -lGL -lm
@@ -26,7 +28,7 @@ SILENT ?=
 COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/ 
 COMMON_C_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings -Wno-deprecated
 
-BUILD_TYPE ?= debug
+BUILD_TYPE ?=debug
 ifeq ($(BUILD_TYPE),release)
     CFLAGS = -O2 $(COMMON_C_FLAGS)
 else
@@ -34,8 +36,12 @@ else
 endif
 
 ENGINE_LIBS = $(PLATFORM_LIBS) -L../run_tree/deps/glad/src/ -L../run_tree/deps/SDL3/lib/ -L../run_tree/deps/Freetype/ -lSDL3-Static -lglad -lfreetype
-ENGINE_SRC = ../code/main.cpp
-ENGINE_OUT = ../build/Thor_$(BUILD_TYPE)$(EXE_EXT)
+ENGINE_SRC  = ../code/main.cpp
+ENGINE_OUT  = ../build/Thor_$(BUILD_TYPE)$(EXE_EXT)
+
+GAME_LIBS = -L../run_tree/deps/SDL3/lib/ -lSDL3-Static
+GAME_SRC  = ../code/g_main.cpp
+GAME_OUT  = ../build/game_$(BUILD_TYPE)$(DLL_EXT)
 
 ASSET_FILE_BUILDER_LIBS = $(PLATFORM_LIBS)
 ASSET_FILE_BUILDER_SRC = ../code/asset_builder/ab_main.c
@@ -45,7 +51,7 @@ TESTS_SRC  = $(wildcard ../code/tests/*.c)
 TESTS_OUT  = $(patsubst ../code/tests/%.c,../build/test_%.exe,$(TESTS_SRC))
 TESTS_LIBS = $(PLATFORM_LIBS)
 
-all: asset_file_builder engine 
+all: asset_file_builder engine
 #tests 
 
 tests: $(TESTS_OUT)
@@ -53,6 +59,8 @@ tests: $(TESTS_OUT)
 asset_file_builder: $(ASSET_FILE_BUILDER_OUT)
 
 engine: $(ENGINE_OUT)
+
+game_dll: $(GAME_OUT)
 
 run_asset_file_builder: asset_file_builder
 	@echo Running Asset File Builder...
@@ -69,6 +77,10 @@ $(ASSET_FILE_BUILDER_OUT): $(ASSET_FILE_BUILDER_SRC) | ../build
 $(ENGINE_OUT): $(ENGINE_SRC) | ../build
 	@echo Building Engine...
 	$(SILENT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/engine.d
+
+$(GAME_OUT): $(GAME_SRC) | ../build
+	@echo Building Game DLL
+	$(SILENT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(GAME_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/game_dll.d
 
 ../build:
 	mkdir -p ../build

@@ -44,6 +44,10 @@ internal bool8         os_file_replace_or_rename(string_t old_file, string_t new
 internal bool8         os_directory_exists(string_t filepath);
 internal void          os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data);
 
+internal void*         os_load_library(string_t filepath);
+internal void          os_unload_library(void *library);
+internal void*         os_get_proc_address(void *library, string_t procedure);
+
 /*===========================================
   ======= FILE WATCHER OS FUNCTIONS =========
   ===========================================*/

@@ -41,8 +41,6 @@
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
-global float64 delta_time = 0.0f;
-
 #include "DEBUG_core.cpp"
 #include "c_memory_arena.cpp"
 #include "c_zone_allocator.cpp"
@@ -195,6 +193,7 @@ main(int argc, char **argv)
         u64 last_tsc                      = SDL_GetPerformanceCounter();
         u64 current_tsc                   = 0;
         u64 delta_tsc                     = 0;
+        float64 delta_time                = 0.0;
 
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../res/"));
@@ -208,7 +207,7 @@ main(int argc, char **argv)
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
 
-            g_update_and_render(&render_state, &audio_manager, &asset_manager);
+            g_update_and_render(&render_state, &audio_manager, &asset_manager, delta_time);
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
 
             r_render_single_frame(&asset_manager, &render_state);

@@ -14,7 +14,7 @@ global bool8 initialized_stuff;
 global dynamic_render_font_varient_t *varient;
 
 internal void
-r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager)
+r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, float32 delta_time)
 {
     draw_frame_t *draw_frame = &render_state->draw_frame;
 
@@ -52,7 +52,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){16, 16}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
     // asset_handle_t lm_font_handle     = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
-    // asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
+    asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
     // asset_handle_t atari_font_handle = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
 
     asset_handle_t block_handle      = s_asset_texture_get(asset_manager, STR("block"));
@@ -87,13 +87,15 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_update_shader_uniform_data(&render_state->font_shader, STR("uProjectionMatrix"), &draw_frame->active_render_group->render_desc.projection_matrix.values);
     r_update_shader_uniform_data(&render_state->font_shader, STR("uViewMatrix"),       &draw_frame->active_render_group->render_desc.view_matrix.values);
 
+    DEBUG_display_records(asset_manager, render_state, arial_font_handle, delta_time);
+
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->test_shader,
                                                               2,
                                                               view_matrix,
                                                               projection_matrix,
-                                                              RGE_None,
+                                                              RGE_Lighting,
                                                               RGP_MainGamePass,
                                                               RGPT_Quads,
                                                               true);
@@ -111,7 +113,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGPT_Lines,
                                                               false);
     r_begin_renderpass(render_state, &test_group6);
-    r_create_render_line(render_state, vec2_create_float(-100.0, -70), vec2_create_float(100, -70), 1.0f, COLOR_WHITE);
+    r_create_render_line(render_state, vec2_create_float(-100.0, -70), vec2_create_float(100, -55), 1.0f, COLOR_WHITE);
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group7 = r_build_renderpass_desc(&render_state->test_shader,
@@ -133,7 +135,7 @@ initialize_gamestate()
 }
 
 internal void
-g_update_and_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager)
+g_update_and_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, float32 delta_time)
 {
-    r_DEBUG_test_render(render_state, audio_manager, asset_manager);
+    r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
 }
