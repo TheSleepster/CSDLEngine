@@ -102,11 +102,13 @@ FILE_WATCHER_CALLBACK(test_callback)
         }break;
         case FILE_EXT_OS_DLL:
         {
+            #if DEVELOPER_BUILD
             filename.count += 4;
             if(c_string_compare(filename, STR("game_debug.dll")))
             {
                 should_reload_dll = true;
             }
+            #endif
         }break;
         default: {}break;
     }

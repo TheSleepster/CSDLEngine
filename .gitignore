@@ -8,3 +8,7 @@
 *.dylib
 *.wad
 *.d
+*.ilk
+*.pdb
+*.vs
+*.sln
