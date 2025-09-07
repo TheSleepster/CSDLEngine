@@ -87,7 +87,8 @@ internal        file_watcher_t  c_file_watcher_create(file_watcher_change_event_
 internal inline void            c_file_watcher_add_path(file_watcher_t *watcher, string_t filepath);
 internal inline void            c_file_watcher_issue_check_for_single_path(file_watcher_t *watcher, os_file_check_event_data_t *watch_data);
 internal        void            c_file_watcher_issue_check_over_all_paths(file_watcher_t *watcher);
-internal        void            c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, string_t old_filename, os_file_check_event_data_t *watch_data, u32 changes);
-internal        void            c_file_watcher_emit_changes(file_watcher_t *watcher);
+
+void            c_file_watcher_add_change_event(file_watcher_t *watcher, string_t fullname, string_t old_filename, os_file_check_event_data_t *watch_data, u32 changes);
+void            c_file_watcher_emit_changes(file_watcher_t *watcher);
 
 #endif

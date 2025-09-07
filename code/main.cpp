@@ -1,80 +1,84 @@
 /* ========================================================================
-   $File: main.c $
+   $File: main.cpp $
    $Date: July 22 2025 02:44 pm $
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
-#include <SDL3/SDL.h>
-#include <glad/glad.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#include <stb/stb_image.h>
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
-#include "c_base.h"
-#include "c_types.h"
-#include "c_math.h"
-#include "c_log_assert.h"
-#include "c_memory_arena.h"
-#include "c_string.h"
-#include "c_array.h"
-#include "c_file_api.h"
-#include "c_file_watcher.h"
-#include "c_intrinsics.h"
-#include "c_hash_table.h"
-#include "c_multithreading_primitives.h"
-
-#include "os_platform_file.h"
-
-#include "c_zone_allocator.h"
-#include "s_multithreading_work_queue.h"
-#include "s_asset_manager.h"
-#include "s_audio_manager.h"
-#include "s_input_manager.h"
-#include "at_atlas_handler.h"
-#include "r_renderer_data.h"
-#include "r_asset_shader.h"
-#include "r_asset_texture.h"
-#include "r_asset_dynamic_render_font.h"
-#include "a_asset_loaded_sound.h"
-
-#include "DEBUG_core.cpp"
-#include "c_memory_arena.cpp"
-#include "c_zone_allocator.cpp"
-#include "c_string.cpp"
-#include "c_array.cpp"
-#include "c_file_api.cpp"
-#include "c_file_watcher.cpp"
-#include "c_hash_table.cpp"
-#include "s_multithreading_work_queue.cpp"
-#include "s_asset_manager.cpp"
-#include "s_audio_manager.cpp"
-#include "s_input_manager.cpp"
-#include "at_atlas_handler.cpp"
-#include "a_asset_loaded_sound.cpp"
-#include "r_asset_shader.cpp"
-#include "r_asset_texture.cpp"
-#include "r_asset_dynamic_render_font.cpp"
-#include "r_render_API.cpp"
+#include "l_runtime_data.cpp"
 #include "r_opengl.cpp"
 
+#if !DEVELOPER_BUILD
 #include "g_main.cpp"
+#endif
 
 global bool8 running;
+global bool8 should_reload_dll;
 
-#ifdef INTERNAL_DEBUG
+struct game_dll_data_t
+{
+    void                     *game_lib;
+    game_update_and_render_t *update_and_render; 
+};
+
+internal void
+DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functions)
+{
+    #if DEVELOPER_BUILD
+
+    string_t game_dll      = STR("game_debug.dll");
+    string_t game_copy_dll = STR("game_debug_COPY.dll");
+    c_file_copy(game_dll, game_copy_dll);
+    
+    game_data->game_lib = os_load_library(game_copy_dll);
+    if(game_data->game_lib)
+    {
+        game_data->update_and_render = (game_update_and_render_t *)os_get_proc_address(game_data->game_lib, STR("g_update_and_render"));
+        if(!game_data->update_and_render)
+        {
+            log_fatal("Failure to acquire the game function 'g_update_and_render'...\n");
+        }
+    }
+    else
+    {
+        log_fatal("Failure to load the game functions...\n");
+    }
+    #else
+    game_data->update_and_render = g_update_and_render;
+    #endif
+
+    if(gpu_functions)
+    {
+        gpu_functions->r_texture_make_gpu           = r_texture_make_gpu; 
+        gpu_functions->r_texture_delete             = r_texture_delete; 
+        gpu_functions->r_texture_update_from_bitmap = r_texture_update_from_bitmap;
+    }
+}
+
+internal void
+DEBUG_reload_game_functions(game_dll_data_t *game_data)
+{
+    Assert(game_data->game_lib);
+
+    game_data->update_and_render = null;
+    os_free_library(game_data->game_lib);
+
+    DEBUG_get_game_functions(game_data, null);
+    should_reload_dll = false;
+}
+
 FILE_WATCHER_CALLBACK(test_callback)
 {
     asset_manager_t *asset_manager = (asset_manager_t *)user_data;
     log_info("Change data is for file: '%s'... Last modtime was: '%ul'...\n", change->full_path.data, change->last_change_timestamp);
-    u32 ext = c_file_ext_string_to_enum(c_string_get_file_ext_from_path(change->full_path));
+    string_t file_ext = c_string_get_file_ext_from_path(change->full_path);
+    u32 ext_type = c_file_ext_string_to_enum(file_ext);
+
+    string_t filename     = c_string_get_filename_from_path_and_ext(change->full_path);
+    string_t old_filename = c_string_get_filename_from_path_and_ext(change->old_filename);
 
     hash_table_t *asset_table = null;
     bool8 is_asset            = false;
-    switch(ext)
+    switch(ext_type)
     {
         case FILE_EXT_TTF:
         {
@@ -98,16 +102,17 @@ FILE_WATCHER_CALLBACK(test_callback)
         }break;
         case FILE_EXT_OS_DLL:
         {
-            //asset_table = &asset_manager->shader_catalog.shader_hash;
+            filename.count += 4;
+            if(c_string_compare(filename, STR("game_debug.dll")))
+            {
+                should_reload_dll = true;
+            }
         }break;
         default: {}break;
     }
 
     if(asset_table)
     {
-        string_t filename     = c_string_get_filename_from_path_and_ext(change->full_path);
-        string_t old_filename = c_string_get_filename_from_path_and_ext(change->old_filename);
-
         asset_slot_t *slot = (asset_slot_t *)c_hash_get_value(asset_table, filename);
         if(slot)
         {
@@ -118,7 +123,6 @@ FILE_WATCHER_CALLBACK(test_callback)
                 u64 old_hash_value = c_hash_create_key_index(asset_table, old_filename.data, old_filename.count);
                 slot->filename     = filename;
                 c_hash_clear_index(asset_table, old_hash_value);
-
                 c_hash_insert_kv_pair(asset_table, slot->filename, slot);
             }
         }
@@ -132,7 +136,6 @@ FILE_WATCHER_CALLBACK(test_callback)
         log_info("Could not find a valid asset table for asset: '%s'...\n", change->full_path.data);
     }
 }
-#endif
 
 internal void
 c_process_window_events(input_manager_t *input_manager)
@@ -173,13 +176,19 @@ main(int argc, char **argv)
     {
         gc_setup();
 
+        asset_manager_t asset_manager = {};
+
+        GPU_functions_t GPU_functions  = {};
+        game_dll_data_t game_functions = {};
+        DEBUG_get_game_functions(&game_functions, &GPU_functions);
+        asset_manager.gpu_data = &GPU_functions;
+
         multithreading_work_queue_manager_t work_manager = {};
         s_work_queue_manager_init(&work_manager);
         
         render_state_t render_state = {};
         r_init_renderer_data(window, &render_state);
 
-        asset_manager_t asset_manager = {};
         s_asset_manager_init(&asset_manager, STR("asset_file.wad"));
         asset_manager.queue_manager = &work_manager;
 
@@ -203,11 +212,15 @@ main(int argc, char **argv)
         while(running)
         {
             c_file_watcher_process_changes(&watcher);
+            if(should_reload_dll)
+            {
+                DEBUG_reload_game_functions(&game_functions);
+            }
 
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
 
-            g_update_and_render(&render_state, &audio_manager, &asset_manager, delta_time);
+            game_functions.update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
 
             r_render_single_frame(&asset_manager, &render_state);
@@ -229,5 +242,5 @@ main(int argc, char **argv)
     return(0);
 }
 
-DEBUG_record_data_t DEBUG_records[__COUNTER__];
-u32 DEBUG_record_counter = ArrayCount(DEBUG_records);
+// DEBUG_record_data_t DEBUG_records[__COUNTER__];
+// u32 DEBUG_record_counter = ArrayCount(DEBUG_records);

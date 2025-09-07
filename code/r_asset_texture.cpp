@@ -139,8 +139,6 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
 internal asset_handle_t
 s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
 {
-    DEBUG_TIMED_BLOCK();
-
     asset_handle_t result = {};
 
     asset_slot_t *valid_slot = (asset_slot_t *)c_hash_get_value(&asset_manager->texture_catalog.texture_hash, asset_key);

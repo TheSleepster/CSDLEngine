@@ -19,6 +19,8 @@
 #include "at_atlas_handler.h"
 #include "a_asset_loaded_sound.h"
 
+#include "r_renderer_data.h"
+
 #define MANAGER_HASH_TABLE_SIZE 1024
 #define MAX_TEXTURE_VIEWS       1024
 
@@ -123,6 +125,8 @@ typedef struct asset_manager
     u64               shader_memory_capacity;
     u64               sound_memory_capacity;
     u64               font_memory_capacity;
+
+    GPU_functions_t  *gpu_data;
     
     memory_arena_t   *trash_arena;  // draw_frame_arena;
     memory_arena_t    manager_arena;

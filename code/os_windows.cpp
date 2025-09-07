@@ -141,6 +141,14 @@ os_file_close(file_t *file_data)
     return(result);
 }
 
+internal inline bool8
+os_file_copy(string_t old_path, string_t new_path)
+{
+    bool8 result = CopyFile(C_STR(old_path), C_STR(new_path), FALSE);
+
+    return(result);
+}
+
 internal s64
 os_file_get_size(file_t *file_data)
 {
@@ -386,9 +394,9 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
         while(true)
         {
             char *name = find_data.cFileName;
-            visit_file_data->filename  = c_string_make_heap(&global_context.temporary_arena, STR(name));
-            string_t temp_name         = c_string_concat(&global_context.temporary_arena, *directory_name, STR("/"));
-            visit_file_data->fullname  = c_string_concat(&global_context.temporary_arena, temp_name, visit_file_data->filename);
+            visit_file_data->filename  = c_string_make_heap(&global_context->temporary_arena, STR(name));
+            string_t temp_name         = c_string_concat(&global_context->temporary_arena, *directory_name, STR("/"));
+            visit_file_data->fullname  = c_string_concat(&global_context->temporary_arena, temp_name, visit_file_data->filename);
  
             bool8 is_directory = (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
             if(is_directory)
@@ -431,7 +439,7 @@ os_load_library(string_t filepath)
 }
 
 internal void
-os_unload_library(void *library)
+os_free_library(void *library)
 {
     FreeLibrary((HMODULE)library);
 }
@@ -625,7 +633,7 @@ c_string_utf8_to_wide(string_t input)
     string_t result;
 
     u32 needed = MultiByteToWideChar(CP_UTF8, 0, (char*)input.data, input.count, null, 0);
-    byte *buffer = c_arena_push_size(&global_context.temporary_arena, sizeof(u16) * needed);
+    byte *buffer = c_arena_push_size(&global_context->temporary_arena, sizeof(u16) * needed);
     u32 count = MultiByteToWideChar(CP_UTF8, 0, (char*)input.data, input.count, (LPWSTR)buffer, needed);
 
     result.data  = buffer;
@@ -780,7 +788,7 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                     filename[filename_count] = '\0';
 
                     string_t filename_str = STR(filename);
-                    filename_str = c_string_concat(&global_context.temporary_arena, watch_data->filename, filename_str);
+                    filename_str = c_string_concat(&global_context->temporary_arena, watch_data->filename, filename_str);
                     c_string_override_file_separators(&filename_str);
 
                     u32 change_events = 0;
@@ -806,7 +814,7 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                         case FILE_ACTION_RENAMED_OLD_NAME:
                         {
                             change_events |= FWC_EVENT_MOVED|FWC_EVENT_RENAMED;
-                            watch_data->old_filename = c_string_make_copy(&global_context.temporary_arena, filename_str);
+                            watch_data->old_filename = c_string_make_copy(&global_context->temporary_arena, filename_str);
                         }break;
                         case FILE_ACTION_RENAMED_NEW_NAME:
                         {

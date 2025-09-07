@@ -13,48 +13,47 @@
  */
 
 #if INTERNAL_DEBUG
-#define DEBUG_TIMED_BLOCK__(number, ...) timed_block_t DEBUG_timed_block_##number(__FILE__, __FUNCTION__, __COUNTER__, __LINE__)
-#define DEBUG_TIMED_BLOCK_(number, ...)  DEBUG_TIMED_BLOCK__(number, ##__VA_ARGS__) 
-#define DEBUG_TIMED_BLOCK(...)           DEBUG_TIMED_BLOCK_(__LINE__, ##__VA_ARGS__)
-
-#else
-
+// #define DEBUG_TIMED_BLOCK__(number, ...) timed_block_t DEBUG_timed_block_##number(__FILE__, __FUNCTION__, __COUNTER__, __LINE__)
+// #define DEBUG_TIMED_BLOCK_(number, ...)  DEBUG_TIMED_BLOCK__(number, ##__VA_ARGS__) 
+// #define DEBUG_TIMED_BLOCK(...)           DEBUG_TIMED_BLOCK_(__LINE__, ##__VA_ARGS__)
 #define DEBUG_TIMED_BLOCK__(number, ...)
 #define DEBUG_TIMED_BLOCK_(number, ...) 
 #define DEBUG_TIMED_BLOCK(...)          
+
+#else
+
 #endif
 
-struct DEBUG_record_data_t
-{
-    char *filename;
-    char *block_name;
+// struct DEBUG_record_data_t
+// {
+//     char *filename;
+//     char *block_name;
 
-    u32   line_number;
-    u32   hit_count;
-    u64   total_cycle_count;
-};
+//     u32   line_number;
+//     u32   hit_count;
+//     u64   total_cycle_count;
+// };
 
-extern DEBUG_record_data_t DEBUG_records[];
+// extern DEBUG_record_data_t DEBUG_records[];
+// extern u32 DEBUG_record_counter;
 
-extern u32 DEBUG_record_counter;
+// struct timed_block_t
+// {
+//     DEBUG_record_data_t *current_record;
 
-struct timed_block_t
-{
-    DEBUG_record_data_t *current_record;
+//     timed_block_t(char *filename, char *block_name, s32 record_index, s32 line_number, s32 hit_count = 1)
+//     {
+//         current_record = DEBUG_records + record_index;
+//         current_record->filename           = filename;
+//         current_record->block_name         = block_name;
+//         current_record->line_number        = line_number;
+//         current_record->hit_count         += hit_count;
+//         current_record->total_cycle_count -= SDL_GetPerformanceCounter();
+//     }
 
-    timed_block_t(char *filename, char *block_name, s32 record_index, s32 line_number, s32 hit_count = 1)
-    {
-        current_record = DEBUG_records + record_index;
-        current_record->filename           = filename;
-        current_record->block_name         = block_name;
-        current_record->line_number        = line_number;
-        current_record->hit_count         += hit_count;
-        current_record->total_cycle_count -= SDL_GetPerformanceCounter();
-    }
-
-   ~timed_block_t()
-    {
-        current_record->total_cycle_count += SDL_GetPerformanceCounter();
-    }
-};
+//    ~timed_block_t()
+//     {
+//         current_record->total_cycle_count += SDL_GetPerformanceCounter();
+//     }
+// };
 

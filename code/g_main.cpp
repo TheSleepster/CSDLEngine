@@ -4,6 +4,8 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
+#include "l_runtime_data.cpp"
+
 #define COLOR_WHITE  ((vec4_t){1.0, 1.0, 1.0, 1.0})
 #define COLOR_RED    ((vec4_t){1.0, 0.0, 0.0, 1.0})
 #define COLOR_GREEN  ((vec4_t){0.0, 1.0, 0.0, 1.0})
@@ -11,7 +13,6 @@
 #define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
 
 global bool8 initialized_stuff;
-global dynamic_render_font_varient_t *varient;
 
 internal void
 r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, float32 delta_time)
@@ -51,12 +52,12 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_begin_renderpass(render_state, &test_group3);
     r_draw_rect(render_state, (vec2_t){0, -20}, (vec2_t){16, 16}, (vec4_t){0, 1, 1, 1}, 10, RQO_SHADOWCASTER);
 
-    // asset_handle_t lm_font_handle     = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
-    asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
-    // asset_handle_t atari_font_handle = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
-
-    asset_handle_t block_handle      = s_asset_texture_get(asset_manager, STR("block"));
+    //asset_handle_t lm_font_handle    = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     //asset_handle_t test_handle       = s_asset_loaded_sound_get(asset_manager, STR("Test2"));
+    //asset_handle_t atari_font_handle = s_asset_font_get(asset_manager, STR("AtariClassic_gry3"));
+
+    asset_handle_t arial_font_handle = s_asset_font_get(asset_manager, STR("arial"));
+    asset_handle_t block_handle      = s_asset_texture_get(asset_manager, STR("block"));
     if(!initialized_stuff || audio_manager->first_playing_sound == null)
     {
         if(audio_manager->playing_sound_arena.is_initialized == false)
@@ -87,7 +88,14 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_update_shader_uniform_data(&render_state->font_shader, STR("uProjectionMatrix"), &draw_frame->active_render_group->render_desc.projection_matrix.values);
     r_update_shader_uniform_data(&render_state->font_shader, STR("uViewMatrix"),       &draw_frame->active_render_group->render_desc.view_matrix.values);
 
-    DEBUG_display_records(asset_manager, render_state, arial_font_handle, delta_time);
+    r_draw_string(asset_manager,
+                  render_state,
+                  STR("This is another test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
+                  arial_font_handle,
+                  24,
+                  vec2_create_float(-800, -300),
+                  COLOR_WHITE,
+                  RQO_NONE);
 
     r_end_renderpass(render_state);
 
@@ -134,8 +142,12 @@ initialize_gamestate()
 {
 }
 
-internal void
-g_update_and_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, float32 delta_time)
+GAME_API external
+GAME_UPDATE_AND_RENDER(g_update_and_render)
 {
     r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
+    if(global_context == null)
+    {
+        global_context = context;
+    }
 }

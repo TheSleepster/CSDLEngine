@@ -30,6 +30,7 @@ internal void* os_reallocate_memory(void *offset, u64 allocation_size);
 
 internal file_t        os_file_open(string_t filepath, bool8 for_writing, bool8 overwrite, bool8 overlapping_io);
 internal bool8         os_file_close(file_t *file_data);
+internal bool8         os_file_copy(string_t old_path, string_t new_path);
 internal s64           os_file_get_size(file_t *file_data);
 internal bool8         os_file_read(file_t *file_data, void *memory, u32 file_offset, u32 bytes_to_read);
 internal bool8         os_file_write(file_t *file_data, void *memory, usize bytes_to_write);
@@ -45,7 +46,7 @@ internal bool8         os_directory_exists(string_t filepath);
 internal void          os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data);
 
 internal void*         os_load_library(string_t filepath);
-internal void          os_unload_library(void *library);
+internal void          os_free_library(void *library);
 internal void*         os_get_proc_address(void *library, string_t procedure);
 
 /*===========================================

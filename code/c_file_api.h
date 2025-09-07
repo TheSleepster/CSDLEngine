@@ -108,6 +108,7 @@ typedef struct visit_file_data
   ===========================================*/
 internal inline file_t            c_file_open(string_t filepath, bool8 create);
 internal inline bool8             c_file_close(file_t *file);
+internal inline bool8             c_file_copy(string_t old_path, string_t new_path);
 
 // NOTE(Sleepster): These belong to the 'bytes_to_read' parameter of c_file_read_*... 
 #define READ_ENTIRE_FILE (MAX_U32)

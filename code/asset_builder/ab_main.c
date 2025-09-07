@@ -10,6 +10,9 @@
 #include FT_FREETYPE_H
 
 #include <c_types.h>
+#undef internal
+#define internal static
+
 #include <c_base.h>
 #include <c_types.h>
 #include <c_math.h>

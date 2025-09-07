@@ -200,6 +200,10 @@ typedef void void_func(void);
    little container that contains just simply allocators and other
    such data like loggers if needed. Totally global to the program for
    use whenever needed.
+
+   BE AWARE THAT THIS IS RELATIVE TO A PROCESS' SPACE.
+
+   meaning that DLLs cannot share the contents of the EXE by default
 */
 
 // USE ARENAS NOT MALLOC
@@ -212,25 +216,27 @@ typedef struct global_context
     memory_arena_t temporary_arena;
 }global_context_t;
 
-global global_context_t global_context;
+global global_context_t *global_context;
 
 internal inline void
 gc_setup()
 {
-    global_context.context_arena   = c_arena_create(MB(100));
-    global_context.temporary_arena = c_arena_create(MB(10));
+    global_context = c_arena_bootstrap_allocate_struct(global_context_t, context_arena, MB(100));
+    Assert(global_context != null);
+    
+    global_context->temporary_arena = c_arena_create(MB(10));
 }
 
 internal inline void
 gc_reset_temporary_data()
 {
-    c_arena_reset(&global_context.temporary_arena);
+    c_arena_reset(&global_context->temporary_arena);
 }
 
 internal inline void
 gc_reset_contexdt_arena()
 {
-    c_arena_reset(&global_context.context_arena);
+    c_arena_reset(&global_context->context_arena);
 }
 
 #endif

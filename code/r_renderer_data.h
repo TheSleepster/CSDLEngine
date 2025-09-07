@@ -20,6 +20,7 @@
 
 ////////////////////////////////////////
 // RENDERING PRIMITIVES 
+////////////////////////////////////////
 
 #pragma pack(push, 1)
 typedef struct vertex
@@ -233,13 +234,24 @@ typedef struct render_state
     }lighting_data;
 }render_state_t;
 
+typedef void r_texture_make_gpu_t(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
+typedef void r_texture_delete_t(texture_view_t *view);
+typedef void r_texture_update_from_bitmap_t(asset_manager_t *asset_manager, texture2D_t *texture);
+
+typedef struct GPU_functions
+{
+    r_texture_make_gpu_t           *r_texture_make_gpu;
+    r_texture_delete_t             *r_texture_delete;
+    r_texture_update_from_bitmap_t *r_texture_update_from_bitmap;
+}GPU_functions_t;
+
 
 ////////////////////////////
 // RENDER API FUNCTIONS
 ////////////////////////////
-internal        void r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
-internal inline void r_texture_delete(texture_view_t *view);
-internal        void r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture);
+internal void r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
+internal void r_texture_delete(texture_view_t *view);
+internal void r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture);
 /////////////////////////////
 
 

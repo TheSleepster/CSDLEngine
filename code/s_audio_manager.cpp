@@ -85,8 +85,8 @@ s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager
     const float32 master_volume = 0.1f;
 
     // NOTE(Sleepster): We mix the audio samples as 32 bit HD audio so we can prevent peaking. Then truncate to 16bit
-    float32 *mixer_buffer00 = c_arena_push_array(&global_context.temporary_arena, float32, samples_to_write);
-    float32 *mixer_buffer01 = c_arena_push_array(&global_context.temporary_arena, float32, samples_to_write);
+    float32 *mixer_buffer00 = c_arena_push_array(&global_context->temporary_arena, float32, samples_to_write);
+    float32 *mixer_buffer01 = c_arena_push_array(&global_context->temporary_arena, float32, samples_to_write);
 
     float32 *dest00 = mixer_buffer00;
     float32 *dest01 = mixer_buffer01;
@@ -195,7 +195,7 @@ s_audio_manager_fill_sound_buffer(asset_manager_t *asset_manager, audio_manager_
     s32 queued_audio = SDL_GetAudioStreamQueued(audio_manager->stream);
     if(queued_audio < bytes_to_write)
     {
-        audio_manager->buffer.sample_buffer = (s16*)c_arena_push_size(&global_context.temporary_arena, bytes_to_write);
+        audio_manager->buffer.sample_buffer = (s16*)c_arena_push_size(&global_context->temporary_arena, bytes_to_write);
         if(audio_manager->buffer.sample_buffer)
         {
             //DEBUG_create_sine_wave(audio_manager->buffer.sample_buffer, samples_to_write);

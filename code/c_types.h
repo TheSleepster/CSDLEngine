@@ -45,7 +45,17 @@ typedef double   real64;
 #define null 0 
 
 #define global        static
-#define internal      static
 #define local_persist static
+
+#if !DEVELOPER_BUILD
+    #define GAME_API
+    #define internal      static
+#else
+    #define GAME_API __declspec(dllexport)
+    #define internal
+#endif
+
+#define external      extern "C"
+
 
 #endif

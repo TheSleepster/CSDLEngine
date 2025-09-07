@@ -26,6 +26,13 @@ c_file_close(file_t *file)
     return(result);
 }
 
+internal inline bool8
+c_file_copy(string_t old_path, string_t new_path)
+{
+    bool8 result = os_file_copy(old_path, new_path);
+    return(result);
+}
+
 internal u32
 c_file_get_read_size(file_t *file, u32 bytes_to_read, u32 file_offset)
 {
@@ -188,26 +195,32 @@ c_file_ext_string_to_enum(string_t file_extension)
     if(c_string_compare(file_extension, STR(".ttf")))
     {
         result = FILE_EXT_TTF;
+        return(result);
     }
     if(c_string_compare(file_extension, STR(".wav")))
     {
         result = FILE_EXT_WAV;
+        return(result);
     }
     if(c_string_compare(file_extension, STR(".png")))
     {
         result = FILE_EXT_PNG;
+        return(result);
     }
     if(c_string_compare(file_extension, STR(".glsl")))
     {
         result = FILE_EXT_GLSL;
+        return(result);
     }
     if(c_string_compare(file_extension, STR(".dll")))
     {
         result = FILE_EXT_OS_DLL;
+        return(result);
     }
     if(c_string_compare(file_extension, STR(".so")))
     {
         result = FILE_EXT_OS_DLL;
+        return(result);
     }
 
     return(result);

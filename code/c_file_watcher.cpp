@@ -61,7 +61,7 @@ c_file_watcher_process_changes(file_watcher_t *watcher)
     os_file_watcher_process_changes(watcher, null);
 }
 
-internal void
+void
 c_file_watcher_add_change_event(file_watcher_t *watcher,
                                 string_t fullname,
                                 string_t old_filename,
@@ -92,7 +92,7 @@ c_file_watcher_add_change_event(file_watcher_t *watcher,
     watcher->change_count++;
 }
 
-internal void
+void
 c_file_watcher_emit_changes(file_watcher_t *watcher)
 {
     Assert(watcher->callback);

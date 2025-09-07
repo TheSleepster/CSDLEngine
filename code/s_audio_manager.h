@@ -43,7 +43,7 @@ typedef struct audio_buffer
 typedef struct audio_manager
 {
     // NOTE(Sleepster): This is the child of whatever arena you wish
-    memory_arena     playing_sound_arena;
+    memory_arena_t   playing_sound_arena;
     
     audio_device_t   current_playback_device;
     SDL_AudioFormat  engine_audio_format;

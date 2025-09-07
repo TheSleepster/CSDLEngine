@@ -94,7 +94,7 @@ s_asset_manager_init(asset_manager_t *asset_manager, string_t packed_asset_filep
     asset_manager->sound_memory_capacity   = MB(500);
 
     asset_manager->manager_arena =  c_arena_create(MB(200));
-    asset_manager->trash_arena   = &global_context.temporary_arena;
+    asset_manager->trash_arena   = &global_context->temporary_arena;
     
     void *memory              = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t)   * MANAGER_HASH_TABLE_SIZE);
     void *memory2             = c_arena_push_size(&asset_manager->manager_arena, sizeof(asset_slot_t)   * MANAGER_HASH_TABLE_SIZE);

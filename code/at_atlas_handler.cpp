@@ -20,7 +20,7 @@ at_atlas_handler_create(asset_manager_t  *asset_manager,
     handler.bitmap                = &handler.atlas.bitmap; 
     handler.atlas.bitmap.channels = 4;
 
-    r_texture_make_gpu(&handler.atlas, false, TAAFT_NEAREST);
+    asset_manager->gpu_data->r_texture_make_gpu(&handler.atlas, false, TAAFT_NEAREST);
     void *hash_table_memory  = c_za_alloc(zone, 1024 * sizeof(atlas_handler_hash_table_entry_t), ZA_TAG_TEXTURE);
     
     handler.contents           = c_hash_table_create(hash_table_memory, 1024, atlas_handler_hash_table_entry_t*);
@@ -129,7 +129,7 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
                 }
             }
 
-            r_texture_delete(texture->view);
+            asset_manager->gpu_data->r_texture_delete(texture->view);
             texture->view->GPU_textureID = handler->atlas.view->GPU_textureID;
             texture->uv_min = vec2_create_float((float32)handler->bitmap_cursor_x,
                                                 (float32)handler->bitmap_cursor_y);
@@ -201,7 +201,7 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
 
     if(is_dirty)
     {
-        r_texture_update_from_bitmap(asset_manager, &handler->atlas);
+        asset_manager->gpu_data->r_texture_update_from_bitmap(asset_manager, &handler->atlas);
         log_trace("Updated atlas...\n");
     }
 }

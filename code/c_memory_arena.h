@@ -54,11 +54,12 @@ internal inline memory_arena_footer_t* c_arena_get_footer(memory_arena_t *arena)
 internal inline void                   c_arena_free_last_block(memory_arena_t *arena);
 internal inline void                   c_arena_clear_block(memory_arena_t *arena);
 internal inline void                   c_arena_reset(memory_arena_t *arena);
+internal inline void*                  bootstrap_allocate_struct_(u64 struct_size, u64 offset_to_arena, u64 base_allocation);
 
 // MACROS
 #define c_arena_push_struct(arena, type)                                 (type*)c_arena_push_size(arena,   sizeof(type))
 #define c_arena_push_array(arena, type, count)                           (type*)c_arena_push_size(arena,  (sizeof(type)) * count)
-#define c_arena_bootstrap_allocate_struct(type, member, allocation_size) (type*)bootstrap_allocate_struct_(sizeof(type), OffsetOf(type, member), allocation_size)
+#define c_arena_bootstrap_allocate_struct(type, member, allocation_size) (type*)bootstrap_allocate_struct_(sizeof(type), IntFromPtr(OffsetOf(type, member)), allocation_size)
 ////////////////////////////////////////////////////////
 
 #endif
