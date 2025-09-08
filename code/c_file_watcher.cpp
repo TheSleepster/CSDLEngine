@@ -58,6 +58,7 @@ c_file_watcher_issue_check_over_all_paths(file_watcher_t *watcher)
 internal inline void
 c_file_watcher_process_changes(file_watcher_t *watcher)
 {
+    DEBUG_TIMED_BLOCK();
     os_file_watcher_process_changes(watcher, null);
 }
 

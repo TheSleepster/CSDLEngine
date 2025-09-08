@@ -209,23 +209,33 @@ main(int argc, char **argv)
         u64 current_tsc                   = 0;
         u64 delta_tsc                     = 0;
         float64 delta_time                = 0.0;
+        float64 frame_time_in_ms          = 0.0;
 
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
+        input_controller_t *controller = s_input_manager_get_primary_controller(&input_manager);
 
         running = true;
         while(running)
         {
-            DEBUG_TIMED_BLOCK();
-            
-            c_file_watcher_process_changes(&watcher);
-
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
+            c_file_watcher_process_changes(&watcher);
 
-            game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
+            if(s_input_manager_is_keyboard_key_pressed(controller, SDL_SCANCODE_COMMA))
+            {
+                DEBUG_global_state->is_collecting = !DEBUG_global_state->is_collecting;
+            }
+
+            if(s_input_manager_is_keyboard_key_pressed(controller, SDL_SCANCODE_PERIOD))
+            {
+                DEBUG_global_state->overlay_active = !DEBUG_global_state->overlay_active;
+            }
+
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
+            game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
+            DEBUG_render_group_to_output(&asset_manager, &render_state, frame_time_in_ms);
 
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);
@@ -238,12 +248,12 @@ main(int argc, char **argv)
             delta_tsc   = current_tsc - last_tsc;
             last_tsc    = current_tsc;
 
-            delta_time  = (float32)(((float64)delta_tsc * 1000.0) / (float64)performance_counter_frequency);
+            delta_time       = (float32)(((float64)delta_tsc) / (float64)performance_counter_frequency);
+            frame_time_in_ms = delta_time * 1000; 
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
 
             DEBUG_set_event_marker(DEBUG_EVENT_FRAME_END);
             DEBUG_handle_events();
-
 #if DEVELOPER_BUILD
             if(DEBUG_global_state->should_reload_dll)
             {

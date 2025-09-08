@@ -84,7 +84,6 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGE_None,
                                                               RGP_PostBlitPass);
     r_begin_renderpass(render_state, &test_group4);
-
     r_update_shader_uniform_data(&render_state->font_shader, STR("uProjectionMatrix"), &draw_frame->active_render_group->render_desc.projection_matrix.values);
     r_update_shader_uniform_data(&render_state->font_shader, STR("uViewMatrix"),       &draw_frame->active_render_group->render_desc.view_matrix.values);
 
@@ -96,8 +95,6 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                   vec2_create_float(-800, -300),
                   COLOR_WHITE,
                   RQO_NONE);
-
-    DEBUG_display_record_data(asset_manager, render_state, arial_font_handle, delta_time);
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->test_shader,

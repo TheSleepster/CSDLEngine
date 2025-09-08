@@ -83,48 +83,12 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
 
             action_button_t *action_key = controller->keyboard.input + key_index;
             action_key->is_pressed      = (event->key.down && !event->key.repeat);
-            action_key->is_down         = (event->key.down && event->key.repeat);
+            action_key->is_down         = (event->key.down &&  event->key.repeat);
             action_key->is_released     = (event->key.down == false);
-            if(action_key->is_pressed || action_key->is_released)
-            {
-                action_key->half_transition_counter += 1;
-            }
 
-            if((event->key.mod & SDL_KMOD_SHIFT) != 0)
-            {
-                if(event->key.down)
-                {
-                    controller->keyboard.is_shift_key_down = true;
-                }
-                else
-                {
-                    controller->keyboard.is_shift_key_down = false;
-                }
-            }
-
-            if((event->key.mod & SDL_KMOD_CTRL) != 0)
-            {
-                if(event->key.down)
-                {
-                    controller->keyboard.is_control_key_down = true;
-                }
-                else
-                {
-                    controller->keyboard.is_control_key_down = false;
-                }
-            }
-
-            if((event->key.mod & SDL_KMOD_ALT) != 0)
-            {
-                if(event->key.down)
-                {
-                    controller->keyboard.is_alt_key_down = true;
-                }
-                else
-                {
-                    controller->keyboard.is_alt_key_down = false;
-                }
-            }
+            controller->keyboard.is_shift_key_down   = (event->key.mod & SDL_KMOD_SHIFT) != 0;
+            controller->keyboard.is_control_key_down = (event->key.mod & SDL_KMOD_CTRL)  != 0;
+            controller->keyboard.is_alt_key_down     = (event->key.mod & SDL_KMOD_ALT)   != 0;
         }break;
         case SDL_EVENT_MOUSE_MOTION:
         {
@@ -195,7 +159,6 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
                         ++key_index)
                     {
                         action_button_t *button = controller->keyboard.input + key_index;
-                        button->is_down                 = false;
                         button->is_released             = false;
                         button->is_pressed              = false;
                         button->half_transition_counter = 0;
@@ -208,7 +171,6 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
                         ++button_index)
                     {
                         action_button *button = controller->gamepad.digital_buttons + button_index;
-                        button->is_down                 = false;
                         button->is_released             = false;
                         button->is_pressed              = false;
                         button->half_transition_counter = 0;

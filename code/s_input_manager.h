@@ -143,4 +143,8 @@ internal void  s_input_manager_consume_gamepad_button_press(input_controller_t *
 internal void  s_input_manager_consume_gamepad_button_down(input_controller_t *controller, s32 button_index);
 internal void  s_input_manager_consume_gamepad_button_release(input_controller_t *controller, s32 button_index);
 
+/*===========================================
+  ============= GAME ACTION API =============
+  ===========================================*/
+
 #endif

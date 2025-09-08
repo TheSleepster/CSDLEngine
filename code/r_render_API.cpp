@@ -314,61 +314,6 @@ r_draw_string(asset_manager_t       *asset_manager,
     }
 }
 
-internal void
-DEBUG_display_record_data(asset_manager_t *asset_manager,
-                          render_state_t  *render_state,
-                          asset_handle_t   font,
-                          float32          delta_time)
-{
-    
-    vec2_t starting_pos  = vec2_create_float(-960, 500);
-    for(u32 record_index = 0;
-        record_index < DEBUG_global_state->next_debug_record_entry_index;
-        ++record_index)
-    {
-        DEBUG_record_t *record = DEBUG_global_state->record_array + record_index;
-
-        DEBUG_snapshot_data_t *snapshot_data = record->snapshots + DEBUG_global_state->snapshot_index;
-        if(snapshot_data->hit_count > 0)
-        {
-            char buffer[4096] = {};
-
-            sprintf(buffer,
-                    "%s (%d): %llu cy, %llu hits, %llu cy/hit\n",
-                    record->block_name,
-                    record->line_number,
-                    snapshot_data->cycle_count,
-                    snapshot_data->hit_count,
-                    snapshot_data->cycle_count / snapshot_data->hit_count);
-            
-            r_draw_string(asset_manager,
-                          render_state,
-                          STR(buffer),
-                          font,
-                          24,
-                          starting_pos,
-                          vec4_create(1.0f),
-                          RQO_NONE);
-
-            starting_pos = vec2_add(starting_pos, vec2_create_float(0, -32));
-            snapshot_data->hit_count = 0;
-            snapshot_data->cycle_count = 0;
-        }
-    }
-    char buffer[4096] = {};
-    sprintf(buffer,
-            "Total frame time is %.04f\n",
-            delta_time);
-    r_draw_string(asset_manager,
-                  render_state,
-                  STR(buffer),
-                  font,
-                  24,
-                  starting_pos,
-                  vec4_create(1.0f),
-                  RQO_NONE);
-}
-
 internal render_line_t* 
 r_create_render_line(render_state_t *render_state, 
                      vec2_t          start_point,
@@ -468,10 +413,10 @@ r_build_renderpass_desc(GPU_shader_t                     *desired_shader,
                         u32                               render_layer,
                         mat4_t                            view_matrix,
                         mat4_t                            projection_matrix,
-                        render_group_effects_t            render_effects        = RGE_None,
-                        render_group_desired_render_phase render_phase          = RGP_MainGamePass,
-                        render_group_primitive_type_t     primitive_type        = RGPT_Quads,
-                        bool8                             supports_transparency = false)
+                        render_group_effects_t            render_effects,
+                        render_group_desired_render_phase render_phase,
+                        render_group_primitive_type_t     primitive_type,
+                        bool8                             supports_transparency)
 {
     DEBUG_TIMED_BLOCK();
     Assert(render_layer <= MAX_RENDER_LAYERS);
@@ -507,7 +452,7 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
     return(result);
 }
 
-internal void
+internal render_group_t* 
 r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc)
 {
     DEBUG_TIMED_BLOCK();
@@ -580,6 +525,8 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
 
     render_state->draw_frame.active_render_group = active_group;
     Assert(render_state->draw_frame.active_render_group != null);
+
+    return(render_state->draw_frame.active_render_group);
 }
 
 internal inline void

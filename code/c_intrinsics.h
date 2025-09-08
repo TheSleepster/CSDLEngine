@@ -17,6 +17,7 @@
  */
 
 #if defined COMPILER_CLANG || defined COMPILER_GCC
+    #define true_inline __forceinline
     #if ARCH_X64
         #include <emmintrin.h>
         #include <xmmintrin.h>
