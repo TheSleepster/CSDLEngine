@@ -33,6 +33,7 @@ r_create_render_quad(render_state_t       *render_state,
                      u32                   gpu_texture_id,
                      render_quad_options_t render_options)
 {
+    DEBUG_TIMED_BLOCK();
     Assert(render_state->draw_frame.active_render_group->render_desc.primitive_type == RGPT_Quads);
 
     render_quad_t result = {};
@@ -262,6 +263,8 @@ r_draw_string(asset_manager_t       *asset_manager,
               vec4_t                 color,
               render_quad_options_t  render_options)
 {
+    DEBUG_TIMED_BLOCK();
+
     dynamic_render_font_varient_t *varient = s_asset_font_get_at_size(asset_manager, font, pixel_size);
     if(varient)
     {
@@ -317,6 +320,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           asset_handle_t   font,
                           float32          delta_time)
 {
+    
     vec2_t starting_pos  = vec2_create_float(-960, 500);
     for(u32 record_index = 0;
         record_index < DEBUG_global_state->next_debug_record_entry_index;
@@ -469,6 +473,7 @@ r_build_renderpass_desc(GPU_shader_t                     *desired_shader,
                         render_group_primitive_type_t     primitive_type        = RGPT_Quads,
                         bool8                             supports_transparency = false)
 {
+    DEBUG_TIMED_BLOCK();
     Assert(render_layer <= MAX_RENDER_LAYERS);
     
     render_group_desc_t result;
@@ -505,6 +510,7 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
 internal void
 r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc)
 {
+    DEBUG_TIMED_BLOCK();
     if(!render_state->draw_frame.is_initialized)
     {
         render_state->draw_frame.preblit_pass_data.opaque_render_groups       = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
@@ -586,6 +592,7 @@ r_end_renderpass(render_state_t *render_state)
 internal void
 r_fill_render_group_vertex_buffer(render_group_t *render_group)
 {
+    DEBUG_TIMED_BLOCK();
     switch(render_group->render_desc.primitive_type)
     {
         case RGPT_Quads:
@@ -636,6 +643,7 @@ r_fill_render_group_vertex_buffer(render_group_t *render_group)
 internal void
 r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state)
 {
+    DEBUG_TIMED_BLOCK();
     // TODO(Sleepster): Is this really where we want this too live?
     at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
     draw_frame_t *draw_frame = &render_state->draw_frame;

@@ -9,7 +9,7 @@
 #define DEBUG_CORE_H
 #define MAX_DEBUG_COUNTERS  (1024)
 #define MAX_DEBUG_SNAPSHOTS (144)
-#define MAX_DEBUG_EVENTS    (8192)
+#define MAX_DEBUG_EVENTS    (8192 * 16)
 
 #define DEBUG_TIMED_BLOCK()                                             \
     static u32 DEBUG_record_index = (u32)-1;                            \
@@ -64,6 +64,7 @@ typedef struct DEBUG_state_data
     volatile u32   last_snapshot_index;
 
     bool8          should_reload_dll;
+    bool8          is_collecting_debug_data;
 
     DEBUG_record_t record_array[MAX_DEBUG_COUNTERS];
     DEBUG_event_t  event_array[2][MAX_DEBUG_EVENTS];
