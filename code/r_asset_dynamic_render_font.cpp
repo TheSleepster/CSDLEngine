@@ -9,6 +9,8 @@
 internal asset_handle_t 
 s_asset_font_get(asset_manager_t *asset_manager, string_t font_name)
 {
+    DEBUG_TIMED_BLOCK();
+
     asset_handle_t result = {};
     asset_slot_t *valid_slot  = (asset_slot_t *)c_hash_get_value(&asset_manager->font_catalog.font_hash, font_name);
     if(valid_slot)
@@ -76,6 +78,8 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
                                       dynamic_render_font_page_t *page,
                                       font_glyph_t               *glyph)
 {
+    DEBUG_TIMED_BLOCK();
+
     if(!page->bitmap_valid)
     {
         page->font_atlas.bitmap.format     = BMF_RGBA32;
@@ -136,6 +140,8 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
 internal font_glyph_t*
 s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, u8 *character)
 {
+    DEBUG_TIMED_BLOCK();
+
     font_glyph_t *result = null;
 
     dynamic_render_font_page_t *valid_page = 0;
@@ -252,6 +258,8 @@ s_asset_font_set_unknown_character(dynamic_render_font_varient_t *varient, u32 U
 internal dynamic_render_font_varient_t*
 s_asset_font_create_at_size(asset_manager_t *asset_manager, asset_handle_t handle, u32 size)
 {
+    DEBUG_TIMED_BLOCK();
+
     dynamic_render_font_varient_t *result = null;
     
     dynamic_render_font_t *font = handle.font;

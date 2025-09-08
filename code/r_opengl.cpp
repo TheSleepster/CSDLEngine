@@ -403,7 +403,7 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
 }
 
 internal void 
-r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
+r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
 {
     Assert(texture != null);
     Assert(texture->bitmap.data.data != null);
@@ -449,19 +449,19 @@ r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type
 }
 
 internal void 
-r_texture_create_from_bitmap(bitmap_t *bitmap)
+r_texture_create_from_bitmap_(bitmap_t *bitmap)
 {
     Assert(false);
 }
 
 internal inline void
-r_texture_delete(texture_view_t *view)
+r_texture_delete_(texture_view_t *view)
 {
     glDeleteTextures(1, &view->GPU_textureID);
 }
 
 internal void
-r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture)
+r_texture_update_from_bitmap_(asset_manager_t *asset_manager, texture2D_t *texture)
 {
     DEBUG_TIMED_BLOCK();
     

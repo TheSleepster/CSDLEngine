@@ -97,6 +97,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                   COLOR_WHITE,
                   RQO_NONE);
 
+    DEBUG_display_record_data(asset_manager, render_state, arial_font_handle, delta_time);
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->test_shader,
@@ -121,7 +122,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGPT_Lines,
                                                               false);
     r_begin_renderpass(render_state, &test_group6);
-    r_create_render_line(render_state, vec2_create_float(-100.0, -70), vec2_create_float(100, -55), 1.0f, COLOR_WHITE);
+    r_create_render_line(render_state, vec2_create_float(-100.0, -70), vec2_create_float(100, -70), 1.0f, COLOR_WHITE);
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group7 = r_build_renderpass_desc(&render_state->test_shader,
@@ -145,9 +146,13 @@ initialize_gamestate()
 GAME_API external
 GAME_UPDATE_AND_RENDER(g_update_and_render)
 {
-    r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
     if(global_context == null)
     {
         global_context = context;
+#if DEVELOPER_BUILD
+        DEBUG_global_state = DEBUG_global_state_in;
+#endif
     }
+
+    r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
 }

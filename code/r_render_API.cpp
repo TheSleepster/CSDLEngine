@@ -238,11 +238,11 @@ r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_fo
             texture2D_t *texture = &glyph->owner_page->font_atlas;
             if(texture->view->GPU_textureID == 0)
             {
-                asset_manager->gpu_data->r_texture_make_gpu(texture, texture->has_AA, texture->filter_type);
+                r_texture_make_gpu(texture, texture->has_AA, texture->filter_type);
             }
             else
             {
-                asset_manager->gpu_data->r_texture_update_from_bitmap(asset_manager, texture);
+                r_texture_update_from_bitmap(asset_manager, texture);
             }
 
             glyph->owner_page->bitmap_dirty = false;
@@ -311,59 +311,59 @@ r_draw_string(asset_manager_t       *asset_manager,
     }
 }
 
-// internal void
-// DEBUG_display_records(asset_manager_t *asset_manager,
-//                       render_state_t  *render_state,
-//                       asset_handle_t   font,
-//                       float32          delta_time)
-// {
-//     vec2_t starting_pos  = vec2_create_float(-960, 500);
-//     for(u32 record_index = 0;
-//         record_index < DEBUG_record_counter;
-//         ++record_index)
-//     {
-//         DEBUG_record_data_t *record = DEBUG_records + record_index;
-//         if(record->hit_count > 0)
-//         {
-//             char buffer[4096] = {};
+internal void
+DEBUG_display_record_data(asset_manager_t *asset_manager,
+                          render_state_t  *render_state,
+                          asset_handle_t   font,
+                          float32          delta_time)
+{
+    vec2_t starting_pos  = vec2_create_float(-960, 500);
+    for(u32 record_index = 0;
+        record_index < DEBUG_global_state->next_debug_record_entry_index;
+        ++record_index)
+    {
+        DEBUG_record_t *record = DEBUG_global_state->record_array + record_index;
 
-//             float64 ms_time         = ((float64)record->total_cycle_count * 1000.0) / (float64)SDL_GetPerformanceFrequency();
-//             float64 ms_time_per_hit = (((float64)record->total_cycle_count / (float64)record->hit_count) * 1000.0) / (float64)SDL_GetPerformanceFrequency();
-//             sprintf(buffer,
-//                     "%s (%d): %.02fms, %d hits, %.02fms/hit\n",
-//                     record->block_name,
-//                     record->line_number,
-//                     ms_time,
-//                     record->hit_count,
-//                     ms_time_per_hit);
+        DEBUG_snapshot_data_t *snapshot_data = record->snapshots + DEBUG_global_state->snapshot_index;
+        if(snapshot_data->hit_count > 0)
+        {
+            char buffer[4096] = {};
+
+            sprintf(buffer,
+                    "%s (%d): %llu cy, %llu hits, %llu cy/hit\n",
+                    record->block_name,
+                    record->line_number,
+                    snapshot_data->cycle_count,
+                    snapshot_data->hit_count,
+                    snapshot_data->cycle_count / snapshot_data->hit_count);
             
-//             r_draw_string(asset_manager,
-//                           render_state,
-//                           STR(buffer),
-//                           font,
-//                           24,
-//                           starting_pos,
-//                           vec4_create(1.0f),
-//                           RQO_NONE);
+            r_draw_string(asset_manager,
+                          render_state,
+                          STR(buffer),
+                          font,
+                          24,
+                          starting_pos,
+                          vec4_create(1.0f),
+                          RQO_NONE);
 
-//             starting_pos = vec2_add(starting_pos, vec2_create_float(0, -32));
-//             record->hit_count = 0;
-//             record->total_cycle_count = 0;
-//         }
-//     }
-//     char buffer[4096] = {};
-//     sprintf(buffer,
-//             "Total frame time is %.04f\n",
-//             delta_time);
-//     r_draw_string(asset_manager,
-//                   render_state,
-//                   STR(buffer),
-//                   font,
-//                   24,
-//                   starting_pos,
-//                   vec4_create(1.0f),
-//                   RQO_NONE);
-// }
+            starting_pos = vec2_add(starting_pos, vec2_create_float(0, -32));
+            snapshot_data->hit_count = 0;
+            snapshot_data->cycle_count = 0;
+        }
+    }
+    char buffer[4096] = {};
+    sprintf(buffer,
+            "Total frame time is %.04f\n",
+            delta_time);
+    r_draw_string(asset_manager,
+                  render_state,
+                  STR(buffer),
+                  font,
+                  24,
+                  starting_pos,
+                  vec4_create(1.0f),
+                  RQO_NONE);
+}
 
 internal render_line_t* 
 r_create_render_line(render_state_t *render_state, 

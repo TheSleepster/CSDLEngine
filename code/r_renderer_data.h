@@ -234,6 +234,16 @@ typedef struct render_state
     }lighting_data;
 }render_state_t;
 
+#if DEVELOPER_BUILD
+    #define r_texture_delete(texture_view)                       asset_manager->gpu_data->r_texture_delete(texture_view)
+    #define r_texture_make_gpu(texture, has_aa, sampling)        asset_manager->gpu_data->r_texture_make_gpu(texture, has_aa, sampling)
+    #define r_texture_update_from_bitmap(asset_manager, texture) asset_manager->gpu_data->r_texture_update_from_bitmap(asset_manager, texture)
+#else
+    #define r_texture_delete(texture_view)                       r_texture_delete_(texture_view)
+    #define r_texture_make_gpu(texture, has_aa, sampling)        r_texture_make_gpu_(texture, has_aa, sampling)
+    #define r_texture_update_from_bitmap(asset_manager, texture) r_texture_update_from_bitmap_(asset_manager, texture)
+#endif
+
 typedef void r_texture_make_gpu_t(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
 typedef void r_texture_delete_t(texture_view_t *view);
 typedef void r_texture_update_from_bitmap_t(asset_manager_t *asset_manager, texture2D_t *texture);
@@ -249,9 +259,9 @@ typedef struct GPU_functions
 ////////////////////////////
 // RENDER API FUNCTIONS
 ////////////////////////////
-internal void r_texture_make_gpu(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
-internal void r_texture_delete(texture_view_t *view);
-internal void r_texture_update_from_bitmap(asset_manager_t *asset_manager, texture2D_t *texture);
+internal void r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
+internal void r_texture_delete_(texture_view_t *view);
+internal void r_texture_update_from_bitmap_(asset_manager_t *asset_manager, texture2D_t *texture);
 /////////////////////////////
 
 

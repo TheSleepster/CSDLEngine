@@ -64,7 +64,7 @@
 #include "r_asset_dynamic_render_font.cpp"
 #include "r_render_API.cpp"
 
-#define GAME_UPDATE_AND_RENDER(name) void name(global_context_t *context, render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, float32 delta_time)
+#define GAME_UPDATE_AND_RENDER(name) void name(global_context_t *context, render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, DEBUG_state_data_t *DEBUG_global_state_in, float32 delta_time)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_t);
 
 #endif

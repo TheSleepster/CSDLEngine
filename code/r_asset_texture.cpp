@@ -12,6 +12,8 @@
 internal bitmap_t
 s_asset_bitmap_create(zone_allocator_t *zone, s32 width, s32 height, bitmap_format_t format)
 {
+    DEBUG_TIMED_BLOCK();
+
     bitmap_t result   = {};
     result.width      = width;
     result.height     = height;
@@ -27,6 +29,8 @@ s_asset_bitmap_create(zone_allocator_t *zone, s32 width, s32 height, bitmap_form
 internal texture_view_t *
 s_asset_texture_view_generate(asset_manager_t *asset_manager, asset_slot_t *valid_slot, texture2D_t *texture_data)
 {
+    DEBUG_TIMED_BLOCK();
+
     texture_view_t *new_view = 0; 
     for(u32 view_index = 0;
         view_index < asset_manager->texture_catalog.texture_views.capacity;
@@ -139,6 +143,7 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
 internal asset_handle_t
 s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
 {
+    DEBUG_TIMED_BLOCK();
     asset_handle_t result = {};
 
     asset_slot_t *valid_slot = (asset_slot_t *)c_hash_get_value(&asset_manager->texture_catalog.texture_hash, asset_key);

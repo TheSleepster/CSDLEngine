@@ -8,52 +8,102 @@
 #include "c_types.h"
 #include "c_log_assert.h"
 
-/* TODO(Sleepster):
-   This is like 1/4 of the way done, I just need to create DEBUG gui first with a new renderer...
- */
+#include "DEBUG_core.h"
 
-#if INTERNAL_DEBUG
-// #define DEBUG_TIMED_BLOCK__(number, ...) timed_block_t DEBUG_timed_block_##number(__FILE__, __FUNCTION__, __COUNTER__, __LINE__)
-// #define DEBUG_TIMED_BLOCK_(number, ...)  DEBUG_TIMED_BLOCK__(number, ##__VA_ARGS__) 
-// #define DEBUG_TIMED_BLOCK(...)           DEBUG_TIMED_BLOCK_(__LINE__, ##__VA_ARGS__)
-#define DEBUG_TIMED_BLOCK__(number, ...)
-#define DEBUG_TIMED_BLOCK_(number, ...) 
-#define DEBUG_TIMED_BLOCK(...)          
+internal DEBUG_state_data_t*
+DEBUG_create_debug_state()
+{
+    DEBUG_state_data_t *result = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, MB(100));
+    Assert(result != null);
+    ZeroStruct(*result);
 
-#else
+    // TODO(Sleepster): Tune the cpu cycle -> ms conversion here. 
 
-#endif
+    return(result);
+}
 
-// struct DEBUG_record_data_t
-// {
-//     char *filename;
-//     char *block_name;
+internal inline void
+DEBUG_record_event(u32 record_index, u8 type)
+{
+    u32 event_index = AtomicIncrement(&DEBUG_global_state->next_debug_event_index);
+    Assert(event_index < MAX_DEBUG_EVENTS);
 
-//     u32   line_number;
-//     u32   hit_count;
-//     u64   total_cycle_count;
-// };
+    DEBUG_event_t *event = DEBUG_global_state->event_array[DEBUG_global_state->event_array_index] + event_index;
+    event->event_type    = type;
+    event->record_index  = record_index;
+    event->thread_id     = GetThreadID();
 
-// extern DEBUG_record_data_t DEBUG_records[];
-// extern u32 DEBUG_record_counter;
+    u32 processor_id = 0;
+    event->cycle_counter = rdtscp(&processor_id);
+}
 
-// struct timed_block_t
-// {
-//     DEBUG_record_data_t *current_record;
+internal inline void
+DEBUG_set_event_marker(u8 type)
+{
+    u32 event_index = AtomicIncrement(&DEBUG_global_state->next_debug_event_index);
+    DEBUG_event_t *event = DEBUG_global_state->event_array[DEBUG_global_state->event_array_index] + event_index;
+    event->event_type    = type;
+}
 
-//     timed_block_t(char *filename, char *block_name, s32 record_index, s32 line_number, s32 hit_count = 1)
-//     {
-//         current_record = DEBUG_records + record_index;
-//         current_record->filename           = filename;
-//         current_record->block_name         = block_name;
-//         current_record->line_number        = line_number;
-//         current_record->hit_count         += hit_count;
-//         current_record->total_cycle_count -= SDL_GetPerformanceCounter();
-//     }
+internal u32 
+DEBUG_register_performance_counter(char *filename, char *block_name, u32 line_number)
+{
+    u32 result = AtomicIncrement(&DEBUG_global_state->next_debug_record_entry_index);
 
-//    ~timed_block_t()
-//     {
-//         current_record->total_cycle_count += SDL_GetPerformanceCounter();
-//     }
-// };
+    DEBUG_record_t *record = DEBUG_global_state->record_array + result;
+    record->filename    = filename;
+    record->block_name  = block_name;
+    record->line_number = line_number;
+
+    return(result);
+}
+
+internal void
+DEBUG_handle_events()
+{
+    DEBUG_event_t *event_array = DEBUG_global_state->event_array[DEBUG_global_state->event_array_index];
+    for(u32 record_index = 0;
+        record_index < DEBUG_global_state->next_debug_record_entry_index;
+        ++record_index)
+    {
+        DEBUG_record_t *record = DEBUG_global_state->record_array + record_index;
+        record->snapshots[DEBUG_global_state->snapshot_index].hit_count   = 0;
+        record->snapshots[DEBUG_global_state->snapshot_index].cycle_count = 0;
+    }
+
+    u32 event_array_index = !DEBUG_global_state->event_array_index;
+    AtomicExchange32(&DEBUG_global_state->event_array_index, event_array_index);
+
+    u32 event_array_count = AtomicExchange32(&DEBUG_global_state->next_debug_event_index, 0);
+    for(u32 event_index = 0;
+        event_index < event_array_count;
+        ++event_index)
+    {
+        DEBUG_event_t  *event  = event_array + event_index;
+        DEBUG_record_t *record = DEBUG_global_state->record_array + event->record_index;
+        
+        switch(event->event_type)
+        {
+            case DEBUG_EVENT_TIMER_BEGIN:
+            {
+                record->snapshots[DEBUG_global_state->snapshot_index].hit_count   += 1;
+                record->snapshots[DEBUG_global_state->snapshot_index].cycle_count -= event->cycle_counter;
+            }break;
+            case DEBUG_EVENT_TIMER_END:
+            {
+                record->snapshots[DEBUG_global_state->snapshot_index].cycle_count += event->cycle_counter;
+            }break;
+            case DEBUG_EVENT_FRAME_END:
+            {
+                u32 next_snapshot_index = (DEBUG_global_state->snapshot_index + 1) % MAX_DEBUG_SNAPSHOTS;
+                DEBUG_global_state->last_snapshot_index = AtomicExchange(&DEBUG_global_state->snapshot_index, next_snapshot_index);
+            }break;
+            case DEBUG_EVENT_RELOAD_DLL:
+            {
+                DEBUG_global_state->should_reload_dll = true;
+            }break;
+            default: {}break;
+        }
+    }
+}
 

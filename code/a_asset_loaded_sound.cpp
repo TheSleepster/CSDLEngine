@@ -60,6 +60,8 @@ get_WAVE_chunk_type(WAVE_file_iterator_t iterator)
 internal loaded_sound_t 
 s_asset_load_WAV_file(asset_manager_t *asset_manager, string_t filename, string_t filedata)
 {
+    DEBUG_TIMED_BLOCK();
+
     loaded_sound_t result = {};
     result.filedata = filedata;
     

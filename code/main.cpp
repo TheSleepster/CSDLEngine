@@ -7,12 +7,14 @@
 #include "l_runtime_data.cpp"
 #include "r_opengl.cpp"
 
-#if !DEVELOPER_BUILD
-#include "g_main.cpp"
+#if DEVELOPER_BUILD
+    #define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) game_functions.update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
+#else
+    #include "g_main.cpp"
+#define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) g_update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
 #endif
 
 global bool8 running;
-global bool8 should_reload_dll;
 
 struct game_dll_data_t
 {
@@ -23,12 +25,11 @@ struct game_dll_data_t
 internal void
 DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functions)
 {
-    #if DEVELOPER_BUILD
-
+#if DEVELOPER_BUILD
     string_t game_dll      = STR("game_debug.dll");
     string_t game_copy_dll = STR("game_debug_COPY.dll");
     c_file_copy(game_dll, game_copy_dll);
-    
+        
     game_data->game_lib = os_load_library(game_copy_dll);
     if(game_data->game_lib)
     {
@@ -42,15 +43,15 @@ DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functi
     {
         log_fatal("Failure to load the game functions...\n");
     }
-    #else
+#else
     game_data->update_and_render = g_update_and_render;
-    #endif
+#endif
 
     if(gpu_functions)
     {
-        gpu_functions->r_texture_make_gpu           = r_texture_make_gpu; 
-        gpu_functions->r_texture_delete             = r_texture_delete; 
-        gpu_functions->r_texture_update_from_bitmap = r_texture_update_from_bitmap;
+        gpu_functions->r_texture_make_gpu           = r_texture_make_gpu_; 
+        gpu_functions->r_texture_delete             = r_texture_delete_; 
+        gpu_functions->r_texture_update_from_bitmap = r_texture_update_from_bitmap_;
     }
 }
 
@@ -63,7 +64,7 @@ DEBUG_reload_game_functions(game_dll_data_t *game_data)
     os_free_library(game_data->game_lib);
 
     DEBUG_get_game_functions(game_data, null);
-    should_reload_dll = false;
+    DEBUG_global_state->should_reload_dll = false;
 }
 
 FILE_WATCHER_CALLBACK(test_callback)
@@ -102,13 +103,13 @@ FILE_WATCHER_CALLBACK(test_callback)
         }break;
         case FILE_EXT_OS_DLL:
         {
-            #if DEVELOPER_BUILD
+#if DEVELOPER_BUILD
             filename.count += 4;
             if(c_string_compare(filename, STR("game_debug.dll")))
             {
-                should_reload_dll = true;
+                DEBUG_set_event_marker(DEBUG_EVENT_RELOAD_DLL);
             }
-            #endif
+#endif
         }break;
         default: {}break;
     }
@@ -177,13 +178,16 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
-
+        DEBUG_global_state = DEBUG_create_debug_state();
+        
         asset_manager_t asset_manager = {};
 
+#if DEVELOPER_BUILD
         GPU_functions_t GPU_functions  = {};
         game_dll_data_t game_functions = {};
         DEBUG_get_game_functions(&game_functions, &GPU_functions);
         asset_manager.gpu_data = &GPU_functions;
+#endif
 
         multithreading_work_queue_manager_t work_manager = {};
         s_work_queue_manager_init(&work_manager);
@@ -213,16 +217,14 @@ main(int argc, char **argv)
         running = true;
         while(running)
         {
+            DEBUG_TIMED_BLOCK();
+            
             c_file_watcher_process_changes(&watcher);
-            if(should_reload_dll)
-            {
-                DEBUG_reload_game_functions(&game_functions);
-            }
 
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(&input_manager);
 
-            game_functions.update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
+            game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
 
             r_render_single_frame(&asset_manager, &render_state);
@@ -238,11 +240,21 @@ main(int argc, char **argv)
 
             delta_time  = (float32)(((float64)delta_tsc * 1000.0) / (float64)performance_counter_frequency);
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
+
+            DEBUG_set_event_marker(DEBUG_EVENT_FRAME_END);
+            DEBUG_handle_events();
+
+#if DEVELOPER_BUILD
+            if(DEBUG_global_state->should_reload_dll)
+            {
+                DEBUG_reload_game_functions(&game_functions);
+
+                s_work_queue_finish_all_work(&work_manager.high_priority_queue);
+                s_work_queue_finish_all_work(&work_manager.low_priority_queue);
+            }
+#endif
         }
     }
 
     return(0);
 }
-
-// DEBUG_record_data_t DEBUG_records[__COUNTER__];
-// u32 DEBUG_record_counter = ArrayCount(DEBUG_records);

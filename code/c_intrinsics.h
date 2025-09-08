@@ -27,7 +27,11 @@
         #define PopCount64(value) __builtin_popcount((s64)value)
 
         // NOTE(Sleepster): Read time stamp counter...
-        #define rdtsc() __rdtsc()
+        #define rdtsc()                  __rdtsc()
+        #define rdtscp(processor_id_out) __rdtscp(processor_id_out)
+
+        // NOTE(Sleepster): 3 intructions to get the thread ID as opposed to the 8 from GetCurrentThreadID on Windows
+        #define GetThreadID() *((u32*)(((u8*)__readgsqword(0x30)) + 0x48))
 
     /* ===========================================
        ================== FENCES =================
@@ -49,9 +53,9 @@
        ====================== ATOMIC INCREMENT =====================
        ============================================================= */
         // NOTE(Sleepster): Increments the value, returns the newly incremented value. 
-        #define AtomicIncrement16(ptr) __atomic_add_fetch((volatile s16*)(ptr), 1, __ATOMIC_SEQ_CST)
-        #define AtomicIncrement32(ptr) __atomic_add_fetch((volatile s32*)(ptr), 1, __ATOMIC_SEQ_CST)
-        #define AtomicIncrement64(ptr) __atomic_add_fetch((volatile s64*)(ptr), 1, __ATOMIC_SEQ_CST)
+        #define AtomicIncrement16(ptr) __atomic_fetch_add((volatile s16*)(ptr), 1, __ATOMIC_SEQ_CST)
+        #define AtomicIncrement32(ptr) __atomic_fetch_add((volatile s32*)(ptr), 1, __ATOMIC_SEQ_CST)
+        #define AtomicIncrement64(ptr) __atomic_fetch_add((volatile s64*)(ptr), 1, __ATOMIC_SEQ_CST)
 
         #define AtomicIncrement(ptr) AtomicIncrement32(ptr)
 
@@ -59,9 +63,9 @@
        ====================== ATOMIC DECREMENT =====================
        ============================================================= */
         // NOTE(Sleepster): Decrements the value, returns the newly decremented value. 
-        #define AtomicDecrement16(ptr) __atomic_sub_fetch((volatile s16*)(ptr), 1, __ATOMIC_SEQ_CST)
-        #define AtomicDecrement32(ptr) __atomic_sub_fetch((volatile s32*)(ptr), 1, __ATOMIC_SEQ_CST)
-        #define AtomicDecrement64(ptr) __atomic_sub_fetch((volatile s64*)(ptr), 1, __ATOMIC_SEQ_CST)
+        #define AtomicDecrement16(ptr) __atomic_fetch_sub((volatile s16*)(ptr), 1, __ATOMIC_SEQ_CST)
+        #define AtomicDecrement32(ptr) __atomic_fetch_sub((volatile s32*)(ptr), 1, __ATOMIC_SEQ_CST)
+        #define AtomicDecrement64(ptr) __atomic_fetch_sub((volatile s64*)(ptr), 1, __ATOMIC_SEQ_CST)
 
         #define AtomicDecrement(ptr) AtomicDecrement32(ptr)
 

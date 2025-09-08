@@ -206,6 +206,8 @@ s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
                                           za_allocation_tag_t tag,
                                           bool8               is_reloading = false)
 {
+    DEBUG_TIMED_BLOCK();
+
     multithreading_work_queue_t *high_priority_queue = &asset_manager->queue_manager->high_priority_queue;
     slot_data->slot_state = ASS_QUEUED;
 
