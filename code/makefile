@@ -147,15 +147,16 @@ $(ENGINE_OUT): $(ENGINE_SRC) |  ../run_tree/res
 ifeq ($(DEVELOPER_BUILD),1)
 game_dll: $(GAME_OUT)
 
+
 # Generate a random hex suffix
 PDB_SUFFIX := $(shell powershell -Command "[guid]::NewGuid().ToString('N').Substring(0,8)")
 
 $(GAME_OUT): $(GAME_SRC) | ../build ../run_tree/res
 	@echo Building Game DLL: $@ with pdb suffix $(PDB_SUFFIX)...
-	del /Q ..\build\game_debug*.pdb
-	del /Q ..\build\game_debug*.rdi
+	-del /Q ..\build\game_debug*.pdb
+	-del /Q ..\build\game_debug*.rdi
 	$(SILENT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) -DEVELOPER_BUILD=1 $(SHARED_FLAGS) $< $(GAME_LIBS) \
-	    $(LDFLAGS) -o $@ -MMD -MF ../build/game_dll.d \
+	    $(LDFLAGS) -o $@ \
 	    -Wl,/PDB:../build/game_$(BUILD_TYPE)_$(PDB_SUFFIX).pdb
 endif
 
@@ -174,10 +175,6 @@ clean:
 # -------------------------------------------------------------------------
 -include ../build/engine.d
 -include ../build/asset_file_builder.d
--include ../build/game_dll.d
-# runtime deps: convert runtime object names to .d by replacing OBJ_EXT with .d
-GAME_RUNTIME_DEPS := $(GAME_RUNTIME_OBJS:$(OBJ_EXT)=.d)
--include $(GAME_RUNTIME_DEPS)
 -include $(patsubst ../code/tests/%.c,../build/test_%.d,$(TESTS_SRC))
 
 # -------------------------------------------------------------------------

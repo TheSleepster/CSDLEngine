@@ -8,16 +8,14 @@
 
 #define DEBUG_CORE_H
 #define MAX_DEBUG_COUNTERS  (1024)
-#define MAX_DEBUG_SNAPSHOTS (144)
+#define MAX_DEBUG_SNAPSHOTS (4096)
 #define MAX_DEBUG_EVENTS    (8192 * 16)
 
 #define DEBUG_TIMED_BLOCK()                                             \
-    static u32 DEBUG_record_index = (u32)-1;                            \
+    local_persist u32 DEBUG_record_index = (u32)-1;                     \
     if(DEBUG_record_index == (u32)-1)                                   \
         DEBUG_record_index = DEBUG_register_performance_counter(__FILE__, __FUNCTION__, __LINE__); \
-                                                                        \
-    if(DEBUG_global_state->is_collecting)                               \
-        new_timed_block_t block_timer_##__LINE__(DEBUG_record_index);       
+    new_timed_block_t block_timer_##__LINE__(DEBUG_record_index);        
 
 struct DEBUG_snapshot_data_t
 {

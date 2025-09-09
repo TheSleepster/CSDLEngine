@@ -158,6 +158,8 @@ typedef struct s_asset_system_work_data
 void
 s_asset_load_data_async(void *user_data)
 {
+    DEBUG_TIMED_BLOCK();
+    
     s_asset_system_work_data_t *work_data = (s_asset_system_work_data_t*)user_data;
     
     string_t result = {};

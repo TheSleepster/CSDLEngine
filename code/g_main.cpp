@@ -17,6 +17,8 @@ global bool8 initialized_stuff;
 internal void
 r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, float32 delta_time)
 {
+    DEBUG_TIMED_BLOCK();
+    
     draw_frame_t *draw_frame = &render_state->draw_frame;
 
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
@@ -70,7 +72,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     }
 
     r_draw_texture(render_state, vec2_create_float(20, 40),     vec2_create_float(16, 16), COLOR_WHITE, 0, block_handle, RQO_NONE);
-    r_draw_rect(render_state,    vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
+    //r_draw_rect(render_state,    vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
     r_draw_texture(render_state, vec2_create_float(50, -50),    vec2_create_float(16, 16), COLOR_WHITE, 0, block_handle, RQO_NONE);
     
     r_end_renderpass(render_state);
@@ -95,8 +97,8 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                   vec2_create_float(-800, -300),
                   COLOR_WHITE,
                   RQO_NONE);
+    
     r_end_renderpass(render_state);
-
     render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->test_shader,
                                                               2,
                                                               view_matrix,

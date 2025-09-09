@@ -178,7 +178,9 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
+#if INTERNAL_DEBUG
         DEBUG_global_state = DEBUG_create_debug_state();
+#endif
         
         asset_manager_t asset_manager = {};
 
@@ -223,16 +225,6 @@ main(int argc, char **argv)
             c_process_window_events(&input_manager);
             c_file_watcher_process_changes(&watcher);
 
-            if(s_input_manager_is_keyboard_key_pressed(controller, SDL_SCANCODE_COMMA))
-            {
-                DEBUG_global_state->is_collecting = !DEBUG_global_state->is_collecting;
-            }
-
-            if(s_input_manager_is_keyboard_key_pressed(controller, SDL_SCANCODE_PERIOD))
-            {
-                DEBUG_global_state->overlay_active = !DEBUG_global_state->overlay_active;
-            }
-
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
             game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
             DEBUG_render_group_to_output(&asset_manager, &render_state, frame_time_in_ms);
@@ -252,9 +244,10 @@ main(int argc, char **argv)
             frame_time_in_ms = delta_time * 1000; 
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
 
+#if INTERNAL_DEBUG
             DEBUG_set_event_marker(DEBUG_EVENT_FRAME_END);
-            DEBUG_handle_events();
-#if DEVELOPER_BUILD
+            DEBUG_handle_events(controller);
+    #if DEVELOPER_BUILD
             if(DEBUG_global_state->should_reload_dll)
             {
                 DEBUG_reload_game_functions(&game_functions);
@@ -262,6 +255,7 @@ main(int argc, char **argv)
                 s_work_queue_finish_all_work(&work_manager.high_priority_queue);
                 s_work_queue_finish_all_work(&work_manager.low_priority_queue);
             }
+    #endif
 #endif
         }
     }

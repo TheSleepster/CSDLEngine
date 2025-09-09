@@ -15,7 +15,7 @@ internal render_quad_t*             r_draw_texture_ex(render_state_t *render_sta
 internal inline render_quad_t*      r_draw_texture(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, asset_handle_t texture_handle, render_quad_options_t render_options);
 internal render_quad_t*             r_draw_rect(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, render_quad_options_t render_options);
 internal s32                        r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, string_t output);
-internal void                       r_draw_string(asset_manager_t *asset_manager, render_state_t *render_state, string_t output, asset_handle_t font, u32 pixel_size, vec2_t position, vec4_t color, render_quad_options_t render_options);
+internal s32                        r_draw_string(asset_manager_t *asset_manager, render_state_t *render_state, string_t output, asset_handle_t font, u32 pixel_size, vec2_t position, vec4_t color, render_quad_options_t render_options);
 internal render_line_t*             r_create_render_line(render_state_t *render_state, vec2_t start_point, vec2_t end_point, float32 thickness, vec4_t color);
 internal point_light_t*             r_create_point_light(render_state_t *render_state, vec2_t position, vec4_t color, float32 radius);
 internal void                       r_handle_lighting_data(render_state_t *render_state);

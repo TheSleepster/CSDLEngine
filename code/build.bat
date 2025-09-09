@@ -1,2 +1,2 @@
 @echo off
-make all -k -j4 SILENT=@ DEBUG=1 DEVELOPER_BUILD=1
+make -k SILENT=@ DEBUG=1 DEVELOPER_BUILD=1

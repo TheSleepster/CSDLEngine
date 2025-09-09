@@ -495,6 +495,8 @@ r_texture_update_from_bitmap_(asset_manager_t *asset_manager, texture2D_t *textu
 internal void
 r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bool8 update_texture_bindings)
 {
+    DEBUG_TIMED_BLOCK();
+
     for(u32 uniform_index = 0;
         uniform_index < shader->shader_uniforms.capacity;
         ++uniform_index)

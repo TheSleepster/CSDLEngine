@@ -253,7 +253,7 @@ r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_fo
     return(result);
 }
 
-internal void
+internal s32
 r_draw_string(asset_manager_t       *asset_manager,
               render_state_t        *render_state,
               string_t               output,
@@ -264,11 +264,12 @@ r_draw_string(asset_manager_t       *asset_manager,
               render_quad_options_t  render_options)
 {
     DEBUG_TIMED_BLOCK();
+    s32 result = 0;
 
     dynamic_render_font_varient_t *varient = s_asset_font_get_at_size(asset_manager, font, pixel_size);
     if(varient)
     {
-        r_prepare_string_for_rendering(asset_manager, varient, output);
+        result =  r_prepare_string_for_rendering(asset_manager, varient, output);
         
         vec2_t draw_position = position;
         for(u8 *p_character = output.data;
@@ -312,6 +313,8 @@ r_draw_string(asset_manager_t       *asset_manager,
     {
         log_error("Could not get a varient of your font: '%s' at the size of: '%d'...\n", font.font->filename.data, pixel_size);
     }
+
+    return(result);
 }
 
 internal render_line_t* 
