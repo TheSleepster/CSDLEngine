@@ -1615,6 +1615,8 @@ internal inline mat4_t
 mat4_multiply(mat4_t A, mat4_t B)
 {
     mat4_t result;
+
+    // TODO(Sleepster): Optimize this... 
     result.columns[0] = vec4_transform(A, B.columns[0]);
     result.columns[1] = vec4_transform(A, B.columns[1]);
     result.columns[2] = vec4_transform(A, B.columns[2]);

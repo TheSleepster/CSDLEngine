@@ -103,6 +103,111 @@ SHARED_FLAGS = -shared
 # -------------------------------------------------------------------------
 .PHONY: all engine asset_file_builder game_dll tests 
 
+# -------------------------------------------------------------------------
+# Makefile - unity build (default) or developer split (exe + dll + runtime)
+# -------------------------------------------------------------------------
+
+CXX    = clang++
+CC     = clang
+
+SILENT          ?=
+DEBUG           ?=            # set DEBUG=1 to get debug compile flags (-g -O0)
+DEVELOPER_BUILD ?=            # set DEVELOPER_BUILD=1 to produce exe + libGameRuntime.lib + dll
+
+# -------------------------------------------------------------------------
+# Platform detection
+# -------------------------------------------------------------------------
+ifeq ($(OS),Windows_NT)
+    OS_DEFINE = -DOS_WINDOWS=1
+    PLATFORM_LIBS = -lopengl32 -luser32 -lgdi32 -lwinmm -lshell32 -lole32 -luuid -lversion -ladvapi32 -lsetupapi -lcfgmgr32 -loleaut32 -limm32
+    LDFLAGS = -Wl,/IGNORE:4099 -Wl,/STACK:157286400
+    EXE_EXT = .exe
+    DLL_EXT = .dll
+    LIB_EXT = .lib
+    OBJ_EXT = .obj
+    DEV_NULL = NUL
+    PIC_FLAG =
+else
+    UNAME_S := $(shell uname -s)
+    DLL_EXT = .so
+    LIB_EXT = .a
+    OBJ_EXT = .o
+    PIC_FLAG = -fPIC
+    ifeq ($(UNAME_S),Linux)
+        OS_DEFINE = -DOS_LINUX=1
+        PLATFORM_LIBS = -lX11 -lGL -lm
+        DEV_NULL = /dev/null
+    else ifeq ($(UNAME_S),Darwin)
+        OS_DEFINE = -DOS_MAC=1
+        PLATFORM_LIBS = -framework Cocoa -framework OpenGL -lm
+        DEV_NULL = /dev/null
+    endif
+endif
+
+# -------------------------------------------------------------------------
+# Common flags / includes
+# -------------------------------------------------------------------------
+COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/
+COMMON_C_FLAGS       = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings -Wno-deprecated
+
+# Build type (kept separate so you can use BUILD_TYPE in outputs)
+BUILD_TYPE ?= debug
+
+# Choose CFLAGS based on DEBUG
+ifeq ($(DEBUG),1)
+    CFLAGS = -g -O0 -fno-inline-functions $(COMMON_C_FLAGS) -DINTERNAL_DEBUG=1 -DASSERT_ENABLED=1 -DDEVELOPER_BUILD=$(DEVELOPER_BUILD)
+else
+    CFLAGS = -O2 $(COMMON_C_FLAGS)
+endif
+
+# -------------------------------------------------------------------------
+# Sources & outputs
+# -------------------------------------------------------------------------
+# Unity single TU (legacy)
+UNITY_SRC        = ../code/main.cpp
+
+# Engine split (loader + minimal engine code)
+ENGINE_SPLIT_SRC = ../code/main.cpp
+
+# Game DLL source
+GAME_SRC         = ../code/g_main.cpp
+
+# Default runtime sources (edit to list your runtime .cpp files).
+# If your runtime is many files, list them space-separated here.
+GAME_RUNTIME_SRCS = ../code/l_runtime_data.cpp
+
+# Libraries
+ENGINE_LIBS = $(PLATFORM_LIBS) -L../run_tree/deps/glad/src/ -L../run_tree/deps/SDL3/lib/ -L../run_tree/deps/Freetype/ -lSDL3-Static -lglad -lfreetype
+GAME_LIBS   = $(ENGINE_LIBS) 
+
+# Outputs
+ENGINE_OUT  = ../build/Thor_$(BUILD_TYPE)$(EXE_EXT)
+GAME_OUT    = ../run_tree/res/game_$(BUILD_TYPE)$(DLL_EXT)
+ASSET_FILE_BUILDER_SRC = ../code/asset_builder/ab_main.c
+ASSET_FILE_BUILDER_OUT = ../build/asset_file_builder$(EXE_EXT)
+
+# Tests
+TESTS_SRC  = $(wildcard ../code/tests/*.c)
+TESTS_OUT  = $(patsubst ../code/tests/%.c,../build/test_%.exe,$(TESTS_SRC))
+TESTS_LIBS = $(PLATFORM_LIBS)
+
+# -------------------------------------------------------------------------
+# Decide engine source depending on DEVELOPER_BUILD
+# -------------------------------------------------------------------------
+ifeq ($(DEVELOPER_BUILD),1)
+    ENGINE_SRC = $(ENGINE_SPLIT_SRC)
+else
+    ENGINE_SRC = $(UNITY_SRC)
+endif
+
+# Shared flags for building a shared lib
+SHARED_FLAGS = -shared
+
+# -------------------------------------------------------------------------
+# Targets
+# -------------------------------------------------------------------------
+.PHONY: all engine asset_file_builder game_dll tests 
+
 ifeq ($(DEVELOPER_BUILD),1)
 all: engine game_dll asset_file_builder tests
 else

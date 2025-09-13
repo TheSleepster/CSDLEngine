@@ -25,7 +25,4 @@ internal render_group_t*            r_begin_renderpass(render_state_t *render_st
 internal inline void                r_end_renderpass(render_state_t *render_state);
 internal void                       r_fill_render_group_vertex_buffer(render_group_t *render_group);
 internal void                       r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state);
-
-internal void                       DEBUG_display_record_data(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font, float32 delta_time);
-//internal void                       DEBUG_display_records(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font, float32 delta_time);
 #endif

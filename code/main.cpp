@@ -254,6 +254,7 @@ main(int argc, char **argv)
 
                 s_work_queue_finish_all_work(&work_manager.high_priority_queue);
                 s_work_queue_finish_all_work(&work_manager.low_priority_queue);
+                //DEBUG_reset_state(&DEBUG_global_state);
             }
     #endif
 #endif

@@ -9,6 +9,7 @@
 #include "c_base.h"
 
 #include "os_windows.h"
+#include "DEBUG_core.h"
 
 // TODO(Sleepster): UNICODE 
 
