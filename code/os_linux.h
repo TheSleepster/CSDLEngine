@@ -13,6 +13,16 @@
 
 typedef int os_handle_t;
 
+typedef struct os_file_check_event_data
+{
+    s32         file_data;
+    u32         last_move_cookie;
+    os_handle_t inotify_handle;
+
+    string_t    filename;
+    string_t    old_filename;
+}os_file_check_event_data_t;
+
 typedef struct file_watcher_watch_data
 {
     s32          inotify_instance;
@@ -20,11 +30,12 @@ typedef struct file_watcher_watch_data
     s64          inotify_bytes_read;
     s64          inotify_cursor;
 
-    hash_table_t directory_table;
+    os_file_check_event_data_t *directory_data[256];
+    u32                         directory_data_count;
 }file_watcher_os_watch_data_t;
 
-#define PLATFORM_THREAD_PROC(name) void *name(void *user_data)
+#define PLATFORM_THREAD_PROC(name) int name(void *user_data)
 typedef PLATFORM_THREAD_PROC(thread_proc_t);
 
-void *os_work_queue_entry_proc(void *user_data);
+int os_work_queue_entry_proc(void *lpParam);
 #endif

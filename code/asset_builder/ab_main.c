@@ -9,10 +9,9 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include <c_types.h>
-#undef internal
-#define internal static
+#include <SDL3/SDL.h>
 
+#include <c_types.h>
 #include <c_base.h>
 #include <c_types.h>
 #include <c_math.h>
@@ -21,6 +20,8 @@
 #include <c_string.h>
 #include <c_array.h>
 
+#undef internal
+#define internal static
 #include <os_platform_file.h>
 
 #include <s_multithreading_work_queue.h>
@@ -29,6 +30,8 @@
 #include <c_zone_allocator.h>
 #include <c_hash_table.h>
 #include <c_file_api.h>
+
+#define DEBUG_TIMED_BLOCK() 
 
 #include <c_zone_allocator.cpp>
 #include <c_memory_arena.cpp>

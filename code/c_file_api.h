@@ -46,10 +46,6 @@ typedef struct file
     bool8       for_writing;
 }file_t;
 
-typedef struct directory
-{
-}directory_t;
-
 typedef struct mapped_file_data
 {
     file_t      file;

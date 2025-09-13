@@ -11,27 +11,33 @@
 #include "c_types.h"
 
 #if OS_WINDOWS
-     typedef void* os_handle_t;
+    typedef void* os_semaphore_handle_t;
+    typedef void* os_mutex_handle_t;
+    typedef void* os_thread_handle_t;
 #elif OS_LINUX
-     typedef s32 os_handle_t;
+#include <SDL3/SDL.h>
+
+typedef SDL_Semaphore* os_semaphore_handle_t;
+typedef SDL_Mutex*     os_mutex_handle_t;
+typedef SDL_Thread*    os_thread_handle_t;
 #elif OS_MAC
 #endif
 
 typedef struct os_thread
 {
-    os_handle_t handle;
-    u32         thread_id;
-    void       *user_data;
+    os_thread_handle_t handle;
+    u32                thread_id;
+    void              *user_data;
 }os_thread_t;
 
 typedef struct os_mutex
 {
-    os_handle_t handle;
+    os_mutex_handle_t handle;
 }os_mutex_t;
 
 typedef struct os_semaphore
 {
-    os_handle_t handle;
+    os_semaphore_handle_t handle;
 }os_semaphore_t;
 
 #endif

@@ -115,7 +115,23 @@ os_work_queue_entry_proc(void *lpParam)
     }
 }
 #elif OS_LINUX | OS_MAC
-#error "Threading for this OS is not supported..."
+int
+os_work_queue_entry_proc(void *lpParam)
+{
+    multithreading_work_queue_manager_t *work_queue_manager = (multithreading_work_queue_manager_t*)lpParam;
+    for(;;)
+    {
+        if(s_work_queue_do_next_work_entry(&work_queue_manager->high_priority_queue))
+        {
+            if(s_work_queue_do_next_work_entry(&work_queue_manager->low_priority_queue))
+            {
+                os_semaphore_wait(&work_queue_manager->high_priority_queue.semaphore, 0);
+                log_info("Thread Sleeping...\n");
+            }
+        }
+    }
+}
+
 #else
 #error "Threading for this OS is not supported..."
 #endif

@@ -17,22 +17,33 @@
  */
 
 #if defined COMPILER_CLANG || defined COMPILER_GCC
-    #define true_inline __forceinline
     #if ARCH_X64
         #include <emmintrin.h>
         #include <xmmintrin.h>
         #include <immintrin.h>
+        #include <x86intrin.h>
+        #if OS_WINDOWS 
+            // NOTE(Sleepster): Read time stamp counter...
+            #define rdtsc()                  __rdtsc()
+            #define rdtscp(processor_id_out) __rdtscp(processor_id_out)
 
+            // NOTE(Sleepster): 3 intructions to get the thread ID as opposed to the 8 from GetCurrentThreadID on Windows
+            #define GetThreadID() *((u32*)(((u8*)__readgsqword(0x30)) + 0x48))
+            #define true_inline __forceinline
+        #elif OS_LINUX
+            // NOTE(Sleepster): Read time stamp counter...
+            #define rdtsc()                  (0)
+            #define rdtscp(processor_id_out) (0) 
+
+            // NOTE(Sleepster): 3 intructions to get the thread ID as opposed to the 8 from GetCurrentThreadID on Windows
+            #define GetThreadID() (0)   
+            #define true_inline __attribute__((always_inline))
+        #elif OS_MAC
+            #error "LMAO what hte fuck are you doing here???"
+        #endif
         #define PopCount16(value) __builtin_popcount((s16)value)
         #define PopCount32(value) __builtin_popcount((s32)value)
         #define PopCount64(value) __builtin_popcount((s64)value)
-
-        // NOTE(Sleepster): Read time stamp counter...
-        #define rdtsc()                  __rdtsc()
-        #define rdtscp(processor_id_out) __rdtscp(processor_id_out)
-
-        // NOTE(Sleepster): 3 intructions to get the thread ID as opposed to the 8 from GetCurrentThreadID on Windows
-        #define GetThreadID() *((u32*)(((u8*)__readgsqword(0x30)) + 0x48))
 
     /* ===========================================
        ================== FENCES =================

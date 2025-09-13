@@ -16,7 +16,7 @@
 #define DEBUG_TIMED_BLOCK()                                             \
     local_persist u32 DEBUG_record_index = (u32)-1;                     \
     if(DEBUG_record_index == (u32)-1)                                   \
-        DEBUG_record_index = DEBUG_register_performance_counter(__FILE__, __FUNCTION__, __LINE__); \
+        DEBUG_record_index = DEBUG_register_performance_counter((char *)__FILE__, (char *)__FUNCTION__, __LINE__); \
     new_timed_block_t block_timer_##__LINE__(DEBUG_record_index);        
 
 typedef struct render_group render_group_t;

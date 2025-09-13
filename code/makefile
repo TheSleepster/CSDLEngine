@@ -232,7 +232,7 @@ tests: $(TESTS_OUT)
 # -------------------------------------------------------------------------
 $(ASSET_FILE_BUILDER_OUT): $(ASSET_FILE_BUILDER_SRC) | ../build
 	@echo Building Asset File Builder...
-	$(SILENT)$(CC) $(CFLAGS) $(COMMON_INCLUDE_PATHS) -Wno-undefined-internal $(OS_DEFINE) $< $(PLATFORM_LIBS) -o $@ -MMD -MF ../build/asset_file_builder.d
+	$(SILENT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) -Wno-undefined-internal $(OS_DEFINE) $< $(PLATFORM_LIBS) -o $@ -MMD -MF ../build/asset_file_builder.d
 
 asset_file_builder: $(ASSET_FILE_BUILDER_OUT)
 

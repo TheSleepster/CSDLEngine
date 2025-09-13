@@ -260,6 +260,10 @@ main(int argc, char **argv)
 #endif
         }
     }
+    else
+    {
+        log_error("Cannot open an SDL_Window... Error: %s\n", SDL_GetError());
+    }
 
     return(0);
 }

@@ -11,10 +11,12 @@
 
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/inotify.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h> 
 #include <unistd.h>
+#include <dlfcn.h>
 #include <string.h> 
 
 internal inline void*
@@ -123,6 +125,44 @@ os_file_close(file_t *file_data)
         result = true;
     }
 
+    return(result);
+}
+
+internal bool8
+os_file_copy(string_t old_path, string_t new_path)
+{
+    bool8 result = false;
+    s32 old_file = open(C_STR(old_path), O_RDONLY);
+    if(old_file < 0)
+    {
+        log_error("Failure to open file '%s'...\n", strerror(errno));
+        return(result);
+    }
+
+    s32 new_file = open(C_STR(new_path), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if(new_file < 0)
+    {
+        close(old_file);
+        log_error("Cannot open file: '%s'... Error: %s\n", strerror(errno));
+        return(result);
+    }
+
+    u64 file_offset = 0;
+    u64 bytes_copied;
+
+    while((bytes_copied = copy_file_range(new_file, (__off64_t*)&file_offset, new_file, null, 1 << 20, 0)) > 0);
+    if(bytes_copied < 0)
+    {
+        close(old_file);
+        close(new_file);
+
+        log_error("Cannot copy file range... error: %s\n", strerror(errno));
+    }
+
+    close(old_file);
+    close(new_file);
+
+    result = true;
     return(result);
 }
 
@@ -308,9 +348,9 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
                 continue;
             }
 
-            visit_file_data->filename = c_string_make_heap(&global_context.temporary_arena, STR(entry->d_name));
-            string_t temp_name        = c_string_concat(&global_context.temporary_arena, filepath, STR("/"));
-            visit_file_data->fullname = c_string_concat(&global_context.temporary_arena, temp_name, visit_file_data->filename);
+            visit_file_data->filename = c_string_make_heap(&global_context->temporary_arena, STR(entry->d_name));
+            string_t temp_name        = c_string_concat(&global_context->temporary_arena, filepath, STR("/"));
+            visit_file_data->fullname = c_string_concat(&global_context->temporary_arena, temp_name, visit_file_data->filename);
 
             bool8 is_directory            = (entry->d_type == DT_DIR);
             visit_file_data->is_directory = is_directory;
@@ -332,15 +372,168 @@ os_directory_visit(string_t filepath, visit_file_data_t *visit_file_data)
                   filepath.data, strerror(errno));
     }
 }
+/* ===========================================
+   ======== MULTITHREADING FUNCTIONS =========
+   ===========================================*/
+#include <SDL3/SDL.h>
+
+internal inline s32
+os_get_cpu_count()
+{
+    s32 result = 0;
+    result = SDL_GetNumLogicalCPUCores();
+
+    return(result);
+}
+
+internal os_semaphore_t
+os_semaphore_create(s32 initial_thread_count, s32 max_thread_count)
+{
+    Assert(initial_thread_count < max_thread_count);
+    os_semaphore_t result = {};
+    os_semaphore_handle_t semaphore_handle = SDL_CreateSemaphore(initial_thread_count);
+    if(semaphore_handle != null)
+    {
+        result.handle = semaphore_handle;
+    }
+    else
+    {
+        log_error("Failed to create an SDL_Semaphore... Error: %s\n", SDL_GetError());
+    }
+
+    return(result);
+}
+
+internal inline void
+os_semaphore_close(os_semaphore_t *semaphore)
+{
+    Assert(semaphore         != null);
+    Assert(semaphore->handle != null);
+    SDL_DestroySemaphore(semaphore->handle);
+
+    semaphore->handle = null;
+}
+
+internal inline s32
+os_semaphore_release(os_semaphore_t *semaphore, s32 threads_to_release)
+{
+    Assert(semaphore         != null);
+    Assert(semaphore->handle != null);
+    s32 result = 0;
+
+    for(s32 awake_index = 0;
+        awake_index < threads_to_release;
+        ++awake_index)
+    {
+        SDL_SignalSemaphore(semaphore->handle);
+        result++;
+    }
+
+    return(result);
+}
+
+internal inline bool8
+os_semaphore_destroy(os_semaphore_t *semaphore)
+{
+    Assert(semaphore         != null);
+    Assert(semaphore->handle != null);
+        
+    SDL_DestroySemaphore(semaphore->handle);
+    semaphore->handle = null;
+
+    return(true);
+}
+
+internal inline void
+os_semaphore_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
+{
+    if(wait_duration_ms == 0)
+    {
+        SDL_WaitSemaphore(semaphore->handle);
+    }
+    else
+    {
+        SDL_WaitSemaphoreTimeout(semaphore->handle, wait_duration_ms);
+    }
+}
+
+internal os_thread_t
+os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
+{
+    os_thread_t result;
+    result.handle    = SDL_CreateThread((SDL_ThreadFunction)proc, null, user_data);
+    if(result.handle)
+    {
+        result.user_data = user_data;
+        result.thread_id = SDL_GetThreadID(result.handle);
+        if(close_handle)
+        {
+            SDL_DetachThread(result.handle);
+            result.handle = null;
+        }
+    }
+    else
+    {
+        log_error("Could not create an SDL_Thread... Error: %s\n", SDL_GetError());
+    }
+
+    return(result);
+}
+
+internal inline bool8
+os_thread_close_handle(os_thread_t *thread_data)
+{
+    Assert(thread_data);
+    Assert(thread_data->handle);
+    SDL_WaitThread(thread_data->handle, null);
+
+    return(true);
+}
+
+internal inline os_mutex_t
+os_mutex_create()
+{
+    os_mutex_t result;
+    result.handle = SDL_CreateMutex();
+    if(result.handle == null)
+    {
+        log_error("Failure to generate an SDL_Mutex... Error: %s\n", SDL_GetError());
+    }
+    return(result);
+}
+
+internal inline void
+os_mutex_free(os_mutex_t *mutex)
+{
+    Assert(mutex);
+    Assert(mutex->handle);
+
+    SDL_DestroyMutex(mutex->handle);
+    mutex->handle = null;
+}
+
+internal inline bool8
+os_mutex_lock(os_mutex_t *mutex)
+{
+    bool8 result = SDL_TryLockMutex(mutex->handle);
+    return(result);
+}
+
+internal inline bool8
+os_mutex_unlock(os_mutex_t *mutex)
+{
+    SDL_UnlockMutex(mutex->handle);
+    return(true);
+}
 
 /*===========================================
   =============== FILE WATCHER ==============
   ===========================================*/
 
 internal void
-os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data *watch_data)
+os_file_watcher_init_watch_data(memory_arena_t *arena, file_watcher_os_watch_data_t *watch_data)
 {
-    watch_data->inotify_instance = inotify_init(IN_NONBLOCK);
+    watch_data->inotify_instance = inotify_init1(IN_NONBLOCK);
     if(watch_data->inotify_instance == -1)
     {
         log_error("Could not init an Inotify instance... error: %s...\n", strerror(errno));
@@ -353,7 +546,7 @@ internal bool8
 os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
 {
     bool8 result = false;
-    string_t filepath = c_string_make_copy(path);
+    string_t filepath = c_string_make_copy(&watcher->watcher_arena, path);
 
     u32 flags = 0;
     if(watcher->events_to_monitor & FWC_EVENT_ADDED)
@@ -366,34 +559,234 @@ os_file_watcher_add_path(file_watcher_t *watcher, string_t path)
     }
     if(watcher->events_to_monitor & FWC_EVENT_MOVED)
     {
-        flags |= IN_MOVED_TO|IN_MOVE_SELF;
+        flags |= IN_MOVED_TO|IN_MOVED_FROM|IN_MOVE_SELF;
     }
     if(watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
     {
-        flags |= IN_ATTRIB
+        flags |= IN_ATTRIB;
     }
-    if(watcher->events_to_monitor & FWC_DELETED)
+    if(watcher->events_to_monitor & FWC_EVENT_DELETED)
     {
-        flags |= IN_DELETE|IN_DELETE_SELF|IM_MOVED_FROM
-    }
-
-    s32 watch_handle = inotify_add_watch(watcher->os_watch_data, filepath.data, flags);
-    if(watch_handle == -1)
-    {
-        log_error("Could not watch pathL '%s'... error: '%s'...\n", filepath.data, strerror(errno));
-        return;
+        flags |= IN_DELETE|IN_DELETE_SELF;
     }
 
-    string_t last_path = c_hash_get_value(&watcher->os_watch_data.directory_table, watch_handle);
-    if(c_string_compare(last_path, filepath))
+    os_file_check_event_data_t *directory = c_arena_push_struct(&watcher->watcher_arena, os_file_check_event_data_t);
+    if(directory)
     {
-        log_warning("Filepath '%s' is already being watched...\n", filepath);
-    }
-    else
-    {
-        c_hash_insert_kv_pair(&watcher->os_watch_data.directory_table, watch_handle, filepath);
+        directory->file_data      = os_file_open(path, false, false, false).handle;
+        directory->filename       = c_string_make_copy(&watcher->watcher_arena, c_string_get_filename_from_path(path));
+        directory->inotify_handle = inotify_add_watch(watcher->os_watch_data.inotify_instance, C_STR(filepath), flags);
+        if(directory->inotify_handle == -1)
+        {
+            log_error("Could not watch path '%s'... error: '%s'...\n", filepath.data, strerror(errno));
+            return(result);
+        }
+
+        u32 count = watcher->os_watch_data.directory_data_count++;
+        watcher->os_watch_data.directory_data[count] = directory; 
+
         result = true;
     }
-
     return(result);
+}
+
+internal void
+os_file_watcher_issue_check(file_watcher_t *watcher, os_file_check_event_data_t *directory_data)
+{
+    (void)watcher;
+    (void)directory_data;
+}
+
+internal void
+os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
+{
+    file_watcher_os_watch_data_t *osdata = &watcher->os_watch_data;
+    s32 inotify_instance = osdata->inotify_instance;
+    if(inotify_instance == -1) return;
+
+    s64 bytes_read = read(inotify_instance, osdata->inotify_data, KB(10));
+    if(bytes_read == -1)
+    {
+        if(errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            return;
+        }
+        else
+        {
+            log_error("inotify read error: %s\n", strerror(errno));
+            return;
+        }
+    }
+    if(bytes_read == 0) return;
+
+    u64 offset = 0;
+    while(offset < (u64)bytes_read)
+    {
+        struct inotify_event *event = (struct inotify_event*)((byte*)osdata->inotify_data + offset);
+
+        os_file_check_event_data_t *directory_data = NULL;
+        for(u32 i = 0; i < watcher->os_watch_data.directory_data_count; ++i)
+        {
+            os_file_check_event_data_t *found = watcher->os_watch_data.directory_data[i];
+            if(found && found->inotify_handle == event->wd)
+            {
+                directory_data = found;
+                break;
+            }
+        }
+
+        if(!directory_data)
+        {
+            u64 this_event_size = IntFromPtr(OffsetOf(struct inotify_event, name) + event->len);
+            offset += this_event_size;
+            continue;
+        }
+
+        string_t base_path = directory_data->filename;
+
+        string_t name_str = STR("");
+        if(event->len)
+        {
+            name_str = STR(event->name);
+        }
+
+        string_t full_path = c_string_concat(&global_context->temporary_arena, base_path, name_str);
+        c_string_override_file_separators(&full_path);
+
+        if(event->mask & IN_Q_OVERFLOW)
+        {
+            c_file_watcher_add_change_event(watcher,
+                                            directory_data->filename,
+                                            STR(""),
+                                            directory_data,
+                                            FWC_EVENT_MODIFIED|FWC_EVENT_SCAN_CHILDREN);
+        }
+        else
+        {
+            u32 change_events = 0;
+
+            if(event->mask & IN_CREATE)
+            {
+                change_events |= FWC_EVENT_ADDED;
+            }
+            if(event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE)
+            {
+                change_events |= FWC_EVENT_MODIFIED;
+            }
+            if(event->mask & IN_ATTRIB)
+            {
+                change_events |= FWC_EVENT_ATTRIBUTE_CHANGE;
+            }
+            if(event->mask & IN_DELETE)
+            {
+                change_events |= FWC_EVENT_DELETED;
+            }
+
+            if(event->mask & IN_MOVED_FROM)
+            {
+                directory_data->old_filename = c_string_make_copy(&global_context->temporary_arena, full_path);
+                directory_data->last_move_cookie = event->cookie;
+            }
+            if(event->mask & IN_MOVED_TO)
+            {
+                if(directory_data->last_move_cookie != 0 && directory_data->last_move_cookie == event->cookie)
+                {
+                    change_events |= (FWC_EVENT_MOVED | FWC_EVENT_RENAMED);
+                    c_file_watcher_add_change_event(watcher, full_path, directory_data->old_filename, directory_data, change_events);
+
+                    directory_data->last_move_cookie = 0;
+                    directory_data->old_filename = STR("");
+                }
+                else
+                {
+                    change_events |= FWC_EVENT_ADDED;
+                    c_file_watcher_add_change_event(watcher, full_path, STR(""), directory_data, change_events);
+                }
+            }
+
+            bool emitted_by_prev_branch = ((event->mask & IN_MOVED_TO) && directory_data->last_move_cookie == 0 );
+            if(!emitted_by_prev_branch)
+            {
+                if(change_events != 0 && !(event->mask & IN_MOVED_TO))
+                {
+                    if(watcher->watch_recursively && (event->mask & IN_ISDIR) && (event->mask & (IN_CREATE|IN_MOVED_TO)))
+                    {
+                        u32 event_flags = 0;
+                        if (watcher->events_to_monitor & FWC_EVENT_ADDED)
+                        {
+                            event_flags |= IN_CREATE;
+                        }
+                        if (watcher->events_to_monitor & FWC_EVENT_MODIFIED)
+                        {
+                            event_flags |= IN_MODIFY | IN_CLOSE_WRITE;
+                        }
+                        if (watcher->events_to_monitor & FWC_EVENT_MOVED)
+                        {
+                            event_flags |= IN_MOVED_FROM | IN_MOVED_TO | IN_MOVE_SELF;
+                        }
+                        if (watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
+                        {
+                            event_flags |= IN_ATTRIB;
+                        }
+                        if (watcher->events_to_monitor & FWC_EVENT_DELETED)
+                        {
+                            event_flags |= IN_DELETE | IN_DELETE_SELF;
+                        }
+
+                        int sub_wd = inotify_add_watch(inotify_instance,
+                                                       C_STR(full_path),
+                                                       event_flags);
+                        if(sub_wd != -1)
+                        {
+                            os_file_check_event_data_t *new_dir = c_arena_push_struct(&watcher->watcher_arena, os_file_check_event_data_t);
+                            if(new_dir)
+                            {
+                                new_dir->file_data = os_file_open(full_path, false, false, false).handle;
+                                new_dir->filename  = c_string_make_copy(&watcher->watcher_arena, full_path);
+                                new_dir->inotify_handle = sub_wd;
+                                new_dir->last_move_cookie = 0;
+                                new_dir->old_filename = STR("");
+                                u32 idx = watcher->os_watch_data.directory_data_count++;
+                                watcher->os_watch_data.directory_data[idx] = new_dir;
+                            }
+                        }
+                    }
+
+                    c_file_watcher_add_change_event(watcher, full_path, STR(""), directory_data, change_events);
+                }
+            }
+        }
+
+        size_t this_event_size = offsetof(struct inotify_event, name) + event->len;
+        offset += this_event_size;
+    }
+
+    c_file_watcher_emit_changes(watcher);
+}
+
+internal void*
+os_load_library(string_t filepath)
+{
+    void *result = dlopen(C_STR(filepath), RTLD_NOW);
+    return result;
+}
+
+internal void
+os_free_library(void *library)
+{
+    if(library)
+    {
+        dlclose(library);
+    }
+}
+
+internal void*
+os_get_proc_address(void *library, string_t procedure)
+{
+    void *result = null;
+    if(library)
+    {
+        result = dlsym(library, C_STR(procedure));
+    }
+    return result;
 }

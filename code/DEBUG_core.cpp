@@ -306,14 +306,14 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
         {
             char buffer[4096] = {};
 
-            _snprintf_s(buffer,
-                        sizeof(buffer),
-                        "%-42s(%4d): %10llucy, %5lluh, %10llucy/h",
-                        record->block_name,
-                        record->line_number,
-                        snapshot_data->cycle_count,
-                        snapshot_data->hit_count,
-                        snapshot_data->cycle_count / snapshot_data->hit_count);
+            snprintf(buffer,
+                     sizeof(buffer),
+                     "%-42s(%4d): %10lucy, %5luh, %10lucy/h",
+                     record->block_name,
+                     record->line_number,
+                     snapshot_data->cycle_count,
+                     snapshot_data->hit_count,
+                     snapshot_data->cycle_count / snapshot_data->hit_count);
             
             r_draw_string(asset_manager,
                           render_state,
