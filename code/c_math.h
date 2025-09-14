@@ -23,7 +23,9 @@
      - Matrix4x4 Functions
 
      - Quaternion Functions
-  
+
+     - Rectangle Functions
+     - Cube Functions
   TODO:
 
   SSE2 SIMD (mm128) ON ALL FUNCTIONS POSSIBLE
@@ -124,6 +126,25 @@ f32_approach(float32 *value, float32 target, float32 rate, float32 delta_t)
     {
         *value = target;
     }
+}
+
+internal inline float32
+f32_ease_out_quad(float32 x)
+{
+    return(1 - (1 - x) * (1 - x));
+}
+
+internal inline float32
+f32_sin_breathe_normalized(float32 time, float32 modifier, float32 min, float32 max)
+{
+    float32 sinevalue = (sinf(modifier * 2 * PI32 * time) + 1.0f) / 2.0f;
+    return(min + (max - min) * sinevalue);
+}
+
+internal inline float32
+f32_sin_breathe(float32 time, float32 modifier)
+{
+    return(sinf(time * modifier));
 }
 
 /*===========================================
@@ -1868,6 +1889,77 @@ mat4_inverse_ortho(mat4_t orthographic_projection)
     result.elements[3][2] = -orthographic_projection.elements[3][2] * result.elements[2][2];
 
     return(result);
+}
+
+/*==============================================
+  ================= RECTANGLES =================
+  ==============================================*/
+
+typedef struct rectangle2
+{
+    vec2_t min;
+    vec2_t max;
+}rectangle2_t;
+
+internal rectangle2_t
+rect_create(vec2_t min, vec2_t max)
+{
+    rectangle2_t result;
+    result.min = min;
+    result.max = max;
+
+    return(result);
+}
+
+internal rectangle2_t
+rect_shift_by(rectangle2_t rect, vec2_t shift)
+{
+    rectangle2_t result = rect;
+    rect.min = vec2_add(rect.min, shift);
+    rect.max = vec2_add(rect.max, shift);
+
+    return(result);
+}
+
+internal vec2_t 
+rect_get_center(rectangle2_t rect)
+{
+    vec2_t result;
+    result.x = rect.min.x + (rect.max.x * 0.5f);
+    result.y = rect.min.y + (rect.max.y * 0.5f);
+}
+
+internal rectangle2_t
+rect_make_centered(rectangle2_t rect)
+{
+    rectangle2_t result;
+    result.min = vec2_add(rect.min, vec2_multiply(rect.max, vec2_create_float(0.5f)));
+    result.max = vec2_add(rect.max, vec2_multiply(rect.max, vec2_create_float(0.5f)));
+}
+
+internal vec2_t
+rect_get_size(rectangle2_t rect)
+{
+    vec2_t result;
+    vec2_t size = vec2_subtract(rect.min, range.max);
+    result.x    = fabsf(size.x);
+    result.y    = fabsf(size.y);
+
+    return(result);
+}
+
+internal bool8
+rect_vec2_test(rectangle2_t rect, vec2_t point)
+{
+    return (point.x >= rect.min.x && point.x <= rect.max.x && 
+            point.y >= rect.min.y && point.y <= rect.max.y);
+}
+
+internal bool8
+rect_AABB_test(rectangle2_t A, rectangle2_t B)
+{
+    return (A.min.x >= B.min.x && A.max.x <= B.max.x && 
+            A.min.y >= B.min.y && A.max.y <= B.max.y);
 }
 
 #endif

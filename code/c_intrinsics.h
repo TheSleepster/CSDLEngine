@@ -22,6 +22,7 @@
         #include <xmmintrin.h>
         #include <immintrin.h>
         #include <x86intrin.h>
+
         #if OS_WINDOWS 
             // NOTE(Sleepster): Read time stamp counter...
             #define rdtsc()                  __rdtsc()
@@ -41,6 +42,7 @@
         #elif OS_MAC
             #error "LMAO what hte fuck are you doing here???"
         #endif
+
         #define PopCount16(value) __builtin_popcount((s16)value)
         #define PopCount32(value) __builtin_popcount((s32)value)
         #define PopCount64(value) __builtin_popcount((s64)value)

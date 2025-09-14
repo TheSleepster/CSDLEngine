@@ -308,7 +308,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
 
             snprintf(buffer,
                      sizeof(buffer),
-                     "%-42s(%4d): %10lucy, %5luh, %10lucy/h",
+                     "%-42s(%4d): %10llucy, %5lluh, %10llucy/h",
                      record->block_name,
                      record->line_number,
                      snapshot_data->cycle_count,

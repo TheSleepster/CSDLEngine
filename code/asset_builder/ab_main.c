@@ -22,6 +22,9 @@
 
 #undef internal
 #define internal static
+#if OS_WINDOWS
+#define true_inline inline
+#endif
 #include <os_platform_file.h>
 
 #include <s_multithreading_work_queue.h>
@@ -31,7 +34,9 @@
 #include <c_hash_table.h>
 #include <c_file_api.h>
 
-#define DEBUG_TIMED_BLOCK() 
+#if OS_LINUX
+#define DEBUG_TIMED_BLOCK()
+#endif
 
 #include <c_zone_allocator.cpp>
 #include <c_memory_arena.cpp>

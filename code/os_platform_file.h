@@ -74,13 +74,11 @@ internal inline bool8          os_mutex_lock(os_mutex_t *mutex);
 internal inline bool8          os_mutex_unlock(os_mutex_t *mutex);
 
 #if OS_WINDOWS
-# include "os_windows.cpp"
-
+    #include "os_windows.cpp"
 #elif OS_LINUX
-# include "os_linux.cpp"
-
+    #include "os_linux.cpp"
 #elif OS_MAC
-# error "lmao really?"
+    #error "lmao really?"
 #endif
 
 #endif
