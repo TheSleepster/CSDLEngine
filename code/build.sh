@@ -1,2 +1,2 @@
 #!/bin/bash
-bear -- make SILENT=@
+bear --output "../misc/compile_commands.json" -- make SILENT=@ DEBUG=1 DEVELOPER_BUILD=0

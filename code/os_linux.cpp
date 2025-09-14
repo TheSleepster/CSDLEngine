@@ -468,7 +468,7 @@ os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
         result.thread_id = SDL_GetThreadID(result.handle);
         if(close_handle)
         {
-            SDL_DetachThread(result.handle);
+            //SDL_DetachThread(result.handle);
             result.handle = null;
         }
     }
@@ -485,7 +485,7 @@ os_thread_close_handle(os_thread_t *thread_data)
 {
     Assert(thread_data);
     Assert(thread_data->handle);
-    SDL_WaitThread(thread_data->handle, null);
+    //SDL_WaitThread(thread_data->handle, null);
 
     return(true);
 }

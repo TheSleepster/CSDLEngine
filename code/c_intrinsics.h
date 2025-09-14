@@ -33,7 +33,7 @@
             #define true_inline __forceinline
         #elif OS_LINUX
             // NOTE(Sleepster): Read time stamp counter...
-            #define rdtsc()                  (0)
+            #define rdtsc()                  __rdtsc()
             #define rdtscp(processor_id_out) (0) 
 
             // NOTE(Sleepster): 3 intructions to get the thread ID as opposed to the 8 from GetCurrentThreadID on Windows

@@ -520,6 +520,17 @@ os_semaphore_destroy(os_semaphore_t *semaphore)
     return(result);
 }
 
+internal inline void
+os_semaphore_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
+{
+    Assert(semaphore);
+    if(wait_duration_ms == 0)
+    {
+        wait_duration_ms = INFINITE;
+    }
+    WaitForSingleObjectEx(semaphore->handle, wait_duration_ms, FALSE);
+}
+
 internal os_thread_t
 os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
 {
@@ -539,17 +550,6 @@ os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
     }
 
     return(result);
-}
-
-internal inline void
-os_semaphore_wait(os_semaphore_t *semaphore, u64 wait_duration_ms)
-{
-    Assert(semaphore);
-    if(wait_duration_ms == 0)
-    {
-        wait_duration_ms = INFINITE;
-    }
-    WaitForSingleObjectEx(semaphore->handle, wait_duration_ms, FALSE);
 }
 
 internal inline bool8
