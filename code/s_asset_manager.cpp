@@ -163,6 +163,8 @@ s_asset_load_data_async(void *user_data)
     s_asset_system_work_data_t *work_data = (s_asset_system_work_data_t*)user_data;
     
     string_t result = {};
+    // TODO(Sleepster): This mutex is not in the right spot... Why is it here and not actually in c_za_alloc and c_za_free????? 
+    // Like I guess this is fine if this is the only path of allocation on multiple threads... but still.
     if(os_mutex_lock(&work_data->zone->mutex))
     {
         if(work_data->slot_data->asset_file_data_offset > 0 &&
