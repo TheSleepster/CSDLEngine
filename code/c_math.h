@@ -1927,21 +1927,25 @@ rect_get_center(rectangle2_t rect)
     vec2_t result;
     result.x = rect.min.x + (rect.max.x * 0.5f);
     result.y = rect.min.y + (rect.max.y * 0.5f);
+
+    return(result);
 }
 
 internal rectangle2_t
 rect_make_centered(rectangle2_t rect)
 {
     rectangle2_t result;
-    result.min = vec2_add(rect.min, vec2_multiply(rect.max, vec2_create_float(0.5f)));
-    result.max = vec2_add(rect.max, vec2_multiply(rect.max, vec2_create_float(0.5f)));
+    result.min = vec2_add(rect.min, vec2_multiply(rect.max, vec2_create_float(0.5f, 0.5f)));
+    result.max = vec2_add(rect.max, vec2_multiply(rect.max, vec2_create_float(0.5f, 0.5f)));
+
+    return(result);
 }
 
 internal vec2_t
 rect_get_size(rectangle2_t rect)
 {
     vec2_t result;
-    vec2_t size = vec2_subtract(rect.min, range.max);
+    vec2_t size = vec2_subtract(rect.min, rect.max);
     result.x    = fabsf(size.x);
     result.y    = fabsf(size.y);
 
