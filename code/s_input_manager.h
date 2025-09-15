@@ -126,22 +126,24 @@ internal bool8               s_input_manager_is_alt_key_down(input_controller_t 
 /*==============================================
   =============== KEYBOARD INPUT ===============
   ==============================================*/
-internal bool8 s_input_manager_is_keyboard_key_pressed(input_controller_t *controller, s32 key_index);
-internal bool8 s_input_manager_is_keyboard_key_down(input_controller_t *controller, s32 key_index);
-internal bool8 s_input_manager_is_keyboard_key_released(input_controller_t *controller, s32 key_index);
-internal void  s_input_manager_consume_keyboard_key_press(input_controller_t *controller, s32 key_index);
-internal void  s_input_manager_consume_keyboard_key_down(input_controller_t *controller, s32 key_index);
-internal void  s_input_manager_consume_keyboard_key_release(input_controller_t *controller, s32 key_index);
+internal vec2_t s_input_manager_transform_mouse_data(input_controller_t *controller,mat4_t view_matrix, mat4_t projection_matrix);
+
+internal bool8  s_input_manager_is_keyboard_key_pressed(input_controller_t *controller, s32 key_index);
+internal bool8  s_input_manager_is_keyboard_key_down(input_controller_t *controller, s32 key_index);
+internal bool8  s_input_manager_is_keyboard_key_released(input_controller_t *controller, s32 key_index);
+internal void   s_input_manager_consume_keyboard_key_press(input_controller_t *controller, s32 key_index);
+internal void   s_input_manager_consume_keyboard_key_down(input_controller_t *controller, s32 key_index);
+internal void   s_input_manager_consume_keyboard_key_release(input_controller_t *controller, s32 key_index);
 
 /*=============================================
   =============== GAMEPAD INPUT ===============
   =============================================*/
-internal bool8 s_input_manager_is_gamepad_button_pressed(input_controller_t *controller, s32 button_index);
-internal bool8 s_input_manager_is_gamepad_button_down(input_controller_t *controller, s32 button_index);
-internal bool8 s_input_manager_is_gamepad_button_released(input_controller_t *controller, s32 button_index);
-internal void  s_input_manager_consume_gamepad_button_press(input_controller_t *controller, s32 button_index);
-internal void  s_input_manager_consume_gamepad_button_down(input_controller_t *controller, s32 button_index);
-internal void  s_input_manager_consume_gamepad_button_release(input_controller_t *controller, s32 button_index);
+internal bool8  s_input_manager_is_gamepad_button_pressed(input_controller_t *controller, s32 button_index);
+internal bool8  s_input_manager_is_gamepad_button_down(input_controller_t *controller, s32 button_index);
+internal bool8  s_input_manager_is_gamepad_button_released(input_controller_t *controller, s32 button_index);
+internal void   s_input_manager_consume_gamepad_button_press(input_controller_t *controller, s32 button_index);
+internal void   s_input_manager_consume_gamepad_button_down(input_controller_t *controller, s32 button_index);
+internal void   s_input_manager_consume_gamepad_button_release(input_controller_t *controller, s32 button_index);
 
 /*===========================================
   ============= GAME ACTION API =============

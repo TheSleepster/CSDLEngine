@@ -234,6 +234,27 @@ s_input_manager_get_active_controller(input_manager_t *input_manager)
   =============== KEYBOARD INPUT ===============
   ==============================================*/
 
+internal vec2_t
+s_input_manager_transform_mouse_data(input_controller_t *controller,
+                                     mat4_t             view_matrix,
+                                     mat4_t             projection_matrix)
+{
+    vec2_t result;
+
+    vec2_t mouse_pos   = controller->keyboard.current_mouse_pos;
+    vec2_t window_size = global_context->window_size;
+    vec4_t ndc_pos     = vec4_create_float4(mouse_pos.x / (window_size.x * 0.5f), mouse_pos.y / (window_size.y * 0.5f), 0.0f, 1.0f);
+
+    mat4_t inverse_projection = mat4_invert(projection_matrix);
+    mat4_t inverse_view       = mat4_invert(view_matrix);
+
+    ndc_pos = vec4_transform(inverse_projection, ndc_pos);
+    ndc_pos = vec4_transform(inverse_view,    ndc_pos);
+
+    result = ndc_pos.xy;
+    return(result);
+}
+
 internal bool8
 s_input_manager_is_keyboard_key_pressed(input_controller_t *controller, s32 key_index)
 {

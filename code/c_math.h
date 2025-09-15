@@ -169,6 +169,18 @@ typedef struct vec2
         {
             float32 xy[2];
         };
+
+        struct
+        {
+            float32 z;
+            float32 w;
+        };
+
+        struct 
+        {
+            float32 u;
+            float32 v;
+        };
     };
 }vec2_t;
 
@@ -207,8 +219,8 @@ typedef struct vec4
 
         struct
         {
-            float32 xy[2];
-            float32 zw[2];
+            vec2_t xy;
+            vec2_t zw;
         };
 
         struct

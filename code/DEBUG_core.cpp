@@ -282,7 +282,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                     float32 clock_range = current_frame->end_clock - current_frame->begin_clock;
                     if(clock_range > 0.0f)
                     {
-                        float32 new_frame_bar_scale = 1.0f / clock_range;
+                        float32 new_frame_bar_scale = (1.0f / clock_range) * 2.0f;
                         if(DEBUG_global_state->frame_bar_scale < new_frame_bar_scale)
                         {
                             DEBUG_global_state->frame_bar_scale = new_frame_bar_scale;
@@ -324,9 +324,9 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                      "%-42s(%4d): %10llucy, %5lluh, %10llucy/h",
                      record->block_name,
                      record->line_number,
-                     snapshot_data->cycle_count,
-                     snapshot_data->hit_count,
-                     snapshot_data->cycle_count / snapshot_data->hit_count);
+                     (unsigned long long)snapshot_data->cycle_count,
+                     (unsigned long long)snapshot_data->hit_count,
+                     (unsigned long long)(snapshot_data->cycle_count / snapshot_data->hit_count));
             
             r_draw_string(asset_manager,
                           render_state,
@@ -357,7 +357,11 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
 }
 
 internal void
-DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font_handle, vec2_t ending_pos)
+DEBUG_render_section_graph(asset_manager_t    *asset_manager, 
+                           render_state_t     *render_state, 
+                           asset_handle_t      font_handle, 
+                           vec2_t              ending_pos,
+                           input_controller_t *controller)
 {
     DEBUG_frame_data *frame_data = DEBUG_global_state->frame_data + DEBUG_global_state->last_frame_index;
     if(frame_data)
@@ -378,7 +382,7 @@ DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *rende
 
         float32 lane_width   = 20.0f;
         float32 chart_height = 300.0f; 
-        float32 chart_min_y  = starting_graph_pos.y - (chart_height + 80.0f);
+        float32 chart_min_y  = starting_graph_pos.y - chart_height;
         for(u32 section_index = 0;
             section_index < frame_data->frame_section_count;
             ++section_index)
@@ -386,18 +390,44 @@ DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *rende
             DEBUG_frame_section_t *section = frame_data->frame_sections + section_index;
             vec4_t color = colors[section_index % ArrayCount(colors)];
 
-            float32 stackx = 10.0f + bar_spacing.x * (float32)section_index;
+            float32 stackx = starting_graph_pos.x + bar_spacing.x * (float32)section_index;
             float32 stacky = chart_min_y;
-
             float32 bar_min_t = stacky + (section->min_clocks * DEBUG_global_state->frame_bar_scale);
             float32 bar_max_t = stacky + (section->max_clocks * DEBUG_global_state->frame_bar_scale);
-            r_draw_rect(render_state, vec2_create_float(stackx, stacky), vec2_create_float(lane_width, bar_max_t - bar_min_t), color, 0, RQO_NONE);
+
+            vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
+            vec2_t rect_pos = vec2_create_float(stackx, stacky);
+
+            r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
+            rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));
+
+            vec2_t mouse_cursor_pos = s_input_manager_transform_mouse_data(controller,
+                                                                           render_state->draw_frame.active_render_group->render_desc.view_matrix, 
+                                                                           render_state->draw_frame.active_render_group->render_desc.projection_matrix);
+            if(rect_vec2_test(cursor_box, mouse_cursor_pos))
+            {
+                char buffer[4096] = {};
+                sprintf(buffer,
+                        "%s: [%s, %d]\nFrom thread: %llu",
+                       section->record->block_name,
+                       section->record->filename,
+                       section->record->line_number,
+                       (unsigned long long)section->owner_thread_id);
+                r_draw_string(asset_manager,
+                              render_state,
+                              STR(buffer),
+                              font_handle,
+                              24,
+                              rect_pos,
+                              vec4_create(1.0f),
+                              RQO_NONE);
+            }
         }
     }
 }
 
 internal void
-DEBUG_render_group_to_output(asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
+DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
 {
     if(DEBUG_global_state->overlay_active)
     {
@@ -413,7 +443,7 @@ DEBUG_render_group_to_output(asset_manager_t *asset_manager, render_state_t *ren
                                                                        RGP_PostBlitPass);
         r_begin_renderpass(render_state, &DEBUG_group_desc);
         vec2_t ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
-        DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos);
+        DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
         r_end_renderpass(render_state);
 
         render_group_desc_t DEBUG_group_desc_transparent = DEBUG_group_desc;

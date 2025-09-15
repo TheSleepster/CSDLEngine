@@ -14,8 +14,6 @@
 #define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) g_update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
 #endif
 
-global bool8 running;
-
 struct game_dll_data_t
 {
     void                     *game_lib;
@@ -141,7 +139,7 @@ FILE_WATCHER_CALLBACK(test_callback)
 }
 
 internal void
-c_process_window_events(input_manager_t *input_manager)
+c_process_window_events(SDL_Window *window, input_manager_t *input_manager)
 {
     SDL_Event event;
     while(SDL_PollEvent(&event))
@@ -151,10 +149,11 @@ c_process_window_events(input_manager_t *input_manager)
         {
             case SDL_EVENT_QUIT:
             {
-                running = false;
+                global_context->running = false;
             }break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             {
+                SDL_GetWindowSizeInPixels(window, (s32*)&global_context->window_size.x, (s32*)&global_context->window_size.y);
             }break;
         }
     }
@@ -218,16 +217,16 @@ main(int argc, char **argv)
         c_file_watcher_issue_check_over_all_paths(&watcher);
         input_controller_t *controller = s_input_manager_get_primary_controller(&input_manager);
 
-        running = true;
-        while(running)
+        global_context->running = true;
+        while(global_context->running)
         {
             s_input_manager_reset_controller_states(&input_manager);
-            c_process_window_events(&input_manager);
+            c_process_window_events(window, &input_manager);
             c_file_watcher_process_changes(&watcher);
 
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
             game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
-            DEBUG_render_group_to_output(&asset_manager, &render_state, frame_time_in_ms);
+            DEBUG_render_group_to_output(controller, &asset_manager, &render_state, frame_time_in_ms);
 
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);

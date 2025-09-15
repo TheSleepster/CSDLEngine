@@ -75,10 +75,10 @@
 #elif defined(__aarch_64__)
 # define ARCH_ARM64 1
 #else
-# error cannot find ARCH...
+# error "cannot find ARCH..."
 #endif
 #else
-# error unable to distinguish this compiler...
+# error "unable to distinguish this compiler..."
 #endif
 
 // COMPILERS
@@ -207,13 +207,18 @@ typedef void void_func(void);
 */
 
 // USE ARENAS NOT MALLOC
+
+#include "c_types.h"
+#include "c_math.h"
 typedef struct global_context
 {
     // NOTE(Sleepster): Persistent allocations... Use sparingly... 
     memory_arena_t context_arena;
-
     // NOTE(Sleepster): Resets "per-frame" 
     memory_arena_t temporary_arena;
+
+    bool8  running;
+    vec2_t window_size;
 }global_context_t;
 
 global global_context_t *global_context;
