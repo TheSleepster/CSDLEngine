@@ -375,12 +375,23 @@ DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *rende
         
         vec2_t starting_graph_pos = ending_pos; 
         vec2_t bar_spacing        = vec2_create_float(10.0f, 0.0f);
+
+        float32 lane_width   = 20.0f;
+        float32 chart_height = 300.0f; 
+        float32 chart_min_y  = starting_graph_pos.y - (chart_height + 80.0f);
         for(u32 section_index = 0;
             section_index < frame_data->frame_section_count;
             ++section_index)
         {
             DEBUG_frame_section_t *section = frame_data->frame_sections + section_index;
             vec4_t color = colors[section_index % ArrayCount(colors)];
+
+            float32 stackx = 10.0f + bar_spacing.x * (float32)section_index;
+            float32 stacky = chart_min_y;
+
+            float32 bar_min_t = stacky + (section->min_clocks * DEBUG_global_state->frame_bar_scale);
+            float32 bar_max_t = stacky + (section->max_clocks * DEBUG_global_state->frame_bar_scale);
+            r_draw_rect(render_state, vec2_create_float(stackx, stacky), vec2_create_float(lane_width, bar_max_t - bar_min_t), color, 0, RQO_NONE);
         }
     }
 }

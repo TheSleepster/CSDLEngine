@@ -38,9 +38,9 @@
       "../build/Thor_debug",
       "../code/main.cpp"
     ],
-    "directory": "/home/justin/personal/projects/c++stuff/new_sdl_proj/code",
-    "file": "/home/justin/personal/projects/c++stuff/new_sdl_proj/code/main.cpp",
-    "output": "/home/justin/personal/projects/c++stuff/new_sdl_proj/build/Thor_debug"
+    "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
+    "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/main.cpp",
+    "output": "/home/justin/personal/projects/c++stuff/CSDLEngine/build/Thor_debug"
   },
   {
     "arguments": [
@@ -74,8 +74,8 @@
       "-debug-info-kind=constructor",
       "-dwarf-version=5",
       "-debugger-tuning=gdb",
-      "-fdebug-compilation-dir=/home/justin/personal/projects/c++stuff/new_sdl_proj/code",
-      "-fcoverage-compilation-dir=/home/justin/personal/projects/c++stuff/new_sdl_proj/code",
+      "-fdebug-compilation-dir=/home/justin/personal/projects/c++stuff/CSDLEngine/code",
+      "-fcoverage-compilation-dir=/home/justin/personal/projects/c++stuff/CSDLEngine/code",
       "-resource-dir",
       "/usr/lib/clang/20",
       "-dependency-file",
@@ -150,11 +150,11 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/main-0da54c.o",
+      "/tmp/main-16d236.o",
       "main.cpp"
     ],
-    "directory": "/home/justin/personal/projects/c++stuff/new_sdl_proj/code",
-    "file": "/home/justin/personal/projects/c++stuff/new_sdl_proj/code/main.cpp",
-    "output": "/tmp/main-0da54c.o"
+    "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
+    "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/main.cpp",
+    "output": "/tmp/main-16d236.o"
   }
 ]
