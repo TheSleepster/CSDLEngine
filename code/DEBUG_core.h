@@ -62,9 +62,10 @@ typedef struct DEBUG_event
 
 typedef struct DEBUG_frame_section
 {
-    u64     owner_thread_id;
-    float32 min_clocks;
-    float32 max_clocks;
+    DEBUG_record_t *record;
+    u64             owner_thread_id;
+    float32         min_clocks;
+    float32         max_clocks;
 }DEBUG_frame_section_t;
 
 typedef struct DEBUG_open_block
@@ -78,12 +79,14 @@ typedef struct DEBUG_thread_data
 {
     bool8               is_valid;
     u32                 thread_id;
+    u32                 thread_index;
     DEBUG_open_block_t *first_open_block;
 }DEBUG_thread_data_t;
 
 typedef struct DEBUG_frame_data
 {
     u64                   begin_clock;
+    u64                   end_clock;
     u32                   thread_count;
     u32                   frame_section_count;
 
@@ -101,6 +104,8 @@ typedef struct DEBUG_state_data
     volatile u32        event_array_index;
     volatile u32        current_frame_index;
     volatile u32        last_frame_index;
+
+    float32             frame_bar_scale;
 
     bool8               should_reload_dll;
     bool8               is_collecting;

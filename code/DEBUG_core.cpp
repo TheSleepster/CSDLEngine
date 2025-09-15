@@ -210,7 +210,9 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             DEBUG_event_t  *event  = event_array + event_index;
             DEBUG_record_t *record = DEBUG_global_state->record_array + event->record_index;
         
+            u32 thread_index = DEBUG_get_thread_index(current_frame, event->thread_id);
             DEBUG_thread_data_t *thread = current_frame->thread_data + DEBUG_get_thread_index(current_frame, event->thread_id);
+            thread->thread_index = thread_index;
             switch(event->event_type)
             {
                 case DEBUG_EVENT_TIMER_BEGIN:
@@ -259,10 +261,11 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                                 section_data->owner_thread_id = current_block->opening_event->thread_id;
                                 section_data->min_clocks      = current_block->opening_event->cycle_counter - current_frame->begin_clock;
                                 section_data->max_clocks      = event->cycle_counter - current_frame->begin_clock;
+                                section_data->record          = DEBUG_global_state->record_array + event->record_index;
                             }
                             else
                             {
-                                // TODO(Sleepster): Record frames inbetween 
+                                // TODO(Sleepster): Record child frames inbetween 
                             }
                         }
                         else
@@ -275,6 +278,16 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                 {
                     u32 next_current_frame_index = (DEBUG_global_state->current_frame_index + 1) % MAX_DEBUG_SNAPSHOTS;
                     DEBUG_global_state->last_frame_index = AtomicExchange(&DEBUG_global_state->current_frame_index, next_current_frame_index);
+                    current_frame->end_clock = event->cycle_counter;
+                    float32 clock_range = current_frame->end_clock - current_frame->begin_clock;
+                    if(clock_range > 0.0f)
+                    {
+                        float32 new_frame_bar_scale = 1.0f / clock_range;
+                        if(DEBUG_global_state->frame_bar_scale < new_frame_bar_scale)
+                        {
+                            DEBUG_global_state->frame_bar_scale = new_frame_bar_scale;
+                        }
+                    }
 
                     current_frame = DEBUG_global_state->frame_data + DEBUG_global_state->current_frame_index; 
                     current_frame->begin_clock = event->cycle_counter;
@@ -349,12 +362,25 @@ DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *rende
     DEBUG_frame_data *frame_data = DEBUG_global_state->frame_data + DEBUG_global_state->last_frame_index;
     if(frame_data)
     {
+        vec4_t colors[] =
+        {
+            (vec4_t){1.0f, 1.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 0.0f, 0.0f, 1.0f},
+            (vec4_t){0.0f, 1.0f, 0.0f, 1.0f},
+            (vec4_t){0.0f, 0.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
+            (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
+        };
+        
         vec2_t starting_graph_pos = ending_pos; 
+        vec2_t bar_spacing        = vec2_create_float(10.0f, 0.0f);
         for(u32 section_index = 0;
             section_index < frame_data->frame_section_count;
             ++section_index)
         {
             DEBUG_frame_section_t *section = frame_data->frame_sections + section_index;
+            vec4_t color = colors[section_index % ArrayCount(colors)];
         }
     }
 }
@@ -382,7 +408,12 @@ DEBUG_render_group_to_output(asset_manager_t *asset_manager, render_state_t *ren
         render_group_desc_t DEBUG_group_desc_transparent = DEBUG_group_desc;
         DEBUG_group_desc_transparent.render_layer = 1;
         r_begin_renderpass(render_state, &DEBUG_group_desc_transparent);
-        r_draw_rect(render_state, vec2_create_float(-960, -600), vec2_create_float(1500, 2000), vec4_create_float4(0.005f, 0.005f, 0.005f, 0.99f), 0, RQO_NONE);
+        r_draw_rect(render_state,
+                    vec2_create_float(-960, -600),
+                    vec2_create_float(1500, 2000),
+                    vec4_create_float4(0.005f, 0.005f, 0.005f, 0.99f),
+                    0,
+                    RQO_NONE);
         r_end_renderpass(render_state);
     }
 }
