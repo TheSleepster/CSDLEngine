@@ -81,7 +81,10 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
 internal void
 s_work_queue_finish_all_work(multithreading_work_queue_t *queue)
 {
-    while(!s_work_queue_do_next_work_entry(queue));
+    while(!s_work_queue_do_next_work_entry(queue))
+    {
+        continue;
+    }
 
     AtomicExchange32(&queue->completion_goal, 0);
     AtomicExchange32(&queue->total_work_entries_completed, 0);
@@ -106,7 +109,6 @@ os_work_queue_entry_proc(void *lpParam)
             if(s_work_queue_do_next_work_entry(&work_queue_manager->low_priority_queue))
             {
                 os_semaphore_wait(&work_queue_manager->high_priority_queue.semaphore, 0);
-                log_info("Thread Sleeping...\n");
             }
         }
     }
@@ -123,7 +125,6 @@ os_work_queue_entry_proc(void *lpParam)
             if(s_work_queue_do_next_work_entry(&work_queue_manager->low_priority_queue))
             {
                 os_semaphore_wait(&work_queue_manager->high_priority_queue.semaphore, 0);
-                log_info("Thread Sleeping...\n");
             }
         }
     }

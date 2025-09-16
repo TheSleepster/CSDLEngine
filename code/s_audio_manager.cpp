@@ -77,10 +77,10 @@ s_audio_manager_init(audio_manager_t *audio_manager)
 }
 
 internal void
-s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager_t *asset_manager,
-                                                  audio_manager_t *audio_manager,
-                                                  s32              samples_to_write,
-                                                  float32          delta_time)
+s_audio_manager_mix_all_playing_sounds(asset_manager_t *asset_manager,
+                                       audio_manager_t *audio_manager,
+                                       s32              samples_to_write,
+                                       float32          delta_time)
 {
     const float32 master_volume = 0.1f;
 
@@ -199,7 +199,7 @@ s_audio_manager_fill_sound_buffer(asset_manager_t *asset_manager, audio_manager_
         if(audio_manager->buffer.sample_buffer)
         {
             //DEBUG_create_sine_wave(audio_manager->buffer.sample_buffer, samples_to_write);
-            s_audio_manager_handle_and_mix_all_playing_sounds(asset_manager, audio_manager, samples_to_write, delta_time);
+            s_audio_manager_mix_all_playing_sounds(asset_manager, audio_manager, samples_to_write, delta_time);
 
             bool32 result = SDL_PutAudioStreamData(audio_manager->stream,
                                                    audio_manager->buffer.sample_buffer,

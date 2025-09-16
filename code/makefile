@@ -52,7 +52,7 @@ BUILD_TYPE ?= debug
 ifeq ($(DEBUG),1)
     CFLAGS = -g -O0 -fno-inline-functions $(COMMON_C_FLAGS) -DINTERNAL_DEBUG=1 -DASSERT_ENABLED=1 -DDEVELOPER_BUILD=$(DEVELOPER_BUILD)
 else
-    CFLAGS = -O2 $(COMMON_C_FLAGS)
+    CFLAGS = -O3 $(COMMON_C_FLAGS)
 endif
 
 # -------------------------------------------------------------------------
