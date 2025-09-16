@@ -23,6 +23,7 @@ typedef struct memory_arena_footer
     u64 last_used;
     u8 *last_base;
     u64 last_capacity;
+    u64 last_block_size;
 }memory_arena_footer_t;
 
 typedef struct memory_arena
@@ -54,7 +55,7 @@ internal inline memory_arena_footer_t* c_arena_get_footer(memory_arena_t *arena)
 internal inline void                   c_arena_free_last_block(memory_arena_t *arena);
 internal inline void                   c_arena_clear_block(memory_arena_t *arena);
 internal inline void                   c_arena_reset(memory_arena_t *arena);
-internal inline void*                  bootstrap_allocate_struct_(u64 struct_size, u64 offset_to_arena, u64 base_allocation);
+internal inline byte*                  bootstrap_allocate_struct_(u64 struct_size, u64 offset_to_arena, u64 base_allocation);
 
 // MACROS
 #define c_arena_push_struct(arena, type)                                 (type*)c_arena_push_size(arena,   sizeof(type))

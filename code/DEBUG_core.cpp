@@ -14,7 +14,7 @@
 internal DEBUG_state_data_t*
 DEBUG_create_debug_state()
 {
-    DEBUG_state_data_t *result = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, MB(500));
+    DEBUG_state_data_t *result = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, GB(1));
     Assert(result != null);
 
     // TODO(Sleepster): Tune the cpu cycle -> ms conversion here. 
@@ -211,7 +211,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             DEBUG_record_t *record = DEBUG_global_state->record_array + event->record_index;
         
             u32 thread_index = DEBUG_get_thread_index(current_frame, event->thread_id);
-            DEBUG_thread_data_t *thread = current_frame->thread_data + DEBUG_get_thread_index(current_frame, event->thread_id);
+            DEBUG_thread_data_t *thread = current_frame->thread_data + thread_index;
             thread->thread_index = thread_index;
             switch(event->event_type)
             {
@@ -255,8 +255,9 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         {
                             if(current_block->parent_block == null)
                             {
-                                DEBUG_frame_section_t *section_data = current_frame->frame_sections + current_frame->frame_section_count; 
-                                current_frame->frame_section_count = ((current_frame->frame_section_count + 1) % MAX_DEBUG_FRAME_SECTIONS);
+                                DEBUG_thread_data_t *thread = current_frame->thread_data + DEBUG_get_thread_index(current_frame, current_block->opening_event->thread_id); 
+                                DEBUG_frame_section_t *section_data = thread->thread_sections + current_frame->thread_count; 
+                                thread->thread_section_count = ((thread->thread_section_count + 1) % MAX_DEBUG_FRAME_SECTIONS);
                                 
                                 section_data->owner_thread_id = current_block->opening_event->thread_id;
                                 section_data->min_clocks      = current_block->opening_event->cycle_counter - current_frame->begin_clock;
@@ -383,44 +384,50 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         float32 lane_width   = 20.0f;
         float32 chart_height = 300.0f; 
         float32 chart_min_y  = starting_graph_pos.y - chart_height;
-        for(u32 section_index = 0;
-            section_index < frame_data->frame_section_count;
-            ++section_index)
+        for(u32 thread_index = 0;
+            thread_index < frame_data->thread_count;
+            ++thread_index)
         {
-            DEBUG_frame_section_t *section = frame_data->frame_sections + section_index;
-            vec4_t color = colors[section_index % ArrayCount(colors)];
-
-            float32 stackx = starting_graph_pos.x + bar_spacing.x * (float32)section_index;
-            float32 stacky = chart_min_y;
-            float32 bar_min_t = stacky + (section->min_clocks * DEBUG_global_state->frame_bar_scale);
-            float32 bar_max_t = stacky + (section->max_clocks * DEBUG_global_state->frame_bar_scale);
-
-            vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
-            vec2_t rect_pos  = vec2_create_float(stackx, stacky);
-
-            r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
-            rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));
-
-            vec2_t mouse_cursor_pos = s_input_manager_transform_mouse_data(controller,
-                                                                           render_state->draw_frame.active_render_group->render_desc.view_matrix, 
-                                                                           render_state->draw_frame.active_render_group->render_desc.projection_matrix);
-            if(rect_vec2_test(cursor_box, mouse_cursor_pos))
+            DEBUG_thread_data_t *thread = frame_data->thread_data + thread_index;
+            for(u32 section_index = 0;
+                section_index < thread->thread_section_count;
+                ++section_index)
             {
-                char buffer[4096] = {};
-                sprintf(buffer,
-                        "%s: [%s, %d]\nFrom thread: %llu",
-                       section->record->block_name,
-                       section->record->filename,
-                       section->record->line_number,
-                       (unsigned long long)section->owner_thread_id);
-                r_draw_string(asset_manager,
-                              render_state,
-                              STR(buffer),
-                              font_handle,
-                              24,
-                              rect_pos,
-                              vec4_create(1.0f),
-                              RQO_NONE);
+                DEBUG_frame_section_t *section = thread->thread_sections + section_index;
+                vec4_t color = colors[section_index % ArrayCount(colors)];
+
+                float32 stackx = starting_graph_pos.x + bar_spacing.x * (float32)section_index;
+                float32 stacky = chart_min_y;
+                float32 bar_min_t = stacky + (section->min_clocks * DEBUG_global_state->frame_bar_scale);
+                float32 bar_max_t = stacky + (section->max_clocks * DEBUG_global_state->frame_bar_scale);
+
+                vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
+                vec2_t rect_pos  = vec2_create_float(stackx, stacky);
+
+                r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
+                rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));
+
+                vec2_t mouse_cursor_pos = s_input_manager_transform_mouse_data(controller,
+                                                                               render_state->draw_frame.active_render_group->render_desc.view_matrix, 
+                                                                               render_state->draw_frame.active_render_group->render_desc.projection_matrix);
+                if(rect_vec2_test(cursor_box, mouse_cursor_pos))
+                {
+                    char buffer[4096] = {};
+                    sprintf(buffer,
+                            "%s: [%s, %d]\nFrom thread: %llu",
+                            section->record->block_name,
+                            section->record->filename,
+                            section->record->line_number,
+                            (unsigned long long)section->owner_thread_id);
+                    r_draw_string(asset_manager,
+                                  render_state,
+                                  STR(buffer),
+                                  font_handle,
+                                  24,
+                                  rect_pos,
+                                  vec4_create(1.0f),
+                                  RQO_NONE);
+                }
             }
         }
     }

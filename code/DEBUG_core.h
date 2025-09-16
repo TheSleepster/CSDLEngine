@@ -7,11 +7,11 @@
    ======================================================================== */
 
 #define DEBUG_CORE_H
-#define MAX_DEBUG_COUNTERS       (1023)
-#define MAX_DEBUG_SNAPSHOTS      (2048)
-#define MAX_DEBUG_EVENTS         (8192 * 16)
-#define MAX_THREADS              (36)
-#define MAX_DEBUG_FRAME_SECTIONS (2048)
+#define MAX_DEBUG_COUNTERS       (1024)
+#define MAX_DEBUG_SNAPSHOTS      (1024)
+#define MAX_DEBUG_EVENTS         (8192 * 4)
+#define MAX_THREADS              (32)
+#define MAX_DEBUG_FRAME_SECTIONS (1024)
 
 #define DEBUG_TIMED_BLOCK()                                             \
     local_persist u32 DEBUG_record_index = (u32)-1;                     \
@@ -81,17 +81,18 @@ typedef struct DEBUG_thread_data
     u32                 thread_id;
     u32                 thread_index;
     DEBUG_open_block_t *first_open_block;
+
+    u32                 thread_section_count;
+    DEBUG_frame_section thread_sections[MAX_DEBUG_FRAME_SECTIONS];
 }DEBUG_thread_data_t;
 
 typedef struct DEBUG_frame_data
 {
     u64                   begin_clock;
     u64                   end_clock;
-    u32                   thread_count;
-    u32                   frame_section_count;
 
+    u32                   thread_count;
     DEBUG_thread_data_t   thread_data[MAX_THREADS];
-    DEBUG_frame_section_t frame_sections[MAX_DEBUG_FRAME_SECTIONS];
 }DEBUG_frame_data_t;
 
 typedef struct DEBUG_state_data
