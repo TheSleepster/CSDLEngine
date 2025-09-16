@@ -323,6 +323,8 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
             (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
             (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
             (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
+            (vec4_t){0.4f, 0.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 0.1f, 0.1f, 1.0f},
         };
         
         vec2_t starting_graph_pos = vec2_subtract(ending_pos, vec2_create_float(0, 200)); 

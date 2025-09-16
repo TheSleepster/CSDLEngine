@@ -32,12 +32,13 @@
             #define GetThreadID() *((u32*)(((u8*)__readgsqword(0x30)) + 0x48))
             #define true_inline __forceinline
         #elif OS_LINUX
+            #include <unistd.h>
             // NOTE(Sleepster): Read time stamp counter...
             #define rdtsc()                  __rdtsc()
             #define rdtscp(processor_id_out) (0) 
 
             // NOTE(Sleepster): 3 intructions to get the thread ID as opposed to the 8 from GetCurrentThreadID on Windows
-            #define GetThreadID() (0)   
+            #define GetThreadID() gettid() 
             #define true_inline __attribute__((always_inline))
         #elif OS_MAC
             #error "LMAO what hte fuck are you doing here???"

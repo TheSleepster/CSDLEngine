@@ -131,6 +131,44 @@ typedef enum render_group_primitive_type
     RGPT_Count,
 }render_group_primitive_type_t;
 
+typedef enum render_group_blending_mode
+{
+    RGBM_Zero,
+    RGBM_One,
+    RGBM_SrcColor,
+    RGBM_OneMinusSrcColor,
+    RGBM_DstColor,
+    RGBM_OneMinusDstColor,
+    RGBM_SrcAlpha,
+    RGBM_OneMinusSrcAlpha,
+    RGBM_DstAlpha,
+    RGBM_OneMinusDstAlpha,
+    RGBM_Constant,
+    RGBM_Count
+}render_group_blending_mode_t;
+
+typedef enum render_group_blending_equation
+{
+    RGBE_Add,
+    RGBE_Subtract,
+    RGBE_ReverseSubract,
+    RGBE_Min,
+    RGBE_Max,
+}render_group_blending_equation_t;
+
+typedef enum render_group_depth_function
+{
+    RGDF_Greater,
+    RGDF_Lesser,
+    RGDF_Equal,
+    RGDF_NotEqual,
+    RGDF_LesserOrEqual,
+    RGDF_GreaterOrEqual,
+    RGDF_Never,
+    RGDF_Always,
+    RGDF_Count
+}render_group_depth_function_t;
+
 typedef struct render_group_desc
 {
     GPU_shader_t                       *shader;
