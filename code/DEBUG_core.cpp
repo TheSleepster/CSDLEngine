@@ -14,7 +14,7 @@
 internal DEBUG_state_data_t*
 DEBUG_create_debug_state()
 {
-    DEBUG_state_data_t *result = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, GB(1));
+    DEBUG_state_data_t *result = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, GB(4));
     Assert(result != null);
 
     // TODO(Sleepster): Tune the cpu cycle -> ms conversion here. 
@@ -226,10 +226,10 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         thread->first_open_block    = 0;
                     }
 
-                    DEBUG_open_block_t *new_block = thread->first_free_open_block;
+                    DEBUG_open_block_t *new_block = DEBUG_global_state->first_free_open_block;
                     if(new_block)
                     {
-                        thread->first_free_open_block = thread->first_free_open_block->parent_block;
+                        DEBUG_global_state->first_free_open_block = new_block->next_free_block;
                     }
                     else
                     {
@@ -237,11 +237,10 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                     }
                     Assert(new_block != null);
 
-                    new_block->opening_event = event;
-                    new_block->parent_block  = thread->first_open_block;
-                    thread->first_open_block = new_block;
-
-                    thread->first_open_block->parent_block = null;
+                    new_block->opening_event   = event;
+                    new_block->parent_block    = thread->first_open_block;
+                    thread->first_open_block   = new_block;
+                    new_block->next_free_block = null;
                 }break;
                 case DEBUG_EVENT_TIMER_END:
                 case DEBUG_EVENT_SECTION_MARK:
@@ -253,21 +252,22 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         if((current_block->opening_event->thread_id    == event->thread_id) &&
                            (current_block->opening_event->record_index == event->record_index))
                         {
-                            if(current_block->parent_block == null)
+                            float32 min_t = (float32)(current_block->opening_event->cycle_counter - current_frame->begin_clock);
+                            float32 max_t = (float32)(event->cycle_counter - current_frame->begin_clock); 
+                            float32 threshold = 7000.0f;
+                            if((max_t - min_t) > threshold)
                             {
-                                DEBUG_thread_data_t *thread = current_frame->thread_data + DEBUG_get_thread_index(current_frame, current_block->opening_event->thread_id); 
-                                DEBUG_frame_section_t *section_data = thread->thread_sections + thread->thread_index; 
-                                thread->thread_section_count = ((thread->thread_section_count + 1) % MAX_DEBUG_FRAME_SECTIONS);
-                                
+                                DEBUG_frame_section_t *section_data = current_frame->sections + current_frame->section_count; 
+                                current_frame->section_count = ((current_frame->section_count + 1) % MAX_DEBUG_FRAME_SECTIONS);
                                 section_data->owner_thread_id = current_block->opening_event->thread_id;
-                                section_data->min_clocks      = current_block->opening_event->cycle_counter - current_frame->begin_clock;
-                                section_data->max_clocks      = event->cycle_counter - current_frame->begin_clock;
+                                section_data->min_clocks      = min_t;
+                                section_data->max_clocks      = max_t;
                                 section_data->record          = DEBUG_global_state->record_array + event->record_index;
-                            }
-                            else
-                            {
-                                // TODO(Sleepster): Record child frames inbetween 
-                            }
+                                section_data->frame_index     = DEBUG_global_state->current_frame_index;
+                            } 
+                            current_block->next_free_block            = DEBUG_global_state->first_free_open_block;
+                            DEBUG_global_state->first_free_open_block = current_block;
+                            thread->first_open_block                  = current_block->parent_block;
                         }
                         else
                         { 
@@ -291,6 +291,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                     }
 
                     current_frame = DEBUG_global_state->frame_data + DEBUG_global_state->current_frame_index; 
+                    ZeroStruct(*current_frame);
                     current_frame->begin_clock = event->cycle_counter;
                 }break;
                 case DEBUG_EVENT_RELOAD_DLL:
@@ -299,6 +300,83 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                 }break;
                 default: {}break;
             }
+        }
+    }
+}
+
+internal void
+DEBUG_render_section_graph(asset_manager_t    *asset_manager, 
+                           render_state_t     *render_state, 
+                           asset_handle_t      font_handle, 
+                           vec2_t              ending_pos,
+                           input_controller_t *controller)
+{
+    DEBUG_frame_data *frame_data = DEBUG_global_state->frame_data + DEBUG_global_state->last_frame_index;
+    if(frame_data)
+    {
+        vec4_t colors[] =
+        {
+            (vec4_t){1.0f, 1.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 0.0f, 0.0f, 1.0f},
+            (vec4_t){0.0f, 1.0f, 0.0f, 1.0f},
+            (vec4_t){0.0f, 0.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
+            (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
+            (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
+        };
+        
+        vec2_t starting_graph_pos = vec2_subtract(ending_pos, vec2_create_float(0, 200)); 
+        vec2_t bar_spacing        = vec2_create_float(30.0f, 0.0f);
+
+        float32 lane_width   = 20.0f;
+        float32 chart_height = 300.0f; 
+        float32 chart_min_y  = starting_graph_pos.y - chart_height;
+        
+        float32 bar_scale = DEBUG_global_state->frame_bar_scale;
+        for(u32 section_index = 0;
+            section_index < frame_data->section_count;
+            ++section_index)
+        {
+            DEBUG_frame_section_t *section = frame_data->sections + section_index;
+            if(section->record)
+            {
+                vec4_t color = colors[section->record->record_index % ArrayCount(colors)];
+
+                float32 stackx = starting_graph_pos.x + bar_spacing.x * (float32)section_index;
+                float32 stacky = chart_min_y;
+                float32 bar_min_t = stacky + (section->min_clocks * bar_scale);
+                float32 bar_max_t = stacky + (section->max_clocks * bar_scale);
+
+                vec2_t rect_pos  = vec2_create_float(stackx, stacky);
+                vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
+
+                r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
+                rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));
+
+                vec2_t mouse_cursor_pos = s_input_manager_transform_mouse_data(controller,
+                                                                               render_state->draw_frame.active_render_group->render_desc.view_matrix, 
+                                                                               render_state->draw_frame.active_render_group->render_desc.projection_matrix);
+                if(rect_vec2_test(cursor_box, mouse_cursor_pos))
+                {
+                    char buffer[4096] = {};
+                    sprintf(buffer,
+                            "%s: [%s, %d]\nClocks: '%llu'cy. Frame Index: '%d'\nSection Index: '%d'",
+                            section->record->block_name,
+                            section->record->filename,
+                            section->record->line_number,
+                            (unsigned long long)(section->max_clocks - section->min_clocks),
+                            section->frame_index,
+                            section_index);
+                    r_draw_string(asset_manager,
+                                  render_state,
+                                  STR(buffer),
+                                  font_handle,
+                                  24,
+                                  vec2_add(rect_pos, vec2_create_float(40.0, 100.0f)),
+                                  vec4_create(1.0f),
+                                  RQO_NONE);
+                }
+            } 
         }
     }
 }
@@ -355,82 +433,6 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                   vec4_create(1.0f),
                   RQO_NONE);
     return(starting_pos);
-}
-
-internal void
-DEBUG_render_section_graph(asset_manager_t    *asset_manager, 
-                           render_state_t     *render_state, 
-                           asset_handle_t      font_handle, 
-                           vec2_t              ending_pos,
-                           input_controller_t *controller)
-{
-    DEBUG_frame_data *frame_data = DEBUG_global_state->frame_data + DEBUG_global_state->last_frame_index;
-    if(frame_data)
-    {
-        vec4_t colors[] =
-        {
-            (vec4_t){1.0f, 1.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 0.0f, 0.0f, 1.0f},
-            (vec4_t){0.0f, 1.0f, 0.0f, 1.0f},
-            (vec4_t){0.0f, 0.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
-            (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
-        };
-        
-        vec2_t starting_graph_pos = ending_pos; 
-        vec2_t bar_spacing        = vec2_create_float(10.0f, 0.0f);
-
-        float32 lane_width   = 20.0f;
-        float32 chart_height = 300.0f; 
-        float32 chart_min_y  = starting_graph_pos.y - chart_height;
-        for(u32 thread_index = 0;
-            thread_index < frame_data->thread_count;
-            ++thread_index)
-        {
-            DEBUG_thread_data_t *thread = frame_data->thread_data + thread_index;
-            for(u32 section_index = 0;
-                section_index < thread->thread_section_count;
-                ++section_index)
-            {
-                DEBUG_frame_section_t *section = thread->thread_sections + section_index;
-                vec4_t color = colors[section_index % ArrayCount(colors)];
-
-                float32 stackx = starting_graph_pos.x + bar_spacing.x * (float32)section_index;
-                float32 stacky = chart_min_y;
-                float32 bar_min_t = stacky + (section->min_clocks * DEBUG_global_state->frame_bar_scale);
-                float32 bar_max_t = stacky + (section->max_clocks * DEBUG_global_state->frame_bar_scale);
-
-                vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
-                vec2_t rect_pos  = vec2_create_float(stackx, stacky);
-
-                r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
-                rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));
-
-                vec2_t mouse_cursor_pos = s_input_manager_transform_mouse_data(controller,
-                                                                               render_state->draw_frame.active_render_group->render_desc.view_matrix, 
-                                                                               render_state->draw_frame.active_render_group->render_desc.projection_matrix);
-                if(rect_vec2_test(cursor_box, mouse_cursor_pos))
-                {
-                    char buffer[4096] = {};
-                    sprintf(buffer,
-                            "%s: [%s, %d]\nFrom thread: %llu",
-                            section->record->block_name,
-                            section->record->filename,
-                            section->record->line_number,
-                            (unsigned long long)section->owner_thread_id);
-                    r_draw_string(asset_manager,
-                                  render_state,
-                                  STR(buffer),
-                                  font_handle,
-                                  24,
-                                  rect_pos,
-                                  vec4_create(1.0f),
-                                  RQO_NONE);
-                }
-            }
-        }
-    }
 }
 
 internal void
