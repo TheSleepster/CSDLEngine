@@ -226,10 +226,10 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         thread->first_open_block    = 0;
                     }
 
-                    DEBUG_open_block_t *new_block = DEBUG_global_state->first_free_open_block;
+                    DEBUG_open_block_t *new_block = thread->first_free_open_block;
                     if(new_block)
                     {
-                        DEBUG_global_state->first_free_open_block = DEBUG_global_state->first_free_open_block->parent_block;
+                        thread->first_free_open_block = thread->first_free_open_block->parent_block;
                     }
                     else
                     {
@@ -256,7 +256,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                             if(current_block->parent_block == null)
                             {
                                 DEBUG_thread_data_t *thread = current_frame->thread_data + DEBUG_get_thread_index(current_frame, current_block->opening_event->thread_id); 
-                                DEBUG_frame_section_t *section_data = thread->thread_sections + current_frame->thread_count; 
+                                DEBUG_frame_section_t *section_data = thread->thread_sections + thread->thread_index; 
                                 thread->thread_section_count = ((thread->thread_section_count + 1) % MAX_DEBUG_FRAME_SECTIONS);
                                 
                                 section_data->owner_thread_id = current_block->opening_event->thread_id;

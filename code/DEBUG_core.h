@@ -81,6 +81,7 @@ typedef struct DEBUG_thread_data
     u32                 thread_id;
     u32                 thread_index;
     DEBUG_open_block_t *first_open_block;
+    DEBUG_open_block_t *first_free_open_block;
 
     u32                 thread_section_count;
     DEBUG_frame_section thread_sections[MAX_DEBUG_FRAME_SECTIONS];
@@ -115,9 +116,7 @@ typedef struct DEBUG_state_data
     DEBUG_record_t      record_array[MAX_DEBUG_COUNTERS];
     DEBUG_event_t       event_array[2][MAX_DEBUG_EVENTS];
 
-    DEBUG_open_block_t *first_free_open_block;
     DEBUG_frame_data_t  frame_data[MAX_DEBUG_SNAPSHOTS];
-
     render_group_t     *debug_render_group;
 }DEBUG_state_data_t;
 
