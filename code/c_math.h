@@ -169,18 +169,6 @@ typedef struct vec2
         {
             float32 xy[2];
         };
-
-        struct
-        {
-            float32 z;
-            float32 w;
-        };
-
-        struct 
-        {
-            float32 u;
-            float32 v;
-        };
     };
 }vec2_t;
 
@@ -831,7 +819,7 @@ vec3_rotate(vec3_t A, vec3_t axis, float32 rotation)
 
     result.x = (A.x * cos_angle) + (axis_cross.x * sin_angle) + (axis.x * k);
     result.y = (A.y * cos_angle) + (axis_cross.y * sin_angle) + (axis.y * k);
-    result.z = (A.z * cos_angle) + (axis_cross.z * sin_angle) + (axis.z * k);
+    result.z = (A.z * cos_angle) + (axis_cross.z * sin_angle) + (axis.z * k);
 
     return(result);
 }
@@ -1957,7 +1945,7 @@ internal vec2_t
 rect_get_size(rectangle2_t rect)
 {
     vec2_t result;
-    vec2_t size = vec2_subtract(rect.min, rect.max);
+    vec2_t size = vec2_subtract(rect.max, rect.min);
     result.x    = fabsf(size.x);
     result.y    = fabsf(size.y);
 
@@ -1974,8 +1962,8 @@ rect_vec2_test(rectangle2_t rect, vec2_t point)
 internal bool8
 rect_AABB_test(rectangle2_t A, rectangle2_t B)
 {
-    return (A.min.x >= B.min.x && A.max.x <= B.max.x && 
-            A.min.y >= B.min.y && A.max.y <= B.max.y);
+    return (A.min.x <= B.max.x && A.max.x >= B.min.x &&
+            A.min.y <= B.max.y && A.max.y >= B.min.y);
 }
 
 #endif

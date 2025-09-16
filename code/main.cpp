@@ -153,7 +153,12 @@ c_process_window_events(SDL_Window *window, input_manager_t *input_manager)
             }break;
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             {
-                SDL_GetWindowSizeInPixels(window, (s32*)&global_context->window_size.x, (s32*)&global_context->window_size.y);
+                s32 window_x = 0;
+                s32 window_y = 0;
+                SDL_GetWindowSizeInPixels(window, &window_x, &window_y);
+
+                global_context->window_size.x = (float32)window_x;
+                global_context->window_size.y = (float32)window_y;
             }break;
         }
     }
@@ -177,6 +182,8 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
+        global_context->window_size = vec2_create_float(1920.0f, 1080.0f);
+        
 #if INTERNAL_DEBUG
         DEBUG_global_state = DEBUG_create_debug_state();
 #endif

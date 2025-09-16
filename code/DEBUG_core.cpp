@@ -396,7 +396,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
             float32 bar_max_t = stacky + (section->max_clocks * DEBUG_global_state->frame_bar_scale);
 
             vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
-            vec2_t rect_pos = vec2_create_float(stackx, stacky);
+            vec2_t rect_pos  = vec2_create_float(stackx, stacky);
 
             r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
             rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));

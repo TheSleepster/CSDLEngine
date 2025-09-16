@@ -243,7 +243,7 @@ s_input_manager_transform_mouse_data(input_controller_t *controller,
 
     vec2_t mouse_pos   = controller->keyboard.current_mouse_pos;
     vec2_t window_size = global_context->window_size;
-    vec4_t ndc_pos     = vec4_create_float4(mouse_pos.x / (window_size.x * 0.5f), mouse_pos.y / (window_size.y * 0.5f), 0.0f, 1.0f);
+    vec4_t ndc_pos     = vec4_create_float4((mouse_pos.x / (window_size.x * 0.5f)) - 1.0f, 1.0f - (mouse_pos.y / (window_size.y * 0.5f)), 0.0f, 1.0f);
 
     mat4_t inverse_projection = mat4_invert(projection_matrix);
     mat4_t inverse_view       = mat4_invert(view_matrix);
