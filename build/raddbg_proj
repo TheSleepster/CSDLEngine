@@ -1,42 +1,45 @@
 // raddbg 0.9.21 project file
 
+recent_file: path: "../code/c_memory_arena.cpp"
+recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
 recent_file: path: "../code/c_string.cpp"
+recent_file: path: "../code/asset_builder/ab_main.c"
+recent_file: path: "../code/DEBUG_core.cpp"
+recent_file: path: "../code/DEBUG_core.h"
 recent_file: path: "../code/main.cpp"
+recent_file: path: "../code/s_multithreading_work_queue.cpp"
 recent_file: path: "../code/r_render_API.cpp"
-recent_file: path: "../code/g_main.cpp"
+recent_file: path: "../code/os_windows.cpp"
+recent_file: path: "../code/r_opengl.cpp"
 recent_file: path: "../code/r_asset_texture.cpp"
+recent_file: path: "../code/s_asset_manager.cpp"
+recent_file: path: "../code/s_input_manager.cpp"
+recent_file: path: "../code/r_asset_dynamic_render_font.cpp"
+recent_file: path: "d:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/startup/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/startup/initterm.cpp"
+recent_file: path: "d:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/string/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/string/amd64/strcmp.asm"
+recent_file: path: "../code/g_main.cpp"
+recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/string/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/string/strnlen.cpp"
+recent_file: path: "../code/c_base.h"
 recent_file: path: "../code/c_file_api.cpp"
 recent_file: path: "../code/c_file_watcher.cpp"
-recent_file: path: "../code/c_memory_arena.cpp"
-recent_file: path: "../code/c_base.h"
 recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memcpy.asm"
 recent_file: path: "../code/at_atlas_handler.cpp"
-recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/string/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/string/strnlen.cpp"
 recent_file: path: "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt/stdio.h"
 recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/stdio/mt/objfre/amd64/minkernel/crts/ucrt/inc/corecrt_internal_stdio_output.h"
 recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/stdio/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/stdio/output.cpp"
-recent_file: path: "../code/asset_builder/ab_main.c"
-recent_file: path: "../code/s_asset_manager.cpp"
 recent_file: path: "../code/c_array.cpp"
 recent_file: path: "D:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/heap/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/heap/free_base.cpp"
 recent_file: path: "../code/c_math.h"
 recent_file: path: "../code/c_zone_allocator.cpp"
-recent_file: path: "../code/r_opengl.cpp"
-recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
 recent_file: path: "../../SOKOL_SDL3/data/deps/SDL3/src/audio/wasapi/SDL_wasapi.c"
-recent_file: path: "../code/DEBUG_core.cpp"
 recent_file: path: "../../SOKOL_SDL3/data/deps/SDL3/src/thread/SDL_thread.c"
 recent_file: path: "../../SOKOL_SDL3/data/deps/SDL3/src/thread/windows/SDL_systhread.c"
 recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_common.inl"
-recent_file: path: "../code/os_windows.cpp"
-recent_file: path: "../code/s_multithreading_work_queue.cpp"
 recent_file: path: "../code/a_asset_loaded_sound.cpp"
-recent_file: path: "../code/r_asset_dynamic_render_font.cpp"
 recent_file: path: "D:/a/_work/1/s/src/vctools/crt/vcstartup/src/misc/amd64/chkstk.asm"
 recent_file: path: "../code/c_debug.h"
 recent_file: path: "../code/c_hash_table.cpp"
 recent_file: path: "../code/s_audio_manager.cpp"
-recent_file: path: "../code/s_input_manager.cpp"
 recent_file: path: "../code/r_asset_shader.cpp"
 recent_file: path: "../code/s_asset_manager.c"
 recent_file: path: "../code/r_render_api.c"
@@ -61,9 +64,9 @@ recent_file: path: "../code/r_renderer_data.h"
 target:
 {
   executable: "asset_file_builder.exe"
-  working_directory: "../run_tree/res/"
+  working_directory: ""
   enabled: 0
-  arguments: "--resource_dir=../res --set_output_dir=../res"
+  arguments: "--resource_dir=\"../run_tree/res/\" --set_output_dir=\"../run_tree/res\""
 }
 target:
 {
@@ -75,6 +78,6 @@ target:
 tab_width: 2
 breakpoint:
 {
-  source_location: "../code/main.cpp:105:1"
+  address_location: 0x7ff6d400df33
   hit_count: 0
 }

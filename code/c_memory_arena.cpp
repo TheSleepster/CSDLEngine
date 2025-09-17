@@ -100,8 +100,8 @@ c_begin_scratch_arena(memory_arena_t *arena)
 internal inline void
 c_arena_free_last_block(memory_arena_t *arena)
 {
-    u8 *block_to_free = (u8*)arena->base;
-    u64 old_capacity  = arena->capacity;
+    u8 *block_to_free  = (u8*)arena->base;
+    u64 old_block_size = arena->block_size;
 
     memory_arena_footer_t *footer = c_arena_get_footer(arena);
     arena->base       = footer->last_base;
@@ -109,7 +109,7 @@ c_arena_free_last_block(memory_arena_t *arena)
     arena->capacity   = footer->last_capacity;
     arena->block_size = footer->last_block_size;
 
-    os_free_memory(block_to_free, old_capacity);
+    os_free_memory(block_to_free, old_block_size);
     arena->block_counter -= 1;
 }
 

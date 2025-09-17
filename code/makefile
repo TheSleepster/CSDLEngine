@@ -221,7 +221,7 @@ all: engine asset_file_builder tests
 endif
 
 ../build:
-	mkdir -p ../build
+	-mkdir -p ../build
 
 # -------------------------------------------------------------------------
 # Tests pattern rule (per-test)
@@ -274,7 +274,7 @@ run_asset_file_builder: asset_file_builder
 	../build/asset_file_builder$(EXE_EXT)
 
 clean:
-	rm -rf ../build
+	-rm -rf ../build
 
 # -------------------------------------------------------------------------
 # Auto deps: include generated .d files when present
