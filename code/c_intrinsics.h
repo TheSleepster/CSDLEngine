@@ -140,11 +140,17 @@
        ======================== ATOMIC LOAD ========================
        ============================================================= */
 
-        #define AtomicLoad16(ptr) __atomic_load_n((volatile s16 *)ptr, __ATOMIC_SEQ_CST)
-        #define AtomicLoad32(ptr) __atomic_load_n((volatile s32 *)ptr, __ATOMIC_SEQ_CST)
-        #define AtomicLoad64(ptr) __atomic_load_n((volatile s64 *)ptr, __ATOMIC_SEQ_CST)
+        #define AtomicLoad16(ptr) __atomic_load_n((volatile s16 *)ptr, __ATOMIC_ACQUIRE)
+        #define AtomicLoad32(ptr) __atomic_load_n((volatile s32 *)ptr, __ATOMIC_ACQUIRE)
+        #define AtomicLoad64(ptr) __atomic_load_n((volatile s64 *)ptr, __ATOMIC_ACQUIRE)
 
-        #define AtomicLoad(ptr) __atomic_load_n((volatile s32 *)ptr, __ATOMIC_SEQ_CST)
+        #define AtomicLoad(ptr) __atomic_load_n((volatile s32 *)ptr, __ATOMIC_ACQUIRE)
+
+    /* =============================================================
+       ======================== ATOMIC STORE========================
+       ============================================================= */
+
+#define AtomicStore16(ptr, val) __atomic_store_n((volatile s16*)ptr, val, __ATOMIC_RELEASE)
 
     /* =============================================================
        =================== ATOMIC COMPARE EXCHANGE =================

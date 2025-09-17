@@ -18,8 +18,6 @@ typedef WORK_QUEUE_ENTRY_CALLBACK(work_queue_callback_t);
 
 typedef struct multithreading_work_queue_entry
 {
-    bool8                  is_valid;
-
     void                  *user_data;
     work_queue_callback_t *callback;
 }multithreading_work_queue_entry_t;

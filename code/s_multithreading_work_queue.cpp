@@ -35,14 +35,17 @@ s_work_queue_add_entry(multithreading_work_queue_t *queue,
     u32 next_entry_to_write = (entry_to_write + 1) % ArrayCount(queue->entries);
 
     Assert(next_entry_to_write != queue->next_entry_to_read);
-    if(AtomicCompareExchange((volatile s32*)&queue->next_entry_to_write,
-                              next_entry_to_write,
-                              entry_to_write))
+    u32 queue_entry_to_write = AtomicCompareExchange((volatile s32*)&queue->next_entry_to_write,
+                                                     next_entry_to_write,
+                                                     entry_to_write);
+    if(queue_entry_to_write == entry_to_write) 
     {
         multithreading_work_queue_entry_t *new_entry = queue->entries + entry_to_write;
+        ZeroStruct(*new_entry);
+
         new_entry->callback  = callback;
         new_entry->user_data = user_data;
-        new_entry->is_valid  = true;
+        AtomicExchange32(&new_entry->is_valid, true);
 
         AtomicIncrement((volatile s32*)&queue->completion_goal);
 
@@ -66,13 +69,9 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
         if(work_entry_index == unincremented_entry_to_read)
         {
             multithreading_work_queue_entry_t *entry = queue->entries + work_entry_index;
-            if(entry->is_valid)
-            {
-                entry->is_valid = false;
-                entry->callback(entry->user_data);
+            entry->callback(entry->user_data);
 
-                AtomicIncrement32((volatile s32*)&queue->total_work_entries_completed);
-            }
+            AtomicIncrement32((volatile s32*)&queue->total_work_entries_completed);
         }
     }
     else
@@ -86,16 +85,9 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
 internal void
 s_work_queue_finish_all_work(multithreading_work_queue_t *queue)
 {
-    while(true)
+    while(queue->completion_goal != queue->total_work_entries_completed)
     {
         s_work_queue_do_next_work_entry(queue);
-
-        u32 completion_goal = AtomicLoad((volatile s32*)&queue->completion_goal);
-        u32 total_completed = AtomicLoad((volatile s32*)&queue->total_work_entries_completed);
-        if(completion_goal == total_completed)
-        {
-            break;
-        }
     }
 
     AtomicExchange32(&queue->completion_goal, 0);

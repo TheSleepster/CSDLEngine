@@ -25,7 +25,7 @@
       "-Wno-deprecated",
       "-DINTERNAL_DEBUG=1",
       "-DASSERT_ENABLED=1",
-      "-DDEVELOPER_BUILD=1",
+      "-DDEVELOPER_BUILD=0",
       "-I../code/",
       "-I../run_tree/deps/",
       "-I../run_tree/deps/stb/",
@@ -85,7 +85,7 @@
       "-D",
       "ASSERT_ENABLED=1",
       "-D",
-      "DEVELOPER_BUILD=1",
+      "DEVELOPER_BUILD=0",
       "-I",
       "../code/",
       "-I",
@@ -150,12 +150,12 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/main-6d8b64.o",
+      "/tmp/main-9a0321.o",
       "main.cpp"
     ],
     "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
     "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/main.cpp",
-    "output": "/tmp/main-6d8b64.o"
+    "output": "/tmp/main-9a0321.o"
   },
   {
     "arguments": [
@@ -183,7 +183,7 @@
       "-Wno-deprecated",
       "-DINTERNAL_DEBUG=1",
       "-DASSERT_ENABLED=1",
-      "-DDEVELOPER_BUILD=1",
+      "-DDEVELOPER_BUILD=0",
       "-I../code/",
       "-I../run_tree/deps/",
       "-I../run_tree/deps/stb/",
@@ -244,7 +244,7 @@
       "-D",
       "ASSERT_ENABLED=1",
       "-D",
-      "DEVELOPER_BUILD=1",
+      "DEVELOPER_BUILD=0",
       "-I",
       "../code/",
       "-I",
@@ -310,11 +310,11 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/ab_main-2951a2.o",
+      "/tmp/ab_main-a56ac9.o",
       "../code/asset_builder/ab_main.c"
     ],
     "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
     "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/asset_builder/ab_main.c",
-    "output": "/tmp/ab_main-2951a2.o"
+    "output": "/tmp/ab_main-a56ac9.o"
   }
 ]
