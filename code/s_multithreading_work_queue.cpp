@@ -27,22 +27,28 @@ s_work_queue_manager_init(multithreading_work_queue_manager_t *manager)
 }
 
 internal void 
-s_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data)
+s_work_queue_add_entry(multithreading_work_queue_t *queue, 
+                       work_queue_callback_t *callback, 
+                       void *user_data)
 {
     u32 entry_to_write = queue->next_entry_to_write;
     u32 next_entry_to_write = (entry_to_write + 1) % ArrayCount(queue->entries);
+
     Assert(next_entry_to_write != queue->next_entry_to_read);
-    
-    multithreading_work_queue_entry_t *new_entry = queue->entries + entry_to_write;
-    new_entry->callback  = callback;
-    new_entry->user_data = user_data;
-    new_entry->is_valid  = true;
+    if(AtomicCompareExchange((volatile s32*)&queue->next_entry_to_write,
+                              next_entry_to_write,
+                              entry_to_write))
+    {
+        multithreading_work_queue_entry_t *new_entry = queue->entries + entry_to_write;
+        new_entry->callback  = callback;
+        new_entry->user_data = user_data;
+        new_entry->is_valid  = true;
 
-    queue->completion_goal++;
-    ReadWriteBarrier;
+        AtomicIncrement((volatile s32*)&queue->completion_goal);
 
-    queue->next_entry_to_write = next_entry_to_write;
-    os_semaphore_release(&queue->semaphore, 1);
+        ReadWriteBarrier;
+        os_semaphore_release(&queue->semaphore, 1);
+    }
 }
 
 internal bool8
