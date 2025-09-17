@@ -95,4 +95,4 @@
   ../code/s_input_manager.cpp ../code/at_atlas_handler.cpp \
   ../code/a_asset_loaded_sound.cpp ../code/r_asset_shader.cpp \
   ../code/r_asset_texture.cpp ../code/r_asset_dynamic_render_font.cpp \
-  ../code/r_render_API.cpp ../code/r_opengl.cpp ../code/g_main.cpp
+  ../code/r_render_API.cpp ../code/r_opengl.cpp

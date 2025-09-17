@@ -22,12 +22,23 @@ ifeq ($(OS),Windows_NT)
     OBJ_EXT = .obj
     DEV_NULL = NUL
     PIC_FLAG =
+    PDB_SUFFIX := $(shell powershell -Command "[guid]::NewGuid().ToString('N').Substring(0,8)")
+	PDB_LDFLAG = -Wl,/PDB:../build/game_$(BUILD_TYPE)_$(PDB_SUFFIX).pdb
+
+	DEL_PDB = powershell -NoProfile -Command "Get-ChildItem ..\\build\\game_$(BUILD_TYPE)*.pdb -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue"
+	DEL_RDI = powershell -NoProfile -Command "Get-ChildItem ..\\build\\game_$(BUILD_TYPE)*.rdi -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue"
 else
     UNAME_S := $(shell uname -s)
     DLL_EXT = .so
     LIB_EXT = .a
     OBJ_EXT = .o
     PIC_FLAG = -fPIC
+	PDB_SUFFIX := $(shell head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')
+	PDB_LDFLAG =
+
+	DEL_PDB = rm -f ../build/game_$(BUILD_TYPE)*.pdb || true
+	DEL_RDI = rm -f ../build/game_$(BUILD_TYPE)*.rdi || true
+
     ifeq ($(UNAME_S),Linux)
         OS_DEFINE = -DOS_LINUX=1
         PLATFORM_LIBS = -lX11 -lGL -lm
@@ -172,10 +183,6 @@ ENGINE_SPLIT_SRC = ../code/main.cpp
 # Game DLL source
 GAME_SRC         = ../code/g_main.cpp
 
-# Default runtime sources (edit to list your runtime .cpp files).
-# If your runtime is many files, list them space-separated here.
-GAME_RUNTIME_SRCS = ../code/l_runtime_data.cpp
-
 # Libraries
 ENGINE_LIBS = $(PLATFORM_LIBS) -L../run_tree/deps/glad/src/ -L../run_tree/deps/SDL3/lib/ -L../run_tree/deps/Freetype/ -lSDL3-Static -lglad -lfreetype
 GAME_LIBS   = $(ENGINE_LIBS) 
@@ -200,7 +207,6 @@ else
     ENGINE_SRC = $(UNITY_SRC)
 endif
 
-# Shared flags for building a shared lib
 SHARED_FLAGS = -shared
 
 # -------------------------------------------------------------------------
@@ -214,7 +220,6 @@ else
 all: engine asset_file_builder tests
 endif
 
-# Ensure build dir exists
 ../build:
 	mkdir -p ../build
 
@@ -252,17 +257,13 @@ $(ENGINE_OUT): $(ENGINE_SRC) |  ../run_tree/res
 ifeq ($(DEVELOPER_BUILD),1)
 game_dll: $(GAME_OUT)
 
-
-# Generate a random hex suffix
-PDB_SUFFIX := $(shell powershell -Command "[guid]::NewGuid().ToString('N').Substring(0,8)")
-
 $(GAME_OUT): $(GAME_SRC) | ../build ../run_tree/res
 	@echo Building Game DLL: $@ with pdb suffix $(PDB_SUFFIX)...
-	-del /Q ..\build\game_debug*.pdb
-	-del /Q ..\build\game_debug*.rdi
+	$(SILENT)$(DEL_PDB)
+	$(SILENT)$(DEL_RDI)
 	$(SILENT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) -DEVELOPER_BUILD=1 $(SHARED_FLAGS) $< $(GAME_LIBS) \
-	    $(LDFLAGS) -o $@ \
-	    -Wl,/PDB:../build/game_$(BUILD_TYPE)_$(PDB_SUFFIX).pdb
+		$(LDFLAGS) $(PIC_FLAG) $(PDB_LDFLAG) -o $@
+
 endif
 
 # -------------------------------------------------------------------------

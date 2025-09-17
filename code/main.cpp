@@ -24,8 +24,13 @@ internal void
 DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functions)
 {
 #if DEVELOPER_BUILD
-    string_t game_dll      = STR("game_debug.dll");
-    string_t game_copy_dll = STR("game_debug_COPY.dll");
+    #if OS_WINDOWS
+        string_t game_dll      = STR("game_debug.dll");
+        string_t game_copy_dll = STR("game_debug_COPY.dll");
+    #else
+        string_t game_dll      = STR("./game_debug.so");
+        string_t game_copy_dll = STR("./game_debug_COPY.so");
+    #endif
     c_file_copy(game_dll, game_copy_dll);
         
     game_data->game_lib = os_load_library(game_copy_dll);

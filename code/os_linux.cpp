@@ -129,41 +129,139 @@ os_file_close(file_t *file_data)
 }
 
 internal bool8
-os_file_copy(string_t old_path, string_t new_path)
+os_file_copy(string_t source_path, string_t dest_path)
 {
     bool8 result = false;
-    s32 old_file = open(C_STR(old_path), O_RDONLY);
-    if(old_file < 0)
+
+    s32 source_handle = open(C_STR(source_path), O_RDONLY);
+    if (source_handle < 0)
     {
-        log_error("Failure to open file '%s'...\n", strerror(errno));
-        return(result);
+        log_error("Failed to open source file '%s' for reading: %s\n",
+                  source_path.data, strerror(errno));
+        return result;
     }
 
-    s32 new_file = open(C_STR(new_path), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if(new_file < 0)
+    struct stat src_stat;
+    if (fstat(source_handle, &src_stat) < 0)
     {
-        close(old_file);
-        log_error("Cannot open file: '%s'... Error: %s\n", strerror(errno));
-        return(result);
+        log_error("fstat failed on source '%s': %s\n", source_path.data, strerror(errno));
+        close(source_handle);
+        return result;
     }
 
-    u64 file_offset = 0;
-    u64 bytes_copied;
-
-    while((bytes_copied = copy_file_range(new_file, (__off64_t*)&file_offset, new_file, null, 1 << 20, 0)) > 0);
-    if(bytes_copied < 0)
+    s32 dest_handle = open(C_STR(dest_path), O_WRONLY | O_CREAT | O_TRUNC, src_stat.st_mode & 0777);
+    if (dest_handle < 0)
     {
-        close(old_file);
-        close(new_file);
-
-        log_error("Cannot copy file range... error: %s\n", strerror(errno));
+        log_error("Failed to open destination file '%s' for writing: %s\n",
+                  dest_path.data, strerror(errno));
+        close(source_handle);
+        return result;
     }
 
-    close(old_file);
-    close(new_file);
+    const u64 CHUNK = (1 << 20); /* 1 MiB */
+    bool use_fallback = false;
+
+    for (;;)
+    {
+        ssize_t copied = copy_file_range(source_handle, NULL, dest_handle, NULL, (size_t)CHUNK, 0);
+        if (copied > 0)
+        {
+            continue;
+        }
+        else if (copied == 0)
+        {
+            break;
+        }
+        else 
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            if (errno == ENOSYS || errno == EINVAL || errno == ESPIPE)
+            {
+                use_fallback = true;
+                break;
+            }
+
+            log_error("copy_file_range failed copying '%s' -> '%s': %s\n",
+                      source_path.data, dest_path.data, strerror(errno));
+            close(source_handle);
+            close(dest_handle);
+            return result;
+        }
+    }
+
+    if (use_fallback)
+    {
+        if (lseek(source_handle, 0, SEEK_SET) == (off_t)-1)
+        {
+            log_error("lseek failed on source '%s': %s\n", source_path.data, strerror(errno));
+            close(source_handle);
+            close(dest_handle);
+            return result;
+        }
+
+        char *buf = (char *)malloc((size_t)CHUNK);
+        if (!buf)
+        {
+            log_error("Out of memory while copying '%s' -> '%s'\n", source_path.data, dest_path.data);
+            close(source_handle);
+            close(dest_handle);
+            return result;
+        }
+
+        for (;;)
+        {
+            ssize_t r = read(source_handle, buf, (size_t)CHUNK);
+            if (r > 0)
+            {
+                ssize_t wrote = 0;
+                while (wrote < r)
+                {
+                    ssize_t w = write(dest_handle, buf + wrote, (size_t)(r - wrote));
+                    if (w < 0)
+                    {
+                        if (errno == EINTR) continue;
+                        log_error("write failed while copying to '%s': %s\n", dest_path.data, strerror(errno));
+                        free(buf);
+                        close(source_handle);
+                        close(dest_handle);
+                        return result;
+                    }
+                    wrote += w;
+                }
+            }
+            else if (r == 0)
+            {
+                break;
+            }
+            else
+            {
+                if (errno == EINTR) continue;
+                log_error("read failed while copying from '%s': %s\n", source_path.data, strerror(errno));
+                free(buf);
+                close(source_handle);
+                close(dest_handle);
+                return result;
+            }
+        }
+
+        free(buf);
+    }
+
+    if (fchmod(dest_handle, src_stat.st_mode & 0777) != 0)
+    {
+        log_warning("Failed to set permissions on '%s': %s\n", dest_path.data, strerror(errno));
+    }
+
+    fsync(dest_handle);
+    close(source_handle);
+    close(dest_handle);
 
     result = true;
-    return(result);
+    return result;
 }
 
 internal s64
@@ -768,6 +866,10 @@ internal void*
 os_load_library(string_t filepath)
 {
     void *result = dlopen(C_STR(filepath), RTLD_NOW);
+    if(result == null)
+    {
+        log_fatal("Could not load library: %s... Error: %s...\n", C_STR(filepath), dlerror());
+    }
     return result;
 }
 
