@@ -100,7 +100,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     
     r_end_renderpass(render_state);
     render_group_desc_t test_group5 = r_build_renderpass_desc(&render_state->test_shader,
-                                                              2,
+                                                              14,
                                                               view_matrix,
                                                               projection_matrix,
                                                               RGE_Lighting,
@@ -113,7 +113,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group6 = r_build_renderpass_desc(&render_state->test_shader,
-                                                              2,
+                                                              14,
                                                               view_matrix,
                                                               projection_matrix,
                                                               RGE_None,

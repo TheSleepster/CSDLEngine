@@ -29,20 +29,19 @@ s_work_queue_manager_init(multithreading_work_queue_manager_t *manager)
 internal void 
 s_work_queue_add_entry(multithreading_work_queue_t *queue, work_queue_callback_t *callback, void *user_data)
 {
-    u32 this_entry_to_write = queue->next_entry_to_write;
-    u32 next_entry_to_write = (this_entry_to_write + 1) % ArrayCount(queue->entries);
-
-    ReadWriteBarrier;
-    AtomicCompareExchange32(&queue->next_entry_to_write,
-                            next_entry_to_write,
-                            this_entry_to_write);
-    AtomicIncrement32(&queue->completion_goal);
+    u32 entry_to_write = queue->next_entry_to_write;
+    u32 next_entry_to_write = (entry_to_write + 1) % ArrayCount(queue->entries);
+    Assert(next_entry_to_write != queue->next_entry_to_read);
     
-    multithreading_work_queue_entry_t *new_entry = queue->entries + this_entry_to_write;
+    multithreading_work_queue_entry_t *new_entry = queue->entries + entry_to_write;
     new_entry->callback  = callback;
     new_entry->user_data = user_data;
     new_entry->is_valid  = true;
 
+    queue->completion_goal++;
+    ReadWriteBarrier;
+
+    queue->next_entry_to_write = next_entry_to_write;
     os_semaphore_release(&queue->semaphore, 1);
 }
 
@@ -50,12 +49,12 @@ internal bool8
 s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
 {
     bool8 should_sleep = false;
-    u32 unincremented_entry_to_read = queue->next_entry_to_read;
-    u32 next_entry_to_read = (unincremented_entry_to_read + 1) % ArrayCount(queue->entries);
 
+    u32 unincremented_entry_to_read = queue->next_entry_to_read;
+    u32 next_entry_to_read          = (unincremented_entry_to_read + 1) % ArrayCount(queue->entries);
     if(unincremented_entry_to_read != queue->next_entry_to_write)
     {
-        u32 work_entry_index = AtomicCompareExchange32(&queue->next_entry_to_read,
+        u32 work_entry_index = AtomicCompareExchange32((volatile s32*)&queue->next_entry_to_read,
                                                         next_entry_to_read,
                                                         unincremented_entry_to_read);
         if(work_entry_index == unincremented_entry_to_read)
@@ -66,7 +65,7 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
                 entry->is_valid = false;
                 entry->callback(entry->user_data);
 
-                AtomicIncrement32(&queue->total_work_entries_completed);
+                AtomicIncrement32((volatile s32*)&queue->total_work_entries_completed);
             }
         }
     }
@@ -81,9 +80,16 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
 internal void
 s_work_queue_finish_all_work(multithreading_work_queue_t *queue)
 {
-    while(!s_work_queue_do_next_work_entry(queue))
+    while(true)
     {
-        continue;
+        s_work_queue_do_next_work_entry(queue);
+
+        u32 completion_goal = AtomicLoad((volatile s32*)&queue->completion_goal);
+        u32 total_completed = AtomicLoad((volatile s32*)&queue->total_work_entries_completed);
+        if(completion_goal == total_completed)
+        {
+            break;
+        }
     }
 
     AtomicExchange32(&queue->completion_goal, 0);

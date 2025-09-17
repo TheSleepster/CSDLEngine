@@ -609,6 +609,8 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);
+
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
 
@@ -631,6 +633,8 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);
+
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
     }
@@ -647,6 +651,8 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);
+
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
 
@@ -669,6 +675,8 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);
+
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
     }

@@ -451,7 +451,9 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                                                                        font_view_matrix,
                                                                        font_projection_matrix,
                                                                        RGE_None,
-                                                                       RGP_PostBlitPass);
+                                                                       RGP_PostBlitPass,
+                                                                       RGPT_Quads,
+                                                                       false);
         r_begin_renderpass(render_state, &DEBUG_group_desc);
         vec2_t ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
         DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
