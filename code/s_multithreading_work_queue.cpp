@@ -45,8 +45,6 @@ s_work_queue_add_entry(multithreading_work_queue_t *queue,
 
         new_entry->callback  = callback;
         new_entry->user_data = user_data;
-        AtomicExchange32(&new_entry->is_valid, true);
-
         AtomicIncrement((volatile s32*)&queue->completion_goal);
 
         ReadWriteBarrier;
@@ -69,7 +67,10 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
         if(work_entry_index == unincremented_entry_to_read)
         {
             multithreading_work_queue_entry_t *entry = queue->entries + work_entry_index;
-            entry->callback(entry->user_data);
+            if(entry->callback)
+            {
+                entry->callback(entry->user_data);
+            }
 
             AtomicIncrement32((volatile s32*)&queue->total_work_entries_completed);
         }
