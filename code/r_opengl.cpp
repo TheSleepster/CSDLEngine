@@ -405,6 +405,8 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
 internal void 
 r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
 {
+    DEBUG_TIMED_BLOCK();
+
     Assert(texture != null);
     Assert(texture->bitmap.data.data != null);
     Assert(texture->view != null);

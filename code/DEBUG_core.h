@@ -55,7 +55,7 @@ typedef enum DEBUG_event_type
 typedef struct DEBUG_event
 {
     u32   event_type;
-    u32   reserved;
+    u32   frame_index;
     u32   thread_id;
     u32   record_index;
     u64   cycle_counter;
@@ -73,6 +73,7 @@ typedef struct DEBUG_frame_section
 
 typedef struct DEBUG_open_block
 {
+    u32               opened_frame_index;
     DEBUG_event_t    *opening_event;
     DEBUG_open_block *parent_block;
     DEBUG_open_block *next_free_block;

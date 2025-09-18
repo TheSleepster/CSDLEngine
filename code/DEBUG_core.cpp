@@ -38,6 +38,7 @@ DEBUG_record_event(u32 record_index, u8 type)
         event->record_index  = record_index;
         event->thread_id     = GetThreadID();
         event->cycle_counter = rdtsc();
+        event->frame_index   = DEBUG_global_state->current_frame_index;
     }
 }
 
@@ -237,24 +238,26 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                     }
                     Assert(new_block != null);
 
-                    new_block->opening_event   = event;
-                    new_block->parent_block    = thread->first_open_block;
-                    thread->first_open_block   = new_block;
-                    new_block->next_free_block = null;
+                    new_block->opening_event      = event;
+                    new_block->parent_block       = thread->first_open_block;
+                    new_block->opened_frame_index = DEBUG_global_state->current_frame_index;
+                    thread->first_open_block      = new_block;
+                    new_block->next_free_block    = null;
                 }break;
                 case DEBUG_EVENT_TIMER_END:
                 case DEBUG_EVENT_SECTION_MARK:
                 {
                     record->snapshots[DEBUG_global_state->current_frame_index].cycle_count += event->cycle_counter;
-                    if(thread->is_valid)
+
+                    DEBUG_open_block_t *current_block = thread->first_open_block;
+                    if((current_block->opening_event->thread_id    == event->thread_id) &&
+                        (current_block->opening_event->record_index == event->record_index))
                     {
-                        DEBUG_open_block_t *current_block = thread->first_open_block;
-                        if((current_block->opening_event->thread_id    == event->thread_id) &&
-                           (current_block->opening_event->record_index == event->record_index))
+                        if(current_block->opened_frame_index == event->frame_index)
                         {
                             float32 min_t = (float32)(current_block->opening_event->cycle_counter - current_frame->begin_clock);
                             float32 max_t = (float32)(event->cycle_counter - current_frame->begin_clock); 
-                            float32 threshold = 7000.0f;
+                            float32 threshold = 30000.0f;
                             if((max_t - min_t) > threshold)
                             {
                                 DEBUG_frame_section_t *section_data = current_frame->sections + current_frame->section_count; 
@@ -265,14 +268,19 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                                 section_data->record          = DEBUG_global_state->record_array + event->record_index;
                                 section_data->frame_index     = DEBUG_global_state->current_frame_index;
                             } 
-                            current_block->next_free_block            = DEBUG_global_state->first_free_open_block;
-                            DEBUG_global_state->first_free_open_block = current_block;
-                            thread->first_open_block                  = current_block->parent_block;
                         }
                         else
-                        { 
-                            // TODO(Sleepster): Record span that goes from beginning.
+                        {
+                            // TODO(Sleepster): This is from a previous frame...
                         }
+
+                        current_block->next_free_block            = DEBUG_global_state->first_free_open_block;
+                        DEBUG_global_state->first_free_open_block = current_block;
+                        thread->first_open_block                  = current_block->parent_block;
+                    }
+                    else
+                    { 
+                        // TODO(Sleepster): Record span that goes from beginning.
                     }
                 }break;
                 case DEBUG_EVENT_FRAME_END:
@@ -283,7 +291,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                     float32 clock_range = current_frame->end_clock - current_frame->begin_clock;
                     if(clock_range > 0.0f)
                     {
-                        float32 new_frame_bar_scale = (1.0f / clock_range) * 2.0f;
+                        float32 new_frame_bar_scale = (1.0f / clock_range);
                         if(DEBUG_global_state->frame_bar_scale < new_frame_bar_scale)
                         {
                             DEBUG_global_state->frame_bar_scale = new_frame_bar_scale;
@@ -327,7 +335,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
             (vec4_t){1.0f, 0.1f, 0.1f, 1.0f},
         };
         
-        vec2_t starting_graph_pos = vec2_subtract(ending_pos, vec2_create_float(0, 200)); 
+        vec2_t starting_graph_pos = vec2_subtract(ending_pos, vec2_create_float(0, 100)); 
         vec2_t bar_spacing        = vec2_create_float(30.0f, 0.0f);
 
         float32 lane_width   = 20.0f;
@@ -362,13 +370,14 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 {
                     char buffer[4096] = {};
                     sprintf(buffer,
-                            "%s: [%s, %d]\nClocks: '%llu'cy. Frame Index: '%d'\nSection Index: '%d'",
+                            "%s: [%s, %d]\nClocks: '%llu'cy. Frame Index: '%d'\nSection Index: '%d'\nThread ID: '%llu'",
                             section->record->block_name,
                             section->record->filename,
                             section->record->line_number,
                             (unsigned long long)(section->max_clocks - section->min_clocks),
                             section->frame_index,
-                            section_index);
+                            section_index,
+                            (unsigned long long)section->owner_thread_id);
                     r_draw_string(asset_manager,
                                   render_state,
                                   STR(buffer),

@@ -13,6 +13,7 @@
 internal void
 s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_manager)
 {
+    DEBUG_TIMED_BLOCK();
     switch(event->type)
     {
         case SDL_EVENT_GAMEPAD_ADDED:
@@ -143,6 +144,8 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
 internal void
 s_input_manager_reset_controller_states(input_manager_t *input_manager)
 {
+    DEBUG_TIMED_BLOCK();
+
     for(u32 controller_index = 0;
         controller_index < MAX_INPUT_CONTROLLERS;
         ++controller_index)

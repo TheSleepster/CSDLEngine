@@ -150,7 +150,11 @@
        ======================== ATOMIC STORE========================
        ============================================================= */
 
-#define AtomicStore16(ptr, val) __atomic_store_n((volatile s16*)ptr, val, __ATOMIC_RELEASE)
+       #define AtomicStore16(ptr, val) __atomic_store_n((volatile s16*)ptr, val, __ATOMIC_RELEASE)
+       #define AtomicStore32(ptr, val) __atomic_store_n((volatile s32*)ptr, val, __ATOMIC_RELEASE)
+       #define AtomicStore64(ptr, val) __atomic_store_n((volatile s64*)ptr, val, __ATOMIC_RELEASE)
+
+       #define AtomicStore(ptr, val) __atomic_store_n((volatile s32*)ptr, val, __ATOMIC_RELEASE)
 
     /* =============================================================
        =================== ATOMIC COMPARE EXCHANGE =================

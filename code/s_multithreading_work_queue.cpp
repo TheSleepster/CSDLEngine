@@ -67,7 +67,7 @@ s_work_queue_do_next_work_entry(multithreading_work_queue_t *queue)
         if(work_entry_index == unincremented_entry_to_read)
         {
             multithreading_work_queue_entry_t *entry = queue->entries + work_entry_index;
-            if(entry->callback)
+            if(entry->callback && entry->user_data)
             {
                 entry->callback(entry->user_data);
             }

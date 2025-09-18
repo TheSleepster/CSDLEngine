@@ -145,6 +145,8 @@ initialize_gamestate()
 GAME_API external
 GAME_UPDATE_AND_RENDER(g_update_and_render)
 {
+    DEBUG_TIMED_BLOCK();
+
     if(global_context == null)
     {
         global_context = context;
