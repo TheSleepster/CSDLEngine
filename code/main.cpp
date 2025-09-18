@@ -107,8 +107,14 @@ FILE_WATCHER_CALLBACK(test_callback)
         case FILE_EXT_OS_DLL:
         {
 #if DEVELOPER_BUILD
+#if OS_WINDOWS
+            string_t game_dll_name = STR("game_debug.dll");
             filename.count += 4;
-            if(c_string_compare(filename, STR("game_debug.dll")))
+#else
+            string_t game_dll_name = STR("game_debug.so");
+            filename.count += 3;
+#endif
+            if(c_string_compare(filename, game_dll_name))
             {
                 DEBUG_set_event_marker(DEBUG_EVENT_RELOAD_DLL);
             }
