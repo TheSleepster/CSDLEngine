@@ -169,6 +169,21 @@ typedef enum render_group_depth_function
     RGDF_Count
 }render_group_depth_function_t;
 
+typedef struct render_group_render_state
+{
+    render_group_blending_mode_t     color_blend_mode;
+    render_group_blending_equation_t color_blend_eq;
+
+    render_group_blending_mode_t     alpha_blend_mode;
+    render_group_blending_equation_t alpha_blend_eq;
+
+    render_group_depth_function_t    depth_func;
+
+    bool8                            wants_depth_testing;
+    bool8                            wants_depth_masking;
+    bool8                            wants_blending;
+}render_group_render_state_t;
+
 typedef struct render_group_desc
 {
     GPU_shader_t                       *shader;
@@ -216,21 +231,32 @@ typedef struct render_phase_data
 
 typedef struct draw_frame
 {
-    bool8               is_initialized;
+    bool8                           is_initialized;
 
-    render_phase_data_t preblit_pass_data;
-    render_phase_data_t postblit_pass_data;
+    render_phase_data_t              preblit_pass_data;
+    render_phase_data_t              postblit_pass_data;
 
-    render_group_t     *active_render_group;
+    render_group_t                  *active_render_group;
 
-    point_light_t      *point_lights;
-    u32                 light_counter;
+    point_light_t                   *point_lights;
+    u32                              light_counter;
 
-    shadow_caster2D_t  *shadow_casters;
-    u32                 shadow_caster_counter;
+    shadow_caster2D_t               *shadow_casters;
+    u32                              shadow_caster_counter;
 
-    render_quad_t      *emmisive_quads;
-    u32                 emmisive_quad_counter;
+    render_quad_t                   *emmisive_quads;
+    u32                              emmisive_quad_counter;
+
+    render_group_blending_mode_t     active_color_blend_mode;
+    render_group_blending_equation_t active_color_blend_eq;
+    render_group_blending_mode_t     active_alpha_blend_mode;
+    render_group_blending_equation_t active_alpha_blend_eq;
+
+    render_group_depth_function_t    active_depth_func;
+
+    bool8                            depth_testing_active;
+    bool8                            depth_mask_active;
+    bool8                            blending_active;
 }draw_frame_t;
 
 typedef struct render_state

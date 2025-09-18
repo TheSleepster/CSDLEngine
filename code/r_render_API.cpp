@@ -407,6 +407,40 @@ r_handle_lighting_data(render_state_t *render_state)
 }
 
 /////////////////////////////////
+// SET DRAW FRAME GRAPHIC STATE
+/////////////////////////////////
+
+
+internal inline void
+r_set_active_blend_mode(render_state_t              *render_state,
+                        render_group_blending_mode_t color_blend,
+                        render_group_blending_mode_t alpha_blend)
+{
+    render_state->draw_frame->active_color_blend_mode = color_blend;
+    render_state->draw_frame->active_alpha_blend_mode = alpha_blend;
+}
+
+internal inline void
+r_active_set_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func)
+{
+    render_state->draw_frame->active_depth_func = depth_func;
+}
+
+internal inline void
+r_set_blending_state(render_state_t *render_state, bool32 blending)
+{
+    render_state->draw_frame.blending_active = blending;
+}
+
+internal inline void
+r_set_depth_state(render_state_t *render_state, bool32 depth_test, bool32 depth_mask)
+{
+    render_state->draw_frame.depth_test = depth_test;
+    render_state->draw_frame.depth_mask = depth_mask;
+}
+
+
+/////////////////////////////////
 // RENDER GROUP
 /////////////////////////////////
 
@@ -606,11 +640,11 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t *render_group = (render_group_t*)draw_frame->preblit_pass_data.opaque_render_groups[render_group_idx];
-                // s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                //                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
-                //                        (void*)render_group);
+                s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
+                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (void*)render_group);
 
-                r_fill_render_group_vertex_buffer(render_group);
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
 
@@ -630,11 +664,11 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t  *render_group = (render_group_t*)draw_frame->preblit_pass_data.transparent_render_groups[render_group_idx];
-                // s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                //                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
-                //                        (void*)render_group);
+                s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
+                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (void*)render_group);
 
-                r_fill_render_group_vertex_buffer(render_group);
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
     }
@@ -648,11 +682,11 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t *render_group = (render_group_t*)draw_frame->postblit_pass_data.opaque_render_groups[render_group_idx];
-                // s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                //                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
-                //                        (void*)render_group);
+                s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
+                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (void*)render_group);
 
-                r_fill_render_group_vertex_buffer(render_group);
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
 
@@ -672,11 +706,11 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
                 ++render_group_idx)
             {
                 render_group_t  *render_group = (render_group_t*)draw_frame->postblit_pass_data.transparent_render_groups[render_group_idx];
-                // s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                //                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
-                //                        (void*)render_group);
+                s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
+                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (void*)render_group);
 
-                r_fill_render_group_vertex_buffer(render_group);
+                //r_fill_render_group_vertex_buffer(render_group);
             }
         }
     }
