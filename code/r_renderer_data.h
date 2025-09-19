@@ -133,59 +133,68 @@ typedef enum render_group_primitive_type
 
 typedef enum render_group_blending_mode
 {
+    RGBM_Invalid,
     RGBM_Zero,
     RGBM_One,
+    RGBM_Constant,
+
     RGBM_SrcColor,
     RGBM_OneMinusSrcColor,
     RGBM_DstColor,
     RGBM_OneMinusDstColor,
+
     RGBM_SrcAlpha,
     RGBM_OneMinusSrcAlpha,
     RGBM_DstAlpha,
     RGBM_OneMinusDstAlpha,
-    RGBM_Constant,
     RGBM_Count
 }render_group_blending_mode_t;
 
 typedef enum render_group_blending_equation
 {
+    RGBE_Invalid,
     RGBE_Add,
     RGBE_Subtract,
-    RGBE_ReverseSubract,
+    RGBE_ReverseSubtract,
     RGBE_Min,
     RGBE_Max,
 }render_group_blending_equation_t;
 
 typedef enum render_group_depth_function
 {
+    RGDF_Invalid,
     RGDF_Greater,
-    RGDF_Lesser,
+    RGDF_Less,
     RGDF_Equal,
     RGDF_NotEqual,
-    RGDF_LesserOrEqual,
+    RGDF_LessOrEqual,
     RGDF_GreaterOrEqual,
     RGDF_Never,
     RGDF_Always,
     RGDF_Count
 }render_group_depth_function_t;
 
-typedef struct render_group_render_state
+typedef struct render_group_pipeline_state
 {
-    render_group_blending_mode_t     color_blend_mode;
+    render_group_blending_mode_t     src_color_blend_mode;
+    render_group_blending_mode_t     dst_color_blend_mode;
     render_group_blending_equation_t color_blend_eq;
 
-    render_group_blending_mode_t     alpha_blend_mode;
+    render_group_blending_mode_t     src_alpha_blend_mode;
+    render_group_blending_mode_t     dst_alpha_blend_mode;
     render_group_blending_equation_t alpha_blend_eq;
 
     render_group_depth_function_t    depth_func;
 
     bool8                            wants_depth_testing;
-    bool8                            wants_depth_masking;
+    bool8                            wants_depth_writing;
     bool8                            wants_blending;
-}render_group_render_state_t;
+}render_group_pipeline_state_t;
 
 typedef struct render_group_desc
 {
+    render_group_pipeline_state_t       desired_pipeline_state;
+
     GPU_shader_t                       *shader;
     render_group_effects_t              desired_effects;
     render_group_desired_render_phase_t desired_phase;
@@ -231,7 +240,7 @@ typedef struct render_phase_data
 
 typedef struct draw_frame
 {
-    bool8                           is_initialized;
+    bool8                            is_initialized;
 
     render_phase_data_t              preblit_pass_data;
     render_phase_data_t              postblit_pass_data;
@@ -247,9 +256,12 @@ typedef struct draw_frame
     render_quad_t                   *emmisive_quads;
     u32                              emmisive_quad_counter;
 
-    render_group_blending_mode_t     active_color_blend_mode;
+    render_group_blending_mode_t     active_src_color_blend_mode;
+    render_group_blending_mode_t     active_dst_color_blend_mode;
     render_group_blending_equation_t active_color_blend_eq;
-    render_group_blending_mode_t     active_alpha_blend_mode;
+
+    render_group_blending_mode_t     active_src_alpha_blend_mode;
+    render_group_blending_mode_t     active_dst_alpha_blend_mode;
     render_group_blending_equation_t active_alpha_blend_eq;
 
     render_group_depth_function_t    active_depth_func;

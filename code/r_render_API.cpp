@@ -413,30 +413,51 @@ r_handle_lighting_data(render_state_t *render_state)
 
 internal inline void
 r_set_active_blend_mode(render_state_t              *render_state,
-                        render_group_blending_mode_t color_blend,
-                        render_group_blending_mode_t alpha_blend)
+                        render_group_blending_mode_t src_color_blend,
+                        render_group_blending_mode_t dst_color_blend,
+                        render_group_blending_mode_t src_alpha_blend,
+                        render_group_blending_mode_t dst_alpha_blend)
 {
-    render_state->draw_frame->active_color_blend_mode = color_blend;
-    render_state->draw_frame->active_alpha_blend_mode = alpha_blend;
+    render_state->draw_frame.active_src_color_blend_mode = src_color_blend;
+    render_state->draw_frame.active_dst_color_blend_mode = dst_color_blend;
+
+    render_state->draw_frame.active_src_alpha_blend_mode = src_alpha_blend;
+    render_state->draw_frame.active_dst_alpha_blend_mode = dst_alpha_blend;
 }
 
 internal inline void
-r_active_set_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func)
+r_set_active_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func)
 {
-    render_state->draw_frame->active_depth_func = depth_func;
+    render_state->draw_frame.active_depth_func = depth_func;
 }
 
 internal inline void
-r_set_blending_state(render_state_t *render_state, bool32 blending)
+r_set_active_blending_state(render_state_t *render_state, bool32 blending)
 {
     render_state->draw_frame.blending_active = blending;
 }
 
 internal inline void
-r_set_depth_state(render_state_t *render_state, bool32 depth_test, bool32 depth_mask)
+r_set_active_depth_state(render_state_t *render_state, bool32 depth_test, bool32 depth_mask)
 {
-    render_state->draw_frame.depth_test = depth_test;
-    render_state->draw_frame.depth_mask = depth_mask;
+    render_state->draw_frame.depth_testing_active = depth_test;
+    render_state->draw_frame.depth_mask_active    = depth_mask;
+}
+
+internal void
+r_reset_draw_frame_pipeline_state(render_state_t *render_state)
+{
+    draw_frame_t *draw_frame = &render_state->draw_frame;
+    draw_frame->active_src_color_blend_mode = RGBM_One;
+    draw_frame->active_dst_color_blend_mode = RGBM_Zero;
+    draw_frame->active_src_alpha_blend_mode = RGBM_One;
+    draw_frame->active_dst_alpha_blend_mode = RGBM_Zero;
+    draw_frame->active_color_blend_eq       = RGBE_Add;
+    draw_frame->active_alpha_blend_eq       = RGBE_Add;
+    draw_frame->active_depth_func           = RGDF_Greater;
+    draw_frame->depth_testing_active        = true;
+    draw_frame->depth_mask_active           = true;
+    draw_frame->blending_active             = false;
 }
 
 
@@ -446,27 +467,55 @@ r_set_depth_state(render_state_t *render_state, bool32 depth_test, bool32 depth_
 
 
 internal inline render_group_desc_t
-r_build_renderpass_desc(GPU_shader_t                     *desired_shader,
+r_build_renderpass_desc(render_state_t                   *render_state,
+                        GPU_shader_t                     *desired_shader,
                         u32                               render_layer,
                         mat4_t                            view_matrix,
                         mat4_t                            projection_matrix,
                         render_group_effects_t            render_effects,
                         render_group_desired_render_phase render_phase,
                         render_group_primitive_type_t     primitive_type,
-                        bool8                             supports_transparency)
+                        render_group_pipeline_state_t    *pipeline_state_in)
 {
     DEBUG_TIMED_BLOCK();
     Assert(render_layer <= MAX_RENDER_LAYERS);
+    draw_frame_t *draw_frame = &render_state->draw_frame;
     
     render_group_desc_t result;
-    result.shader                = desired_shader;
-    result.render_layer          = render_layer;
-    result.view_matrix           = view_matrix;
-    result.projection_matrix     = projection_matrix;
-    result.desired_effects       = render_effects;
-    result.desired_phase         = render_phase;
-    result.primitive_type        = primitive_type;
-    result.supports_transparency = supports_transparency;
+    result.shader                 = desired_shader;
+    result.render_layer           = render_layer;
+    result.view_matrix            = view_matrix;
+    result.projection_matrix      = projection_matrix;
+    result.desired_effects        = render_effects;
+    result.desired_phase          = render_phase;
+    result.primitive_type         = primitive_type;
+    if(pipeline_state_in)
+    {
+        result.desired_pipeline_state = *pipeline_state_in;
+    }
+    else
+    {
+        render_group_pipeline_state_t *state = &result.desired_pipeline_state;
+        state->wants_depth_testing   = draw_frame->depth_testing_active;
+        state->wants_depth_writing   = draw_frame->depth_mask_active;
+        state->wants_blending        = draw_frame->blending_active;
+        result.supports_transparency = state->wants_blending;
+        if(state->wants_blending)
+        {
+            state->src_color_blend_mode = draw_frame->active_src_color_blend_mode;
+            state->dst_color_blend_mode = draw_frame->active_dst_color_blend_mode;
+            state->color_blend_eq       = draw_frame->active_color_blend_eq;
+
+            state->src_alpha_blend_mode = draw_frame->active_src_alpha_blend_mode;
+            state->dst_alpha_blend_mode = draw_frame->active_dst_alpha_blend_mode;
+            state->alpha_blend_eq       = draw_frame->active_alpha_blend_eq;
+        }
+
+        if(state->wants_depth_testing)
+        {
+            state->depth_func = draw_frame->active_depth_func;
+        }
+    }
 
     return(result);
 }

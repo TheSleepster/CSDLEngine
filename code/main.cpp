@@ -238,6 +238,7 @@ main(int argc, char **argv)
         global_context->running = true;
         while(global_context->running)
         {
+            r_reset_draw_frame_pipeline_state(&render_state);
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(window, &input_manager);
             c_file_watcher_process_changes(&watcher);

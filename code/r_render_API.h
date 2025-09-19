@@ -19,10 +19,17 @@ internal s32                        r_draw_string(asset_manager_t *asset_manager
 internal render_line_t*             r_create_render_line(render_state_t *render_state, vec2_t start_point, vec2_t end_point, float32 thickness, vec4_t color);
 internal point_light_t*             r_create_point_light(render_state_t *render_state, vec2_t position, vec4_t color, float32 radius);
 internal void                       r_handle_lighting_data(render_state_t *render_state);
-internal inline render_group_desc_t r_build_renderpass_desc(GPU_shader_t *desired_shader, u32 render_layer, mat4_t view_matrix, mat4_t projection_matrix, render_group_effects_t render_effects = RGE_None, render_group_desired_render_phase render_phase = RGP_MainGamePass, render_group_primitive_type_t primitive_type = RGPT_Quads, bool8 supports_transparency = false);
+internal inline render_group_desc_t r_build_renderpass_desc(render_state_t *render_state, GPU_shader_t *desired_shader, u32 render_layer, mat4_t view_matrix, mat4_t projection_matrix, render_group_effects_t render_effects = RGE_None, render_group_desired_render_phase render_phase = RGP_MainGamePass, render_group_primitive_type_t primitive_type = RGPT_Quads, render_group_pipeline_state_t *pipeline_state_in = null);
 internal u64                        r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc);
 internal render_group_t*            r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc);
 internal inline void                r_end_renderpass(render_state_t *render_state);
 internal void                       r_fill_render_group_vertex_buffer(render_group_t *render_group);
 internal void                       r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state);
+internal void                       r_reset_draw_frame_pipeline_state(render_state_t *render_state);
+
+internal inline void r_set_active_blend_mode(render_state_t *render_state, render_group_blending_mode_t src_color_blend, render_group_blending_mode_t dst_color_blend, render_group_blending_mode_t src_alpha_blend, render_group_blending_mode_t dst_alpha_blend);
+internal inline void r_set_active_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func);
+internal inline void r_set_active_blending_state(render_state_t *render_state, bool32 blending);
+internal inline void r_set_active_depth_state(render_state_t *render_state, bool32 depth_test, bool32 depth_mask);
+internal        void r_reset_draw_frame_pipeline_state(render_state_t *render_state);
 #endif

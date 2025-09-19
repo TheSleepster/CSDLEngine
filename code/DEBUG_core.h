@@ -5,6 +5,7 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
+#include "r_render_API.h"
 
 #define DEBUG_CORE_H
 #define MAX_DEBUG_FRAME_HISTORY  (1024)

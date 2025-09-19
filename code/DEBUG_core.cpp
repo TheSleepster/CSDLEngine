@@ -9,7 +9,6 @@
 #include "c_log_assert.h"
 
 #include "DEBUG_core.h"
-#include "r_render_API.h"
 
 internal DEBUG_state_data_t*
 DEBUG_create_debug_state()
@@ -455,29 +454,41 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
     
         mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
         mat4_t font_view_matrix       = mat4_identity();
-        render_group_desc_t DEBUG_group_desc = r_build_renderpass_desc(&render_state->font_shader,
+        render_group_desc_t DEBUG_group_desc = r_build_renderpass_desc(render_state,
+                                                                       &render_state->font_shader,
                                                                        0,
                                                                        font_view_matrix,
                                                                        font_projection_matrix,
                                                                        RGE_None,
                                                                        RGP_PostBlitPass,
-                                                                       RGPT_Quads,
-                                                                       false);
+                                                                       RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc);
         vec2_t ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
         DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
         r_end_renderpass(render_state);
 
-        render_group_desc_t DEBUG_group_desc_transparent = DEBUG_group_desc;
-        DEBUG_group_desc_transparent.render_layer = 1;
+        r_set_active_blending_state(render_state, true);
+        r_set_active_depth_state(render_state, true, false);
+        r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
+        render_group_desc_t DEBUG_group_desc_transparent = r_build_renderpass_desc(render_state,
+                                                                                   &render_state->font_shader,
+                                                                                   1,
+                                                                                   font_view_matrix,
+                                                                                   font_projection_matrix,
+                                                                                   RGE_None,
+                                                                                   RGP_PostBlitPass,
+                                                                                   RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc_transparent);
         r_draw_rect(render_state,
                     vec2_create_float(-960, -600),
                     vec2_create_float(1500, 2000),
-                    vec4_create_float4(0.005f, 0.005f, 0.005f, 0.99f),
+                    vec4_create_float4(0.003f, 0.003f, 0.003f, 0.99f),
                     0,
                     RQO_NONE);
         r_end_renderpass(render_state);
+
+        r_set_active_blending_state(render_state, false);
+        r_set_active_depth_state(render_state, true, true);
     }
 }
 
