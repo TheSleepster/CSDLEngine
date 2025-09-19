@@ -979,12 +979,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     
         glEnable(GL_DEPTH_TEST);
         glClearDepth(0.0f);
-        glDepthFunc(GL_GREATER);
-        glDepthMask(GL_TRUE);
-
-        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        glBlendEquation(GL_FUNC_ADD);
-    
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
@@ -1004,10 +998,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
         if(draw_frame->preblit_pass_data.transparent_render_group_counter > 0)
         {
-            glDepthMask(GL_FALSE);
-            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-            glBlendEquation(GL_FUNC_ADD);
-
             for(u32 group_index = 0;
                 group_index < draw_frame->preblit_pass_data.transparent_render_group_counter;
                 ++group_index)
@@ -1032,7 +1022,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     // NOTE(Sleepster): POST BLIT RENDERING 
     {
         glViewport(0, 0, 1920, 1080);
-        glDepthMask(GL_TRUE);
         if(draw_frame->postblit_pass_data.opaque_render_group_counter > 0)
         {
             for(u32 group_index = 0;
@@ -1046,10 +1035,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
         if(draw_frame->postblit_pass_data.transparent_render_group_counter > 0)
         {
-            glDepthMask(GL_FALSE);
-            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-            glBlendEquation(GL_FUNC_ADD);
-
             for(u32 group_index = 0;
                 group_index < draw_frame->postblit_pass_data.transparent_render_group_counter;
                 ++group_index)
