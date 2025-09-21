@@ -34,9 +34,7 @@
 #include <c_hash_table.h>
 #include <c_file_api.h>
 
-#if OS_LINUX
 #define DEBUG_TIMED_BLOCK()
-#endif
 
 #include <c_zone_allocator.cpp>
 #include <c_memory_arena.cpp>
