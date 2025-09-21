@@ -811,23 +811,23 @@ os_file_watcher_process_changes(file_watcher_t *watcher, bool8 *changed)
                     if(watcher->watch_recursively && (event->mask & IN_ISDIR) && (event->mask & (IN_CREATE|IN_MOVED_TO)))
                     {
                         u32 event_flags = 0;
-                        if (watcher->events_to_monitor & FWC_EVENT_ADDED)
+                        if(watcher->events_to_monitor & FWC_EVENT_ADDED)
                         {
                             event_flags |= IN_CREATE;
                         }
-                        if (watcher->events_to_monitor & FWC_EVENT_MODIFIED)
+                        if(watcher->events_to_monitor & FWC_EVENT_MODIFIED)
                         {
                             event_flags |= IN_MODIFY | IN_CLOSE_WRITE;
                         }
-                        if (watcher->events_to_monitor & FWC_EVENT_MOVED)
+                        if(watcher->events_to_monitor & FWC_EVENT_MOVED)
                         {
                             event_flags |= IN_MOVED_FROM | IN_MOVED_TO | IN_MOVE_SELF;
                         }
-                        if (watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
+                        if(watcher->events_to_monitor & FWC_EVENT_ATTRIBUTE_CHANGE)
                         {
                             event_flags |= IN_ATTRIB;
                         }
-                        if (watcher->events_to_monitor & FWC_EVENT_DELETED)
+                        if(watcher->events_to_monitor & FWC_EVENT_DELETED)
                         {
                             event_flags |= IN_DELETE | IN_DELETE_SELF;
                         }

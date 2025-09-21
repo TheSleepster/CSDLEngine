@@ -126,6 +126,40 @@ typedef struct DEBUG_state_data
     render_group_t     *debug_render_group;
 }DEBUG_state_data_t;
 
+
+
+struct DEBUG_event_t
+{
+    u32   event_type;
+    u32   frame_index;
+    u32   thread_id;
+    u32   record_index;
+    u64   cycle_counter;
+};
+
+struct debug_scope_data_t
+{
+    u64   begin_clock;
+    u64   end_clock;
+};
+
+struct debug_thread_data_t
+{
+    debug_event_data_t events[MAX_EVENTS];
+    debug_scope_data_t scopes[MAX_SCOPES];
+};
+
+struct debug_frame_data_t
+{
+    debug_thread_data_t threads[32];
+    DEBUG_record_t      record_array[MAX_DEBUG_COUNTERS];
+};
+
+struct debug_state_t
+{
+    debug_frame_data_t frames[MAX_FRAMES];
+};
+
 typedef struct input_controller input_controller_t;
 internal void                DEBUG_handle_ui_input(input_controller_t *DEBUG_controller);
 internal DEBUG_state_data_t *DEBUG_create_debug_state();

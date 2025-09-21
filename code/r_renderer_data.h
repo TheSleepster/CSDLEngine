@@ -163,14 +163,15 @@ typedef enum render_group_blending_equation
 typedef enum render_group_depth_function
 {
     RGDF_Invalid,
+    RGDF_Never,
+    RGDF_Always,
+
     RGDF_Greater,
     RGDF_Less,
     RGDF_Equal,
     RGDF_NotEqual,
     RGDF_LessOrEqual,
     RGDF_GreaterOrEqual,
-    RGDF_Never,
-    RGDF_Always,
     RGDF_Count
 }render_group_depth_function_t;
 

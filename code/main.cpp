@@ -9,9 +9,12 @@
 
 #if DEVELOPER_BUILD
     #define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) game_functions.update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
+    GAME_UPDATE_AND_RENDER(g_update_and_render_stub)
+    {
+    }
 #else
     #include "g_main.cpp"
-#define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) g_update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
+    #define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) g_update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
 #endif
 
 struct game_dll_data_t
@@ -21,19 +24,24 @@ struct game_dll_data_t
 };
 
 internal void
+DEBUG_game_load_library(game_dll_data_t *game_data)
+{
+#if OS_WINDOWS
+    string_t game_dll      = STR("game_debug.dll");
+    string_t game_copy_dll = STR("game_debug_COPY.dll");
+    c_file_copy(game_dll, game_copy_dll);
+#else
+    string_t game_copy_dll = STR("./game_debug.so");
+#endif
+
+    game_data->game_lib = os_load_library(game_copy_dll);
+}
+
+internal void
 DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functions)
 {
 #if DEVELOPER_BUILD
-    #if OS_WINDOWS
-        string_t game_dll      = STR("game_debug.dll");
-        string_t game_copy_dll = STR("game_debug_COPY.dll");
-    #else
-        string_t game_dll      = STR("./game_debug.so");
-        string_t game_copy_dll = STR("./game_debug_COPY.so");
-    #endif
-    c_file_copy(game_dll, game_copy_dll);
-        
-    game_data->game_lib = os_load_library(game_copy_dll);
+    DEBUG_game_load_library(game_data);
     if(game_data->game_lib)
     {
         game_data->update_and_render = (game_update_and_render_t *)os_get_proc_address(game_data->game_lib, STR("g_update_and_render"));
@@ -45,6 +53,7 @@ DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functi
     else
     {
         log_fatal("Failure to load the game functions...\n");
+        game_data->update_and_render = g_update_and_render_stub;
     }
 #else
     game_data->update_and_render = g_update_and_render;
@@ -61,13 +70,19 @@ DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functi
 internal void
 DEBUG_reload_game_functions(game_dll_data_t *game_data)
 {
-    Assert(game_data->game_lib);
+    SDL_Delay(250);
+    if(game_data->game_lib)
+    {
+        game_data->update_and_render = null;
+        os_free_library(game_data->game_lib);
 
-    game_data->update_and_render = null;
-    os_free_library(game_data->game_lib);
-
-    DEBUG_get_game_functions(game_data, null);
-    DEBUG_global_state->should_reload_dll = false;
+        DEBUG_get_game_functions(game_data, null);
+        DEBUG_global_state->should_reload_dll = false;
+    }
+    else
+    {
+        DEBUG_game_load_library(game_data);
+    }
 }
 
 FILE_WATCHER_CALLBACK(test_callback)
