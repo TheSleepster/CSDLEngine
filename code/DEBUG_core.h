@@ -9,11 +9,11 @@
 
 #define DEBUG_CORE_H
 #define MAX_DEBUG_FRAME_HISTORY  (1024)
-#define MAX_DEBUG_COUNTERS       (1024)
 #define MAX_DEBUG_SNAPSHOTS      (MAX_DEBUG_FRAME_HISTORY)
+#define MAX_DEBUG_FRAME_SECTIONS (8192 * 8)
+#define MAX_DEBUG_COUNTERS       (1024)
 #define MAX_DEBUG_EVENTS         (8192 * 4)
-#define MAX_THREADS              (32)
-#define MAX_DEBUG_FRAME_SECTIONS (MAX_DEBUG_FRAME_HISTORY)
+#define MAX_DEBUG_THREADS        (32)
 
 #define DEBUG_TIMED_BLOCK()                                             \
     local_persist u32 DEBUG_record_index = (u32)-1;                     \
@@ -25,6 +25,7 @@ typedef struct render_group render_group_t;
 typedef struct asset_manager asset_manager_t;
 typedef struct render_state render_state_t;
 typedef struct asset_handle asset_handle_t;
+typedef struct input_controller input_controller_t;
 
 typedef struct DEBUG_snapshot_data
 {
@@ -57,49 +58,34 @@ typedef struct DEBUG_event
 {
     u32   event_type;
     u32   frame_index;
-    u32   thread_id;
     u32   record_index;
+    u32   core_index;
+    u64   thread_id;
     u64   cycle_counter;
 }DEBUG_event_t;
 
-typedef struct DEBUG_frame_section
+typedef struct DEBUG_scope_data
 {
-    DEBUG_record_t *record;
-    u64             owner_thread_id;
-    float32         min_clocks;
-    float32         max_clocks;
-    u32             frame_index;
-    u32             thread_index;
-}DEBUG_frame_section_t;
-
-typedef struct DEBUG_open_block
-{
-    u32               opened_frame_index;
-    DEBUG_event_t    *opening_event;
-    DEBUG_open_block *parent_block;
-    DEBUG_open_block *next_free_block;
-}DEBUG_open_block_t;
+    u64           begin_clock;
+    u64           end_clock;
+    u32           record_array_index;
+    s32           parent_scope;
+}DEBUG_scope_data_t;
 
 typedef struct DEBUG_thread_data
 {
-    bool8               is_valid;
-    u32                 thread_id;
-    u32                 thread_index;
-    DEBUG_open_block_t *first_open_block;
-    DEBUG_open_block_t *first_free_open_block;
+    u32                next_event_index;
+    u32                last_valid_event_index;
+    u64                thread_id;
+    DEBUG_event_t      events[MAX_DEBUG_EVENTS];
+
+    u32                top_most_stack_index;
+    DEBUG_scope_data_t active_scope_stack[MAX_DEBUG_FRAME_SECTIONS];
+
+    u32                built_scope_count;
+    u32                last_valid_scope_index;
+    DEBUG_scope_data_t built_scope_stack[MAX_DEBUG_FRAME_SECTIONS];
 }DEBUG_thread_data_t;
-
-typedef struct DEBUG_frame_data
-{
-    u64                   begin_clock;
-    u64                   end_clock;
-
-    u32                   thread_count;
-    DEBUG_thread_data_t   thread_data[MAX_THREADS];
-
-    u32                   section_count;
-    DEBUG_frame_section   sections[MAX_DEBUG_FRAME_SECTIONS];
-}DEBUG_frame_data_t;
 
 typedef struct DEBUG_state_data
 {
@@ -112,55 +98,20 @@ typedef struct DEBUG_state_data
     volatile u32        current_frame_index;
     volatile u32        last_frame_index;
 
-    float32             frame_bar_scale;
-
     bool8               should_reload_dll;
     bool8               is_collecting;
     bool8               overlay_active;
 
+    u32                 thread_count;
+    DEBUG_thread_data_t threads[MAX_DEBUG_THREADS]; 
+
+    u64                 frame_markers[MAX_DEBUG_FRAME_HISTORY];
+
     DEBUG_record_t      record_array[MAX_DEBUG_COUNTERS];
     DEBUG_event_t       event_array[2][MAX_DEBUG_EVENTS];
-
-    DEBUG_frame_data_t  frame_data[MAX_DEBUG_SNAPSHOTS];
-    DEBUG_open_block_t *first_free_open_block;
-    render_group_t     *debug_render_group;
 }DEBUG_state_data_t;
 
 
-
-struct DEBUG_event_t
-{
-    u32   event_type;
-    u32   frame_index;
-    u32   thread_id;
-    u32   record_index;
-    u64   cycle_counter;
-};
-
-struct debug_scope_data_t
-{
-    u64   begin_clock;
-    u64   end_clock;
-};
-
-struct debug_thread_data_t
-{
-    debug_event_data_t events[MAX_EVENTS];
-    debug_scope_data_t scopes[MAX_SCOPES];
-};
-
-struct debug_frame_data_t
-{
-    debug_thread_data_t threads[32];
-    DEBUG_record_t      record_array[MAX_DEBUG_COUNTERS];
-};
-
-struct debug_state_t
-{
-    debug_frame_data_t frames[MAX_FRAMES];
-};
-
-typedef struct input_controller input_controller_t;
 internal void                DEBUG_handle_ui_input(input_controller_t *DEBUG_controller);
 internal DEBUG_state_data_t *DEBUG_create_debug_state();
 internal true_inline void    DEBUG_record_event(u32 record_index, u8 type);

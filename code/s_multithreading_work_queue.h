@@ -10,6 +10,11 @@
 #include "c_base.h"
 #include "c_types.h"
 
+/* TODO:
+ * - [ ] Parallel for loop
+ * - [ ] Experiment with lambdas
+ */
+
 typedef struct os_semaphore os_semaphore_t;
 typedef struct os_thread    os_thread_t;
 
