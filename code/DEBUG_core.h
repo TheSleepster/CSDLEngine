@@ -64,12 +64,25 @@ typedef struct DEBUG_event
     u64   cycle_counter;
 }DEBUG_event_t;
 
+typedef struct DEBUG_region
+{
+    u32             record_index;
+    u64             region_cycle_count;
+    u32             region_hit_count;
+    u32             region_thread_index;
+
+    DEBUG_region   *first_child;
+    DEBUG_region   *next_sibling;
+}DEBUG_region_t;
+
 typedef struct DEBUG_scope_data
 {
-    u64           begin_clock;
-    u64           end_clock;
-    u32           record_array_index;
-    s32           parent_scope;
+    u64             begin_clock;
+    u64             end_clock;
+    u32             record_array_index;
+    s32             parent_scope;
+
+    DEBUG_region_t *region_tree_node;
 }DEBUG_scope_data_t;
 
 typedef struct DEBUG_thread_data
@@ -85,6 +98,9 @@ typedef struct DEBUG_thread_data
     u32                built_scope_count;
     u32                last_valid_scope_index;
     DEBUG_scope_data_t built_scope_stack[MAX_DEBUG_FRAME_SECTIONS];
+
+    u32                region_count;
+    DEBUG_region_t     region_data[MAX_DEBUG_FRAME_SECTIONS];
 }DEBUG_thread_data_t;
 
 typedef struct DEBUG_state_data

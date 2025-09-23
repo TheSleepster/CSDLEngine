@@ -85,7 +85,7 @@ DEBUG_handle_ui_input(input_controller_t *DEBUG_controller)
     {
         if(s_input_manager_is_keyboard_key_pressed(DEBUG_controller, SDL_SCANCODE_COMMA))
         {
-            if(DEBUG_global_state->current_frame_index > 0)
+if(DEBUG_global_state->current_frame_index > 0)
             {
                 DEBUG_global_state->last_frame_index = DEBUG_global_state->current_frame_index - 1;
             }
@@ -157,6 +157,32 @@ DEBUG_get_thread(u64 thread_id)
         result = DEBUG_global_state->threads + DEBUG_global_state->thread_count++;
         result->thread_id              = thread_id;
         result->last_valid_event_index = MAX_DEBUG_EVENTS;
+    }
+
+    return(result);
+}
+
+internal u32
+DEBUG_get_thread_index(u64 thread_id)
+{
+    Assert(DEBUG_global_state->thread_count <= MAX_DEBUG_THREADS);
+
+    u32 result = 0;
+    for(u32 thread_index = 0;
+        thread_index < DEBUG_global_state->thread_count;
+        ++thread_index)
+    {
+        DEBUG_thread_data_t *found = DEBUG_global_state->threads + thread_index;
+        if(found->thread_id == thread_id)
+        {
+            result = thread_index;
+            break;
+        }
+    }
+
+    if(!result)
+    {
+        result = DEBUG_global_state->thread_count++;
     }
 
     return(result);
@@ -239,6 +265,38 @@ DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
 
         thread->last_valid_scope_index = (thread->last_valid_scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS;
     }
+}
+
+internal DEBUG_region_t*
+DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
+                            DEBUG_region_t      *parent, 
+                            u32                  record_array_index)
+{
+    DEBUG_region_t *result = null;
+
+    DEBUG_region_t *child = parent->first_child;
+    while(child)
+    {
+        if(child->record_index == record_array_index)
+        {
+            result = child;            
+        }
+        child = child->next_sibling;
+    }
+
+    if(!result)
+    {
+        result = thread->region_data + thread->region_count++;
+        result->record_index        = record_array_index;
+        result->region_cycle_count  = 0;
+        result->region_hit_count    = 0;
+        result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
+        result->next_sibling = parent->first_child;
+
+        parent->first_child  = result;
+    }
+
+    return(result);
 }
 
 internal void 
@@ -359,6 +417,88 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             }
         }
 
+        u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index]; 
+        u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index]; 
+        for(u32 thread_index = 0;
+            thread_index < DEBUG_global_state->thread_count;
+            ++thread_index)
+        {
+            DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
+            thread->region_count = 0;
+
+            DEBUG_region_t      *thread_node = thread->region_data + thread->region_count;
+            ZeroStruct(*thread_node);
+
+            thread_node->first_child  = null;
+            thread_node->next_sibling = null;
+            for(u32 scope_stack_index = 0;
+                scope_stack_index < thread->built_scope_count;
+                ++scope_stack_index)
+            {
+                DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_stack_index;
+                if(scope->begin_clock >= min_t && scope->end_clock <= max_t)
+                {
+                    u64 scope_delta_cycles = scope->end_clock - scope->begin_clock;
+
+                    DEBUG_region_t *parent_region = null;
+                    if(scope->parent_scope == -1)
+                    {
+                        parent_region = thread_node;
+                    }
+                    else
+                    {
+                        DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope;
+                        parent_region = parent_scope->region_tree_node;
+                    }
+
+                    DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index);
+                    new_region->region_cycle_count += scope_delta_cycles;
+                    new_region->region_hit_count   += 1;
+
+                    scope->region_tree_node  = new_region;
+                }
+            }
+        }
+    }
+}
+
+internal void
+DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread)
+{
+
+}
+
+internal void
+DEBUG_render_section_graph(asset_manager_t    *asset_manager,
+                           render_state_t     *render_state,
+                           asset_handle_t     *font_handle,
+                           vec2_t              ending_pos,
+                           input_controller_t *controller)
+{
+    const vec4_t colors[] =
+    {
+        (vec4_t){1.0f, 1.0f, 1.0f, 1.0f},
+        (vec4_t){1.0f, 0.0f, 0.0f, 1.0f},
+        (vec4_t){0.0f, 1.0f, 0.0f, 1.0f},
+        (vec4_t){0.0f, 0.0f, 1.0f, 1.0f},
+        (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
+        (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
+        (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
+        (vec4_t){0.4f, 0.0f, 1.0f, 1.0f},
+        (vec4_t){1.0f, 0.1f, 0.1f, 1.0f}
+    };
+
+    for(u32 thread_index = 0;
+        thread_index < DEBUG_global_state->thread_count;
+        ++thread_index)
+    {
+        DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
+        for(u32 region_index = 0;
+            region_index < thread->region_count;
+            ++region_index)
+        {
+        }
+        thread->region_count = 0;
     }
 }
 
