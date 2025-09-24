@@ -71,6 +71,9 @@ typedef struct DEBUG_region
     u32             region_hit_count;
     u32             region_thread_index;
 
+    s32             parent_scope_index; // for debugging
+    s32             frame_index;
+
     DEBUG_region   *first_child;
     DEBUG_region   *next_sibling;
 }DEBUG_region_t;
@@ -81,6 +84,7 @@ typedef struct DEBUG_scope_data
     u64             end_clock;
     u32             record_array_index;
     s32             parent_scope_index;
+    u32             frame_index; // for debugging
 
     DEBUG_region_t *region_tree_node;
 }DEBUG_scope_data_t;

@@ -131,6 +131,7 @@ r_draw_texture_ex(render_state_t       *render_state,
                   u32                   gpu_texture_id,
                   render_quad_options_t render_options)
 {
+    DEBUG_TIMED_BLOCK();
     Assert(render_state->draw_frame.active_render_group != null);
     render_quad_t  *result = null;
 
@@ -179,6 +180,7 @@ r_draw_texture(render_state_t       *render_state,
                asset_handle_t        texture_handle,
                render_quad_options_t render_options)
 {
+    DEBUG_TIMED_BLOCK();
     render_quad_t *result = null;
     
     vec2_t uv_min     = vec2();
@@ -211,6 +213,7 @@ r_draw_rect(render_state_t       *render_state,
             float32               rotation,
             render_quad_options_t render_options)
 {
+    DEBUG_TIMED_BLOCK();
     asset_handle_t invalid_handle = {};
     render_quad_t *result = r_draw_texture(render_state,
                                            position,
@@ -226,6 +229,7 @@ r_draw_rect(render_state_t       *render_state,
 internal s32
 r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, string_t output)
 {
+    DEBUG_TIMED_BLOCK();
     s32 result = 0;
     for(u8 *p_character = output.data;
         p_character < output.data + output.count;
@@ -324,6 +328,7 @@ r_create_render_line(render_state_t *render_state,
                      float32         thickness,
                      vec4_t          color)
 {
+    DEBUG_TIMED_BLOCK();
     render_line_t *result = null;
     render_group_t *active_group = render_state->draw_frame.active_render_group;
     Assert(active_group->render_desc.primitive_type == RGPT_Lines);
@@ -523,6 +528,8 @@ r_build_renderpass_desc(render_state_t                   *render_state,
 internal u64
 r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
 {
+    DEBUG_TIMED_BLOCK();
+
     u64 result = 0;
     u64 hash_value = 14695981039346656037ULL;
 
