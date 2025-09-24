@@ -188,48 +188,29 @@ DEBUG_get_thread_index(u64 thread_id)
     return(result);
 }
 
-// grab the timestamp for the oldest frame.
-// find the first scope that is older or as old as the oldest timestamp
-// find the value that is greater than the oldest timestamp.
-// 
-
 internal void
 DEBUG_prune_thread_event_history(DEBUG_event_t *event)
 {
     u32 oldest_frame_index = (DEBUG_global_state->current_frame_index + 1) % MAX_DEBUG_FRAME_HISTORY;
-    u64 oldest_timestamp   = DEBUG_global_state->frame_markers[oldest_frame_index];
-
+    u64 oldest_timestamp = DEBUG_global_state->frame_markers[oldest_frame_index];
     DEBUG_thread_data *thread = DEBUG_get_thread(event->thread_id);
 
-    // NOTE(Sleepster): Prune events 
+    u32 first_invalid_event = thread->next_event_index;
+    for(u32 event_index = thread->last_valid_event_index;
+        event_index    != thread->next_event_index;
+        event_index     = (event_index + 1) % MAX_DEBUG_EVENTS)
     {
-        u32 first_invalid_event = 0;
-        for(u32 event_index = 0;
-            event_index < thread->next_event_index;
-            ++event_index)
+        DEBUG_event_t *event = thread->events + event_index;
+        if(event->cycle_counter <= oldest_timestamp)
         {
-            DEBUG_event_t *event = thread->events + event_index;
-            if(event->cycle_counter <= oldest_timestamp)
-            {
-                first_invalid_event = event_index;
-                break;
-            }
-        } 
-        Assert(first_invalid_event != thread->next_event_index);
-
-        u32 last_valid_index = thread->last_valid_event_index;
-        for(u32 event_index = first_invalid_event;
-            event_index < last_valid_index;
-            ++event_index)
-        {
-            DEBUG_event_t *event = thread->events + event_index;
-            if(event->cycle_counter >= oldest_timestamp)
-            {
-                break;
-            }
-
-            thread->last_valid_event_index = (thread->last_valid_event_index + 1) % MAX_DEBUG_EVENTS;
+            first_invalid_event = event_index;
+            break;
         }
+    }
+
+    if(first_invalid_event != thread->next_event_index)
+    {
+        thread->last_valid_event_index = first_invalid_event;
     }
 }
 
@@ -237,12 +218,12 @@ internal void
 DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
 {
     u32 oldest_frame_index = (DEBUG_global_state->current_frame_index + 1) % MAX_DEBUG_FRAME_HISTORY;
-    u64 oldest_timestamp   = DEBUG_global_state->frame_markers[oldest_frame_index];
+    u64 oldest_timestamp = DEBUG_global_state->frame_markers[oldest_frame_index];
 
-    u32 first_invalid_scope = 0;
-    for(u32 scope_index = 0;
-        scope_index < thread->built_scope_count;
-        ++scope_index)
+    u32 first_invalid_scope = thread->built_scope_count; 
+    for(u32 scope_index = thread->last_valid_scope_index;
+        scope_index    != thread->built_scope_count;
+        scope_index     = (scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS)
     {
         DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_index;
         if(scope->begin_clock <= oldest_timestamp)
@@ -252,18 +233,19 @@ DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
         }
     }
 
-    u32 last_valid_index = thread->last_valid_scope_index;
-    for(u32 scope_index = first_invalid_scope;
-        scope_index < last_valid_index;
-        ++scope_index)
+    if(first_invalid_scope != thread->built_scope_count)
     {
-        DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_index;
-        if(scope->begin_clock >= oldest_timestamp)
+        thread->last_valid_scope_index = first_invalid_scope;
+        for(u32 scope_index = thread->last_valid_scope_index;
+            scope_index    != thread->built_scope_count;
+            scope_index     = (scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS)
         {
-            break;
+            DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_index;
+            if(scope->parent_scope_index != -1 && scope->parent_scope_index < (s32)thread->last_valid_scope_index)
+            {
+                scope->parent_scope_index = -1; 
+            }
         }
-
-        thread->last_valid_scope_index = (thread->last_valid_scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS;
     }
 }
 
@@ -292,8 +274,9 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
         result->region_hit_count    = 0;
         result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
         result->next_sibling = parent->first_child;
+        result->first_child  = null;
 
-        parent->first_child  = result;
+        parent->first_child   = result;
     }
 
     return(result);
@@ -311,6 +294,14 @@ DEBUG_append_thread_event(DEBUG_event_t *event)
 
     thread->events[thread->next_event_index] = *event;
     thread->next_event_index = (thread->next_event_index + 1) % MAX_DEBUG_EVENTS;
+}
+
+internal void
+DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread)
+{
+    int x = 0;
+    x = 49;
+    x = x - 10;
 }
 
 internal void
@@ -376,7 +367,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             thread->top_most_stack_index = 0;
             thread->stack_depth          = -1;
 
-            u32 thread_event_index = (thread->last_valid_event_index - 1) % MAX_DEBUG_EVENTS;
+            u32 thread_event_index = (thread->last_valid_event_index) % MAX_DEBUG_EVENTS;
             while(thread_event_index != thread->next_event_index)
             {
                 DEBUG_event_t *event = thread->events + thread_event_index;
@@ -420,6 +411,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
         // NOTE(Sleepster): Build the call tree for the thread 
         u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index]; 
         u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index]; 
+
         for(u32 thread_index = 0;
             thread_index < DEBUG_global_state->thread_count;
             ++thread_index)
@@ -430,7 +422,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             DEBUG_region_t *thread_node = thread->region_data + thread->region_count;
             ZeroStruct(*thread_node);
 
-            for(u32 scope_stack_index = (thread->built_scope_count - 1);
+            for(u32 scope_stack_index = thread->built_scope_count;
                 scope_stack_index > 0;
                 --scope_stack_index)
             {
@@ -449,24 +441,18 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope_index;
                         parent_region = parent_scope->region_tree_node;
                     }
-                    Assert(parent_region != null);
+                    Assert(parent_region);
 
                     DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index);
                     new_region->region_cycle_count += scope_delta_cycles;
                     new_region->region_hit_count   += 1;
 
                     scope->region_tree_node = new_region;
-                    thread->region_count   += 1;
                 }
             }
+            DEBUG_build_thread_call_tree(thread);
         }
-        Assert(false);
     }
-}
-
-internal void
-DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread)
-{
 }
 
 internal void
@@ -642,6 +628,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
 internal void
 DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
 {
+    
     if(DEBUG_global_state->overlay_active)
     {
         asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));

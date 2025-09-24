@@ -79,13 +79,13 @@
   ..\code\c_file_api.h ..\code\c_zone_allocator.h \
   ..\code\c_multithreading_primitives.h ..\code\os_windows.h \
   ..\code\c_file_watcher.h ..\code\c_hash_table.h ..\code\c_intrinsics.h \
-  ..\code\os_platform_file.h ..\code\os_windows.cpp ..\code\DEBUG_core.h \
+  ..\code\os_platform_file.h ..\code\os_windows.cpp \
   ..\code\s_multithreading_work_queue.h ..\code\s_asset_manager.h \
   ..\code\r_asset_shader.h ..\code\r_asset_dynamic_render_font.h \
   ..\code\r_asset_texture.h ..\code\at_atlas_handler.h \
   ..\code\a_asset_loaded_sound.h ..\code\r_renderer_data.h \
   ..\code\s_audio_manager.h ..\code\s_input_manager.h \
-  ..\code\DEBUG_core.cpp ..\code\r_render_API.h \
+  ..\code\DEBUG_core.cpp ..\code\DEBUG_core.h ..\code\r_render_API.h \
   ..\code\c_memory_arena.cpp ..\code\c_zone_allocator.cpp \
   ..\code\c_string.cpp ..\code\c_array.cpp ..\code\c_file_api.cpp \
   ..\code\c_file_watcher.cpp ..\code\c_hash_table.cpp \

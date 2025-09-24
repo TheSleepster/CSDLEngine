@@ -1,12 +1,12 @@
 // raddbg 0.9.21 project file
 
+recent_file: path: "../code/DEBUG_core.cpp"
+recent_file: path: "../code/main.cpp"
+recent_file: path: "../code/DEBUG_core.h"
 recent_file: path: "../code/c_memory_arena.cpp"
 recent_file: path: "d:/a/_work/1/s/src/vctools/crt/vcruntime/src/string/amd64/memset.asm"
 recent_file: path: "../code/c_string.cpp"
 recent_file: path: "../code/asset_builder/ab_main.c"
-recent_file: path: "../code/DEBUG_core.cpp"
-recent_file: path: "../code/DEBUG_core.h"
-recent_file: path: "../code/main.cpp"
 recent_file: path: "../code/s_multithreading_work_queue.cpp"
 recent_file: path: "../code/r_render_API.cpp"
 recent_file: path: "../code/os_windows.cpp"
@@ -81,3 +81,9 @@ breakpoint:
   address_location: 0x7ff6d400df33
   hit_count: 0
 }
+breakpoint:
+{
+  source_location: "../code/DEBUG_core.cpp:301:1"
+  hit_count: 36
+}
+breakpoint: source_location: "../code/DEBUG_core.cpp:302:1"
