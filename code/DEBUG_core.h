@@ -80,7 +80,7 @@ typedef struct DEBUG_scope_data
     u64             begin_clock;
     u64             end_clock;
     u32             record_array_index;
-    s32             parent_scope;
+    s32             parent_scope_index;
 
     DEBUG_region_t *region_tree_node;
 }DEBUG_scope_data_t;
@@ -92,7 +92,8 @@ typedef struct DEBUG_thread_data
     u64                thread_id;
     DEBUG_event_t      events[MAX_DEBUG_EVENTS];
 
-    u32                top_most_stack_index;
+    s32                top_most_stack_index;
+    s32                stack_depth;
     DEBUG_scope_data_t active_scope_stack[MAX_DEBUG_FRAME_SECTIONS];
 
     u32                built_scope_count;

@@ -85,7 +85,7 @@ DEBUG_handle_ui_input(input_controller_t *DEBUG_controller)
     {
         if(s_input_manager_is_keyboard_key_pressed(DEBUG_controller, SDL_SCANCODE_COMMA))
         {
-if(DEBUG_global_state->current_frame_index > 0)
+            if(DEBUG_global_state->current_frame_index > 0)
             {
                 DEBUG_global_state->last_frame_index = DEBUG_global_state->current_frame_index - 1;
             }
@@ -373,8 +373,10 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             ++thread_index)
         {
             DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
+            thread->top_most_stack_index = 0;
+            thread->stack_depth          = -1;
 
-            u32 thread_event_index = thread->last_valid_event_index;
+            u32 thread_event_index = (thread->last_valid_event_index - 1) % MAX_DEBUG_EVENTS;
             while(thread_event_index != thread->next_event_index)
             {
                 DEBUG_event_t *event = thread->events + thread_event_index;
@@ -382,41 +384,40 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                 {
                     case DEBUG_EVENT_TIMER_BEGIN:
                     {
-                        DEBUG_scope_data *new_scope   = thread->active_scope_stack + thread->top_most_stack_index;
-                        s32 new_scope_parent_index    = -1;
-                        if(thread->top_most_stack_index > 0)
-                        {
-                            new_scope_parent_index = (thread->top_most_stack_index - 1) % MAX_DEBUG_FRAME_SECTIONS;
-                        }
-
+                        DEBUG_scope_data *new_scope   = thread->active_scope_stack + (thread->stack_depth + 1);
                         new_scope->begin_clock        = event->cycle_counter;
                         new_scope->record_array_index = event->record_index;
                         new_scope->end_clock          = 0;
-                        new_scope->parent_scope       = new_scope_parent_index;
+                        new_scope->parent_scope_index = -1;
 
-                        thread->top_most_stack_index  = (thread->top_most_stack_index + 1) % MAX_DEBUG_FRAME_SECTIONS;
+                        thread->stack_depth += 1;
                     }break;
                     case DEBUG_EVENT_TIMER_END:
                     {
-                        u32 scope_index = (thread->top_most_stack_index + MAX_DEBUG_FRAME_SECTIONS - 1) % MAX_DEBUG_FRAME_SECTIONS;
-                        thread->top_most_stack_index = scope_index;
-
-                        DEBUG_scope_data_t *scope = thread->active_scope_stack + scope_index;
-                        scope->end_clock = event->cycle_counter;
+                        DEBUG_scope_data_t *our_open_block = thread->active_scope_stack + (thread->top_most_stack_index + thread->stack_depth);
+                        our_open_block->end_clock = event->cycle_counter;
                         if(thread->built_scope_count == thread->last_valid_scope_index)
                         {
                             DEBUG_prune_thread_stack_history(thread);
                         }
 
-                        thread->built_scope_stack[thread->built_scope_count] = *scope;
+                        u32 scope_index = thread->built_scope_count;
+                        thread->built_scope_stack[scope_index] = *our_open_block;
                         thread->built_scope_count = (thread->built_scope_count + 1) % MAX_DEBUG_FRAME_SECTIONS;
-                    } break;
+                        if(thread->stack_depth > 0)
+                        {
+                            thread->built_scope_stack[scope_index].parent_scope_index = thread->built_scope_count; 
+                        }
+
+                        thread->stack_depth -= 1;
+                    }break;
                 }
 
                 thread_event_index = (thread_event_index + 1) % MAX_DEBUG_EVENTS;
             }
         }
 
+        // NOTE(Sleepster): Build the call tree for the thread 
         u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index]; 
         u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index]; 
         for(u32 thread_index = 0;
@@ -426,14 +427,12 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
             thread->region_count = 0;
 
-            DEBUG_region_t      *thread_node = thread->region_data + thread->region_count;
+            DEBUG_region_t *thread_node = thread->region_data + thread->region_count;
             ZeroStruct(*thread_node);
 
-            thread_node->first_child  = null;
-            thread_node->next_sibling = null;
-            for(u32 scope_stack_index = 0;
-                scope_stack_index < thread->built_scope_count;
-                ++scope_stack_index)
+            for(u32 scope_stack_index = (thread->built_scope_count - 1);
+                scope_stack_index > 0;
+                --scope_stack_index)
             {
                 DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_stack_index;
                 if(scope->begin_clock >= min_t && scope->end_clock <= max_t)
@@ -441,31 +440,33 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                     u64 scope_delta_cycles = scope->end_clock - scope->begin_clock;
 
                     DEBUG_region_t *parent_region = null;
-                    if(scope->parent_scope == -1)
+                    if(scope->parent_scope_index == -1)
                     {
                         parent_region = thread_node;
                     }
                     else
                     {
-                        DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope;
+                        DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope_index;
                         parent_region = parent_scope->region_tree_node;
                     }
+                    Assert(parent_region != null);
 
                     DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index);
                     new_region->region_cycle_count += scope_delta_cycles;
                     new_region->region_hit_count   += 1;
 
-                    scope->region_tree_node  = new_region;
+                    scope->region_tree_node = new_region;
+                    thread->region_count   += 1;
                 }
             }
         }
+        Assert(false);
     }
 }
 
 internal void
 DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread)
 {
-
 }
 
 internal void
