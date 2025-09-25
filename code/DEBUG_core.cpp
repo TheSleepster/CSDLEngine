@@ -18,7 +18,8 @@ DEBUG_create_debug_state()
 
     // TODO(Sleepster): Tune the cpu cycle -> ms conversion here. 
 
-    result->is_collecting = true;
+    result->is_collecting          = true;
+    result->next_debug_event_index = 0;
     return(result);
 }
 
@@ -81,7 +82,9 @@ DEBUG_register_performance_counter(char *filename, char *block_name, u32 line_nu
 internal void
 DEBUG_handle_ui_input(input_controller_t *DEBUG_controller)
 {
-    // NOTE(Sleepster): Input stuff 
+    // NOTE(Sleepster): Input stuff
+    u32 last_last_frame_index = DEBUG_global_state->last_frame_index;
+    u32 current_frame_index   = DEBUG_global_state->current_frame_index;
     {
         if(s_input_manager_is_keyboard_key_pressed(DEBUG_controller, SDL_SCANCODE_COMMA))
         {
@@ -130,6 +133,22 @@ DEBUG_handle_ui_input(input_controller_t *DEBUG_controller)
         if(s_input_manager_is_keyboard_key_pressed(DEBUG_controller, SDL_SCANCODE_SEMICOLON))
         {
             DEBUG_global_state->last_frame_index = DEBUG_global_state->current_frame_index - 1;
+        }
+    }
+
+    if(last_last_frame_index != DEBUG_global_state->last_frame_index ||
+       current_frame_index   != DEBUG_global_state->current_frame_index)
+    {
+        for(u32 thread_index = 0;
+            thread_index < DEBUG_global_state->thread_count;
+            ++thread_index)
+        {
+            DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
+            memset((void*)thread->region_data, 0, sizeof(DEBUG_region_t) * thread->region_count);
+            thread->region_count = 1;
+
+            log_info("building call tree..\n");
+            DEBUG_build_thread_call_tree(thread, thread_index);
         }
     }
 }
@@ -298,11 +317,42 @@ DEBUG_append_thread_event(DEBUG_event_t *event)
 }
 
 internal void
-DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread)
+DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
 {
-    int x = 0;
-    x = 49;
-    x = x - 10;
+    DEBUG_region_t *thread_node = thread->region_data;
+    thread_node->region_thread_index = thread_index;
+    ZeroStruct(*thread_node);
+
+    for(s32 scope_stack_index = (thread->built_scope_count - 1);
+        scope_stack_index >= 0;
+        --scope_stack_index)
+    {
+        DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_stack_index;
+        if(scope->frame_index == DEBUG_global_state->last_frame_index)
+        {
+            u64 scope_delta_cycles = scope->end_clock - scope->begin_clock;
+            DEBUG_region_t *parent_region = thread_node;
+            if(scope->parent_scope_index != -1)
+            {
+                DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope_index;
+                if((parent_scope->frame_index == DEBUG_global_state->last_frame_index) &&
+                   (parent_scope->region_tree_node != null))
+                {
+                    parent_region = parent_scope->region_tree_node;
+                }
+            }
+            Assert(parent_region);
+
+            DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index);
+            new_region->region_cycle_count += scope_delta_cycles;
+            new_region->parent_scope_index  = scope->parent_scope_index;
+            new_region->region_hit_count   += 1;
+            new_region->frame_index         = scope->frame_index;
+
+            scope->region_tree_node = new_region;
+            thread_node->region_cycle_count += scope_delta_cycles;
+        }
+    }
 }
 
 internal void
@@ -422,160 +472,218 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
         {
             DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
             memset((void*)thread->region_data, 0, sizeof(DEBUG_region_t) * thread->region_count);
-            thread->region_count = 0;
+            thread->region_count = 1;
 
-            DEBUG_region_t *thread_node = thread->region_data + thread->region_count;
-            ZeroStruct(*thread_node);
-
-            for(s32 scope_stack_index = (thread->built_scope_count - 1);
-                scope_stack_index >= 0;
-                --scope_stack_index)
-            {
-                DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_stack_index;
-                if(scope->frame_index == DEBUG_global_state->last_frame_index)
-                {
-                    u64 scope_delta_cycles = scope->end_clock - scope->begin_clock;
-                    DEBUG_region_t *parent_region = thread_node;
-                    if(scope->parent_scope_index != -1)
-                    {
-                        DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope_index;
-                        if((parent_scope->frame_index == DEBUG_global_state->last_frame_index) &&
-                           (parent_scope->region_tree_node != null))
-                        {
-                            parent_region = parent_scope->region_tree_node;
-                        }
-                    }
-                    Assert(parent_region);
-
-                    DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index);
-                    new_region->region_cycle_count += scope_delta_cycles;
-                    new_region->parent_scope_index  = scope->parent_scope_index;
-                    new_region->region_hit_count   += 1;
-                    new_region->frame_index         = scope->frame_index;
-
-                    scope->region_tree_node = new_region;
-                }
-            }
-            DEBUG_build_thread_call_tree(thread);
+            DEBUG_build_thread_call_tree(thread, thread_index);
         }
     }
+}
+
+internal u32 
+DEBUG_get_graph_lane_depth(DEBUG_region_t *thread_root)
+{
+    u32 result = 0;
+    
+    DEBUG_flame_stack_t flame_stack[MAX_DEBUG_FRAME_SECTIONS];
+    u32 stack_top = 0;
+
+    flame_stack[0].region = thread_root;
+    flame_stack[0].depth = 0;
+    while(stack_top >= 0 &&
+          stack_top  < MAX_DEBUG_FRAME_SECTIONS)
+    {
+        DEBUG_region_t *region = flame_stack[stack_top].region;
+        u32 depth = flame_stack[stack_top--].depth;
+
+        if(depth > result) result = depth;
+        DEBUG_region_t *child = region->first_child;
+        while(child)
+        {
+            flame_stack[++stack_top].region = child;
+            flame_stack[stack_top].depth    = depth + 1;
+
+            child = child->next_sibling;
+        }
+    }
+
+    return(result);
 }
 
 internal void
 DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                            render_state_t     *render_state,
-                           asset_handle_t     *font_handle,
-                           vec2_t              ending_pos,
+                           asset_handle_t     font_handle,
+                           vec2_t             starting_pos,
                            input_controller_t *controller)
 {
-    const vec4_t colors[] =
-    {
-        (vec4_t){1.0f, 1.0f, 1.0f, 1.0f},
-        (vec4_t){1.0f, 0.0f, 0.0f, 1.0f},
-        (vec4_t){0.0f, 1.0f, 0.0f, 1.0f},
-        (vec4_t){0.0f, 0.0f, 1.0f, 1.0f},
-        (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
-        (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
-        (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
-        (vec4_t){0.4f, 0.0f, 1.0f, 1.0f},
-        (vec4_t){1.0f, 0.1f, 0.1f, 1.0f}
-    };
+    // Render layers
+    mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
+    mat4_t font_view_matrix = mat4_identity();
+    render_group_desc_t background_layer = r_build_renderpass_desc(render_state,
+                                                                   &render_state->font_shader,
+                                                                   1,
+                                                                   font_view_matrix,
+                                                                   font_projection_matrix,
+                                                                   RGE_None,
+                                                                   RGP_PostBlitPass,
+                                                                   RGPT_Quads);
+    render_group_desc_t label_layer = background_layer;
+    label_layer.render_layer = 4;
 
-    for(u32 thread_index = 0;
-        thread_index < DEBUG_global_state->thread_count;
-        ++thread_index)
+    const vec4_t colors[] =
+        {
+            {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f},
+            {1.0f, 0.0f, 1.0f, 1.0f}, {0.4f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.1f, 0.1f, 1.0f}
+        };
+    const vec4_t background_color        = {0.03f, 0.03f, 0.03f, 0.99f};
+    const vec4_t text_color              = {1.0f, 1.0f, 1.0f, 1.0f};
+    const float32 lane_height_per_depth  = 20.0f;
+    const float32 lane_width             = 1920.0f;
+    const float32 min_bar_width_for_text = 50.0f;
+    const float32 label_size             = 12.0f;
+    const float32 tooltip_size           = 14.0f;
+    const u32 max_depth_limit            = 32;
+
+    u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index];
+    u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index];
+    u64 frame_cycles = max_t - min_t;
+    float32 cycle_to_pixel_scale = (frame_cycles > 0) ? lane_width / (float32)frame_cycles : 0.0f;
+
+    vec2_t current_pos = vec2_add(starting_pos, {0.0f, 60.0f});
+    for(u32 thread_index = 0; thread_index < DEBUG_global_state->thread_count; ++thread_index)
     {
         DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
-        for(u32 region_index = 0;
-            region_index < thread->region_count;
-            ++region_index)
-        {
-        }
-        thread->region_count = 0;
-    }
-}
+        DEBUG_region_t *thread_root = thread->region_data;
 
-#if 0
-internal void
-DEBUG_render_section_graph(asset_manager_t    *asset_manager, 
-                           render_state_t     *render_state, 
-                           asset_handle_t      font_handle, 
-                           vec2_t              ending_pos,
-                           input_controller_t *controller)
-{
-    DEBUG_frame_data *frame_data = DEBUG_global_state->frame_data + DEBUG_global_state->last_frame_index;
-    if(frame_data)
-    {
-        vec4_t colors[] =
-        {
-            (vec4_t){1.0f, 1.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 0.0f, 0.0f, 1.0f},
-            (vec4_t){0.0f, 1.0f, 0.0f, 1.0f},
-            (vec4_t){0.0f, 0.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 1.0f, 0.0f, 1.0f},
-            (vec4_t){0.0f, 1.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 0.0f, 1.0f, 1.0f},
-            (vec4_t){0.4f, 0.0f, 1.0f, 1.0f},
-            (vec4_t){1.0f, 0.1f, 0.1f, 1.0f},
-        };
-        
-        vec2_t starting_graph_pos = vec2_subtract(ending_pos, vec2_create_float(0, 100)); 
-        vec2_t bar_spacing        = vec2_create_float(30.0f, 0.0f);
+        u32 max_depth = DEBUG_get_graph_lane_depth(thread_root);
+        float32 lane_height = (float32)max_depth * lane_height_per_depth; 
 
-        float32 lane_width   = 20.0f;
-        float32 chart_height = 300.0f; 
-        float32 chart_min_y  = starting_graph_pos.y - chart_height;
-        
-        float32 bar_scale = DEBUG_global_state->frame_bar_scale;
-        for(u32 section_index = 0;
-            section_index < frame_data->section_count;
-            ++section_index)
+        // Thread label
+        r_begin_renderpass(render_state, &background_layer);
+        char label[64];
+        snprintf(label, sizeof(label), "Thread %u (ID: %llu, %llu cy)", thread_index, thread->thread_id, thread_root->region_cycle_count);
+        r_draw_string(asset_manager, render_state, STR(label), font_handle, 16, current_pos, text_color, RQO_NONE);
+        r_end_renderpass(render_state);
+        current_pos.y += 20.0f;
+
+        // Stack-based rendering
+        DEBUG_render_stack_data_t stack[1024];
+        u32 stack_top = -1;
+        stack[++stack_top].region = thread_root;
+        stack[stack_top].depth = 0;
+        stack[stack_top].start_x = 0.0f;
+
+        while(stack_top >= 0 && stack_top < 1024)
         {
-            DEBUG_frame_section_t *section = frame_data->sections + section_index;
-            if(section->record)
+            DEBUG_region_t *region = stack[stack_top].region;
+            u32 depth = stack[stack_top].depth;
+            float32 start_x = stack[stack_top--].start_x;
+            if(!region || depth >= max_depth_limit) continue;
+
+            if(depth > 0)
             {
-                vec4_t color = colors[section->record->record_index % ArrayCount(colors)];
+                u64 delta = region->region_cycle_count;
+                float32 x = current_pos.x + start_x;
+                float32 y = current_pos.y + (float32)(depth - 1) * lane_height_per_depth; 
+                float32 width = (float32)delta * cycle_to_pixel_scale;
+                float32 height = lane_height_per_depth;
 
-                float32 stackx = starting_graph_pos.x + bar_spacing.x * (float32)section_index;
-                float32 stacky = chart_min_y;
-                float32 bar_min_t = stacky + (section->min_clocks * bar_scale);
-                float32 bar_max_t = stacky + (section->max_clocks * bar_scale);
+                // NOTE(Sleepster): Draw bar
+                r_begin_renderpass(render_state, &background_layer);
+                u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
+                r_draw_rect(render_state,
+                            vec2_create_float(x, y),
+                            vec2_create_float(width, height),
+                            colors[color_idx],
+                            0,
+                            RQO_NONE);
 
-                vec2_t rect_pos  = vec2_create_float(stackx, stacky);
-                vec2_t rect_size = vec2_create_float(lane_width, chart_height * fabs(bar_max_t - bar_min_t));
-
-                r_draw_rect(render_state, rect_pos, rect_size, color, 0, RQO_NONE);
-                rectangle2_t cursor_box = rect_create(rect_pos, vec2_add(rect_pos, rect_size));
-
-                vec2_t mouse_cursor_pos = s_input_manager_transform_mouse_data(controller,
-                                                                               render_state->draw_frame.active_render_group->render_desc.view_matrix, 
-                                                                               render_state->draw_frame.active_render_group->render_desc.projection_matrix);
-                if(rect_vec2_test(cursor_box, mouse_cursor_pos))
+                // NOTE(Sleepster): Label if wide enough
+                if(width > min_bar_width_for_text)
                 {
-                    char buffer[4096] = {};
-                    sprintf(buffer,
-                            "%s: [%s, %d]\nClocks: '%llu'cy. Frame Index: '%d'\nSection Index: '%d'\nThread ID: '%llu'",
-                            section->record->block_name,
-                            section->record->filename,
-                            section->record->line_number,
-                            (unsigned long long)(section->max_clocks - section->min_clocks),
-                            section->frame_index,
-                            section_index,
-                            (unsigned long long)section->owner_thread_id);
+                    if(region->record_index < DEBUG_global_state->next_debug_record_entry_index)
+                    {
+                        DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;
+                        char label[4096];
+                        snprintf(label,
+                                 sizeof(label),
+                                 "%s (%u hits)",
+                                 record->block_name,
+                                 region->region_hit_count);
+                        r_draw_string(asset_manager,
+                                      render_state,
+                                      STR(label),
+                                      font_handle,
+                                      label_size,
+                                      vec2_create_float(x + 2.0f, y + 2.0f),
+                                      text_color,
+                                      RQO_NONE);
+                    }
+                }
+                r_end_renderpass(render_state);
+
+                // NOTE(Sleepster): Tooltip
+                vec2_t mouse = s_input_manager_transform_mouse_data(controller, font_view_matrix, font_projection_matrix);
+                rectangle2_t bar_rect = rect_create(vec2_create_float(x, y), vec2_add(vec2_create_float(x, y), vec2_create_float(width, height)));
+                if(rect_vec2_test(bar_rect, mouse))
+                {
+                    r_begin_renderpass(render_state, &background_layer);
+                    DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;
+                    char buffer[4096];
+                    snprintf(buffer,
+                             sizeof(buffer),
+                             "%s: [%s, %d]\nTotal: %llu cy\nHits: %u\nThread: %llu",
+                             record->block_name,
+                             record->filename,
+                             record->line_number,
+                             region->region_cycle_count,
+                             region->region_hit_count,
+                             (u64)region->region_thread_index);
+                    vec2_t tooltip_pos = vec2_add(mouse, vec2_create_float(10.0f, -20.0f));
+                    r_draw_rect(render_state, vec2_subtract(tooltip_pos, {0.0f, 50.0f}), vec2_create_float(500.0f, 100.0f), background_color, 0, RQO_NONE);
+                    r_end_renderpass(render_state);
+
+                    r_begin_renderpass(render_state, &label_layer);
                     r_draw_string(asset_manager,
                                   render_state,
                                   STR(buffer),
                                   font_handle,
-                                  24,
-                                  vec2_add(rect_pos, vec2_create_float(40.0, 100.0f)),
-                                  vec4_create(1.0f),
+                                  tooltip_size,
+                                  vec2_add(tooltip_pos, vec2_create_float(5.0f, 5.0f)),
+                                  text_color,
                                   RQO_NONE);
+                    r_end_renderpass(render_state);
                 }
-            } 
+            }
+
+            float32 child_start_x = start_x;
+            u32 child_count = 0;
+            DEBUG_region_t *children[1024];
+            DEBUG_region_t *child = region->first_child;
+            while(child)
+            {
+                children[child_count++] = child;
+                child_start_x += (float32)child->region_cycle_count * cycle_to_pixel_scale;
+                child = child->next_sibling;
+            }
+
+            for(s32 child_index = child_count - 1;
+                child_index >= 0;
+                --child_index)
+            {
+                stack[++stack_top].region = children[child_index];
+                stack[stack_top].depth = depth + 1;
+                stack[stack_top].start_x = start_x; 
+
+                start_x += (float32)children[child_index]->region_cycle_count * cycle_to_pixel_scale;
+            }
         }
+
+        current_pos.y += lane_height + 10.0f;
+        thread->region_count = 1;
     }
 }
-#endif
 
 internal vec2_t  
 DEBUG_display_record_data(asset_manager_t *asset_manager,
@@ -603,6 +711,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                      (unsigned long long)snapshot_data->hit_count,
                      (unsigned long long)(snapshot_data->cycle_count / snapshot_data->hit_count));
             
+            #if 0
             r_draw_string(asset_manager,
                           render_state,
                           STR(buffer),
@@ -611,6 +720,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           starting_pos,
                           vec4_create(1.0f),
                           RQO_NONE);
+            #endif
 
             starting_pos = vec2_add(starting_pos, vec2_create_float(0, -32));
         }
@@ -650,8 +760,7 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                                                                        RGP_PostBlitPass,
                                                                        RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc);
-        DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
-        //DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
+        vec2_t ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
         r_end_renderpass(render_state);
 
         r_set_active_blending_state(render_state, true);
@@ -674,8 +783,9 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                     RQO_NONE);
         r_end_renderpass(render_state);
 
+        DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
+
         r_set_active_blending_state(render_state, false);
         r_set_active_depth_state(render_state, true, true);
     }
 }
-

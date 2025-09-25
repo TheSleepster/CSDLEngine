@@ -15,7 +15,7 @@ DEVELOPER_BUILD ?=            # set DEVELOPER_BUILD=1 to produce exe + libGameRu
 ifeq ($(OS),Windows_NT)
     OS_DEFINE = -DOS_WINDOWS=1
     PLATFORM_LIBS = -lopengl32 -luser32 -lgdi32 -lwinmm -lshell32 -lole32 -luuid -lversion -ladvapi32 -lsetupapi -lcfgmgr32 -loleaut32 -limm32
-    LDFLAGS = -Wl,/IGNORE:4099 -Wl,/STACK:157286400
+    LDFLAGS = -Wl,/IGNORE:4099 -Wl,/STACK:314572800 
     EXE_EXT = .exe
     DLL_EXT = .dll
     LIB_EXT = .lib

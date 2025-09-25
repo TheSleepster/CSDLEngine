@@ -132,6 +132,18 @@ typedef struct DEBUG_state_data
     DEBUG_event_t       event_array[2][MAX_DEBUG_EVENTS];
 }DEBUG_state_data_t;
 
+struct DEBUG_render_stack_data_t
+{
+    DEBUG_region_t *region;
+    u32             depth;
+    float32         start_x;
+};
+
+struct DEBUG_flame_stack_t
+{
+    DEBUG_region_t *region;
+    u32             depth;
+};
 
 internal void                DEBUG_handle_ui_input(input_controller_t *DEBUG_controller);
 internal DEBUG_state_data_t *DEBUG_create_debug_state();
@@ -141,7 +153,8 @@ internal true_inline void    DEBUG_set_event_marker(u8 type);
 internal u32                 DEBUG_register_performance_counter(char *filename, char *block_name, u32 line_number);
 internal void                DEBUG_handle_events();
 internal vec2_t              DEBUG_display_record_data(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font, float32 delta_time);
-internal void                DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font_handle, vec2_t ending_pos, input_controller_t *controller);
+internal void                DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font_handle, vec2_t starting_pos, input_controller_t *controller);
+internal void                DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index);
 
 struct new_timed_block_t
 {
