@@ -556,18 +556,20 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
         DEBUG_region_t *thread_root = thread->region_data;
 
-        u32 max_depth = DEBUG_get_graph_lane_depth(thread_root);
+        u32 max_depth       = DEBUG_get_graph_lane_depth(thread_root);
         float32 lane_height = (float32)max_depth * lane_height_per_depth; 
 
-        // Thread label
+        // NOTE(Sleepster): Thread label
         r_begin_renderpass(render_state, &background_layer);
-        char label[64];
+
+        char label[256];
         snprintf(label, sizeof(label), "Thread %u (ID: %llu, %llu cy)", thread_index, thread->thread_id, thread_root->region_cycle_count);
         r_draw_string(asset_manager, render_state, STR(label), font_handle, 16, current_pos, text_color, RQO_NONE);
+
         r_end_renderpass(render_state);
+
         current_pos.y += 20.0f;
 
-        // Stack-based rendering
         DEBUG_render_stack_data_t stack[1024];
         u32 stack_top = -1;
         stack[++stack_top].region = thread_root;
@@ -657,14 +659,12 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 }
             }
 
-            float32 child_start_x = start_x;
             u32 child_count = 0;
             DEBUG_region_t *children[1024];
             DEBUG_region_t *child = region->first_child;
             while(child)
             {
                 children[child_count++] = child;
-                child_start_x += (float32)child->region_cycle_count * cycle_to_pixel_scale;
                 child = child->next_sibling;
             }
 
