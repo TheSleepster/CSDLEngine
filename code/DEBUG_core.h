@@ -12,7 +12,7 @@
 #define MAX_DEBUG_SNAPSHOTS      (MAX_DEBUG_FRAME_HISTORY)
 #define MAX_DEBUG_FRAME_SECTIONS (8192 * 8)
 #define MAX_DEBUG_COUNTERS       (1024)
-#define MAX_DEBUG_EVENTS         (8192 * 4)
+#define MAX_DEBUG_EVENTS         (100000)
 #define MAX_DEBUG_THREADS        (32)
 
 #define DEBUG_TIMED_BLOCK()                                             \
@@ -84,6 +84,7 @@ typedef struct DEBUG_scope_data
     u64             end_clock;
     u32             record_array_index;
     s32             parent_scope_index;
+    u32             scope_index; 
     u32             frame_index; // for debugging
 
     DEBUG_region_t *region_tree_node;

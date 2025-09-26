@@ -239,10 +239,10 @@ DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
     u32 oldest_frame_index = (DEBUG_global_state->current_frame_index + 1) % MAX_DEBUG_FRAME_HISTORY;
     u64 oldest_timestamp = DEBUG_global_state->frame_markers[oldest_frame_index];
 
-    u32 first_invalid_scope = thread->built_scope_count; 
+    u32 first_invalid_scope = thread->built_scope_count;
     for(u32 scope_index = thread->last_valid_scope_index;
-        scope_index    != thread->built_scope_count;
-        scope_index     = (scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS)
+        scope_index != thread->built_scope_count;
+        scope_index = (scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS)
     {
         DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_index;
         if(scope->begin_clock <= oldest_timestamp)
@@ -256,16 +256,31 @@ DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
     {
         thread->last_valid_scope_index = first_invalid_scope;
         for(u32 scope_index = thread->last_valid_scope_index;
-            scope_index    != thread->built_scope_count;
-            scope_index     = (scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS)
+            scope_index != thread->built_scope_count;
+            scope_index = (scope_index + 1) % MAX_DEBUG_FRAME_SECTIONS)
         {
             DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_index;
-            if(scope->parent_scope_index != -1 && scope->parent_scope_index < (s32)thread->last_valid_scope_index)
+            if(scope->parent_scope_index != -1 && 
+               (u32)scope->parent_scope_index < thread->last_valid_scope_index)
             {
-                scope->parent_scope_index = -1; 
+                scope->parent_scope_index = -1;
             }
         }
     }
+}
+
+internal void 
+DEBUG_append_thread_event(DEBUG_event_t *event)
+{
+    DEBUG_thread_data *thread = DEBUG_get_thread(event->thread_id);
+
+    if(thread->next_event_index == thread->last_valid_event_index)
+    {
+        DEBUG_prune_thread_event_history(event);
+    }
+
+    thread->events[thread->next_event_index] = *event;
+    thread->next_event_index = (thread->next_event_index + 1) % MAX_DEBUG_EVENTS;
 }
 
 internal DEBUG_region_t*
@@ -302,23 +317,19 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
     return(result);
 }
 
-internal void 
-DEBUG_append_thread_event(DEBUG_event_t *event)
-{
-    DEBUG_thread_data *thread = DEBUG_get_thread(event->thread_id);
-
-    if(thread->next_event_index == thread->last_valid_event_index)
-    {
-        DEBUG_prune_thread_event_history(event);
-    }
-
-    thread->events[thread->next_event_index] = *event;
-    thread->next_event_index = (thread->next_event_index + 1) % MAX_DEBUG_EVENTS;
-}
 
 internal void
 DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
 {
+    for(u32 i = 0; i < thread->built_scope_count; i++)
+    {
+        DEBUG_scope_data_t *scope = thread->built_scope_stack + i;
+
+        DEBUG_record_t *record = DEBUG_global_state->record_array + scope->record_array_index;
+        //printf("Scope %u: record=%s, parent=%d, frame=%u, begin=%llu\n",
+        //       i, record->block_name, scope->parent_scope_index, scope->frame_index, scope->begin_clock);
+    }
+    
     DEBUG_region_t *thread_node = thread->region_data;
     thread_node->region_thread_index = thread_index;
     ZeroStruct(*thread_node);
@@ -434,7 +445,7 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         new_scope->parent_scope_index = -1;
                         new_scope->frame_index        = event->frame_index;
 
-                        thread->stack_depth += 1;
+                        thread->stack_depth      += 1;
                     }break;
                     case DEBUG_EVENT_TIMER_END:
                     {
@@ -453,7 +464,6 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         {
                             thread->built_scope_stack[scope_index].parent_scope_index = thread->built_scope_count; 
                         }
-
                         thread->stack_depth -= 1;
                     }break;
                 }

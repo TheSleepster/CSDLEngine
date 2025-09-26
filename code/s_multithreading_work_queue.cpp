@@ -11,7 +11,7 @@ internal void
 s_work_queue_manager_init(multithreading_work_queue_manager_t *manager)
 {
     s32 user_thread_count    = os_get_cpu_count();
-    s32 threads_to_open      = user_thread_count / 2;
+    s32 threads_to_open      = user_thread_count - 1;
     os_semaphore_t semaphore = os_semaphore_create(0, threads_to_open);
 
     manager->high_priority_queue.semaphore = semaphore;
