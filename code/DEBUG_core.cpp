@@ -283,7 +283,7 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
             result = child;            
             break;
         }
-        child   = child->next_sibling;
+        child = child->next_sibling;
     }
 
     if(!result)
@@ -531,11 +531,11 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
     label_layer.render_layer = 4;
 
     const vec4_t colors[] =
-        {
-            {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
-            {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f},
-            {1.0f, 0.0f, 1.0f, 1.0f}, {0.4f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.1f, 0.1f, 1.0f}
-        };
+    {
+        {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f, 1.0f}, {0.4f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.1f, 0.1f, 1.0f}
+    };
     const vec4_t background_color        = {0.03f, 0.03f, 0.03f, 0.99f};
     const vec4_t text_color              = {1.0f, 1.0f, 1.0f, 1.0f};
     const float32 lane_height_per_depth  = 20.0f;
