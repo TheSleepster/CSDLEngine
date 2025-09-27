@@ -193,6 +193,10 @@ c_process_window_events(SDL_Window *window, input_manager_t *input_manager)
 int
 main(int argc, char **argv)
 {
+#if INTERNAL_DEBUG
+    DEBUG_global_state = DEBUG_create_debug_state();
+#endif
+
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD|SDL_INIT_JOYSTICK) == 0)
     {
         log_fatal("Failed to start SDL critical subsystems...exit code: '%s'\n", SDL_GetError());
@@ -209,10 +213,6 @@ main(int argc, char **argv)
     {
         gc_setup();
         global_context->window_size = vec2_create_float(1920.0f, 1080.0f);
-        
-#if INTERNAL_DEBUG
-        DEBUG_global_state = DEBUG_create_debug_state();
-#endif
         
         asset_manager_t asset_manager = {};
 

@@ -100,6 +100,8 @@ c_begin_scratch_arena(memory_arena_t *arena)
 internal inline void
 c_arena_free_last_block(memory_arena_t *arena)
 {
+    DEBUG_TIMED_BLOCK();
+
     u8 *block_to_free  = (u8*)arena->base;
     u64 old_block_size = arena->block_size;
 
@@ -133,6 +135,8 @@ c_end_scratch_arena(scratch_arena_t *scratch_arena)
 internal inline void
 c_arena_clear_block(memory_arena_t *arena)
 {
+    DEBUG_TIMED_BLOCK();
+
     memset(arena->base, 0, arena->used);
     arena->used = 0;
 }
@@ -140,6 +144,8 @@ c_arena_clear_block(memory_arena_t *arena)
 internal inline void
 c_arena_reset(memory_arena_t *arena)
 {
+    DEBUG_TIMED_BLOCK();
+
     while(arena->block_counter > 1)
     {
         c_arena_free_last_block(arena);

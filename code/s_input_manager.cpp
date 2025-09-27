@@ -196,6 +196,8 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
 internal void
 s_input_manager_initialize_keyboard_controller(input_manager_t *input_manager, s32 index)
 {
+    DEBUG_TIMED_BLOCK();
+
     input_controller_t *controller = input_manager->controllers + index;
     ZeroStruct(*controller);
 
@@ -208,6 +210,8 @@ s_input_manager_initialize_keyboard_controller(input_manager_t *input_manager, s
 internal input_controller_t *
 s_input_manager_get_primary_controller(input_manager_t *input_manager)
 {
+    DEBUG_TIMED_BLOCK();
+
     input_controller_t *result = null;
     result = input_manager->controllers + input_manager->primary_controller_index;
 

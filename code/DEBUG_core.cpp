@@ -57,6 +57,7 @@ DEBUG_set_event_marker(u8 type)
 internal u32 
 DEBUG_register_performance_counter(char *filename, char *block_name, u32 line_number)
 {
+    u32 result = (u32)-1;
     for(u32 counter_index = 0;
         counter_index < DEBUG_global_state->next_debug_record_entry_index;
         ++counter_index)
@@ -67,8 +68,8 @@ DEBUG_register_performance_counter(char *filename, char *block_name, u32 line_nu
             return(old_record->record_index);
         }
     }
-    
-    u32 result = AtomicIncrement(&DEBUG_global_state->next_debug_record_entry_index);
+
+    result = AtomicIncrement(&DEBUG_global_state->next_debug_record_entry_index);
 
     DEBUG_record_t *record = DEBUG_global_state->record_array + result;
     record->filename       = filename;
@@ -285,79 +286,6 @@ DEBUG_append_thread_event(DEBUG_event_t *event)
     thread->next_event_index = (thread->next_event_index + 1) % MAX_DEBUG_EVENTS;
 }
 
-internal DEBUG_region_t*
-DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
-                            DEBUG_region_t      *parent, 
-                            u32                  record_array_index)
-{
-    DEBUG_region_t *result = null;
-    DEBUG_region_t *child  = parent->first_child;
-    while(child)
-    {
-        if(child->record_index == record_array_index)
-        {
-            result = child;            
-            break;
-        }
-        child = child->next_sibling;
-    }
-
-    if(!result)
-    {
-        result = thread->region_data + thread->region_count++;
-        result->record_index        = record_array_index;
-        result->region_cycle_count  = 0;
-        result->region_hit_count    = 0;
-        result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
-        result->first_child         = null;
-        result->next_sibling        = parent->first_child;
-        
-        parent->first_child = result;
-    }
-
-    return(result);
-}
-
-
-internal void
-DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
-{
-    DEBUG_region_t *thread_node = thread->region_data;
-    thread_node->region_thread_index = thread_index;
-    ZeroStruct(*thread_node);
-
-    for(s32 scope_stack_index = (thread->built_scope_count - 1);
-        scope_stack_index >= 0;
-        --scope_stack_index)
-    {
-        DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_stack_index;
-        if(scope->frame_index == DEBUG_global_state->last_frame_index)
-        {
-            u64 scope_delta_cycles = scope->end_clock - scope->begin_clock;
-            DEBUG_region_t *parent_region = thread_node;
-            if(scope->parent_scope_index != -1)
-            {
-                DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope_index;
-                if((parent_scope->frame_index == DEBUG_global_state->last_frame_index) &&
-                   (parent_scope->region_tree_node != null))
-                {
-                    parent_region = parent_scope->region_tree_node;
-                }
-            }
-            Assert(parent_region);
-
-            DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index);
-            new_region->region_cycle_count += scope_delta_cycles;
-            new_region->parent_scope_index  = scope->parent_scope_index;
-            new_region->region_hit_count   += 1;
-            new_region->frame_index         = scope->frame_index;
-
-            scope->region_tree_node = new_region;
-            thread_node->region_cycle_count += scope_delta_cycles;
-        }
-    }
-}
-
 internal void
 DEBUG_handle_events(input_controller_t *DEBUG_controller)
 {
@@ -481,6 +409,90 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
     }
 }
 
+internal DEBUG_region_t*
+DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
+                            DEBUG_region_t      *parent, 
+                            u32                  record_array_index,
+                            u64                  begin_clock,
+                            u64                  end_clock)
+{
+    DEBUG_region_t *result = null;
+    DEBUG_region_t *child  = parent->first_child;
+    while(child)
+    {
+        if(child->record_index == record_array_index) 
+        {
+            result = child;            
+            break;
+        }
+        child = child->next_sibling;
+    }
+
+    if(!result)
+    {
+        result = thread->region_data + thread->region_count++;
+        result->record_index        = record_array_index;
+        result->region_cycle_count  = 0;
+        result->region_hit_count    = 0;
+        result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
+        result->first_child         = null;
+        result->next_sibling        = parent->first_child;
+        result->begin_clock         = begin_clock;
+        result->end_clock           = end_clock;
+        
+        parent->first_child = result;
+    }
+
+    return(result);
+}
+
+internal void
+DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
+{
+    DEBUG_region_t *thread_node = thread->region_data;
+    ZeroStruct(*thread_node);
+
+    u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index];
+    u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index];
+
+    thread_node->region_thread_index = thread_index;
+    thread_node->begin_clock         = min_t;
+    thread_node->end_clock           = max_t;
+
+    for(s32 scope_stack_index = (thread->built_scope_count - 1);
+        scope_stack_index >= 0;
+        --scope_stack_index)
+    {
+        DEBUG_scope_data_t *scope = thread->built_scope_stack + scope_stack_index;
+        if(scope->frame_index == DEBUG_global_state->last_frame_index)
+        {
+            u64 scope_delta_cycles = scope->end_clock - scope->begin_clock;
+            DEBUG_region_t *parent_region = thread_node;
+            if(scope->parent_scope_index != -1)
+            {
+                DEBUG_scope_data_t *parent_scope = thread->built_scope_stack + scope->parent_scope_index;
+                if((parent_scope->frame_index == DEBUG_global_state->last_frame_index) &&
+                   (parent_scope->region_tree_node != null))
+                {
+                    parent_region = parent_scope->region_tree_node;
+                }
+            }
+            Assert(parent_region);
+
+            DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index, 
+                                                                     scope->begin_clock, scope->end_clock);
+            new_region->region_cycle_count += scope_delta_cycles;
+            new_region->parent_scope_index  = scope->parent_scope_index;
+            new_region->region_hit_count   += 1;
+            new_region->frame_index         = scope->frame_index;
+
+            scope->region_tree_node = new_region;
+            thread_node->region_cycle_count += scope_delta_cycles;
+        }
+    }
+}
+
+
 internal u32 
 DEBUG_get_graph_lane_depth(DEBUG_region_t *thread_root)
 {
@@ -518,7 +530,6 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                            vec2_t             starting_pos,
                            input_controller_t *controller)
 {
-    // Render layers
     mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
     mat4_t font_view_matrix = mat4_identity();
     render_group_desc_t background_layer = r_build_renderpass_desc(render_state,
@@ -535,7 +546,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
     const vec4_t colors[] =
     {
         {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
-        {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.4f, 0.4f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f},
         {1.0f, 0.0f, 1.0f, 1.0f}, {0.4f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.1f, 0.1f, 1.0f}
     };
     const vec4_t background_color        = {0.03f, 0.03f, 0.03f, 0.99f};
@@ -579,19 +590,18 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
 
         current_pos.y += 20.0f;
 
-        DEBUG_render_stack_data_t stack[1024];
+        DEBUG_render_stack_data_t render_stack[1024];
         u32 stack_top = -1;
-        stack[++stack_top].region = thread_root;
-        stack[stack_top].depth = 0;
-        stack[stack_top].start_x = 0.0f;
-
+        render_stack[++stack_top].region = thread_root;
+        render_stack[stack_top].depth = 0;
+        render_stack[stack_top].start_x = 0.0f;
         while(stack_top >= 0 && stack_top < 1024)
         {
-            DEBUG_region_t *region = stack[stack_top].region;
-            u32 depth = stack[stack_top].depth;
-            float32 start_x = stack[stack_top--].start_x;
-            if(!region || depth >= max_depth_limit) continue;
+            DEBUG_region_t *region = render_stack[stack_top].region;
+            u32     depth          = render_stack[stack_top].depth;
+            float32 start_x        = render_stack[stack_top--].start_x;
 
+            if(!region || depth >= max_depth_limit) continue;
             if(depth > 0)
             {
                 u64 delta = region->region_cycle_count;
@@ -600,7 +610,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 float32 width = (float32)delta * cycle_to_pixel_scale;
                 float32 height = lane_height_per_depth;
 
-                // NOTE(Sleepster): Draw bar
+                // NOTE(Sleepster): Draw scope bar
                 r_begin_renderpass(render_state, &background_layer);
                 u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
                 r_draw_rect(render_state,
@@ -610,7 +620,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                             0,
                             RQO_NONE);
 
-                // NOTE(Sleepster): Label if wide enough
+                // NOTE(Sleepster): Scope label if wide enough
                 if(width > min_bar_width_for_text)
                 {
                     if(region->record_index < DEBUG_global_state->next_debug_record_entry_index)
@@ -668,25 +678,26 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 }
             }
 
-            u32 child_count = 0;
+            u32 child_counter = 0;
             DEBUG_region_t *children[1024];
             DEBUG_region_t *child = region->first_child;
             while(child)
             {
-                children[child_count++] = child;
+                children[child_counter++] = child;
                 child = child->next_sibling;
             }
 
-            for(s32 child_index = child_count - 1;
+            Assert(child_counter < 1024);
+            for(s32 child_index = child_counter - 1;
                 child_index >= 0;
                 --child_index)
             {
-                stack[++stack_top].region = children[child_index];
-                stack[stack_top].depth = depth + 1;
-                stack[stack_top].start_x = start_x; 
+                render_stack[++stack_top].region = children[child_index];
+                render_stack[stack_top].depth = depth + 1;
+                render_stack[stack_top].start_x = start_x; 
 
                 start_x += (float32)children[child_index]->region_cycle_count * cycle_to_pixel_scale;
-            }
+            }        
         }
 
         current_pos.y += lane_height + 10.0f;
@@ -700,6 +711,8 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           asset_handle_t   font,
                           float32          delta_time)
 {
+    DEBUG_TIMED_BLOCK();
+
     vec2_t starting_pos  = vec2_create_float(-960, 500);
     for(u32 record_index = 0;
         record_index < DEBUG_global_state->next_debug_record_entry_index;
