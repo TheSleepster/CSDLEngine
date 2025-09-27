@@ -10,7 +10,7 @@
 #define DEBUG_CORE_H
 #define MAX_DEBUG_FRAME_HISTORY  (1024)
 #define MAX_DEBUG_SNAPSHOTS      (MAX_DEBUG_FRAME_HISTORY)
-#define MAX_DEBUG_FRAME_SECTIONS (8192 * 8)
+#define MAX_DEBUG_FRAME_SECTIONS (4096 * 4)
 #define MAX_DEBUG_COUNTERS       (1024)
 #define MAX_DEBUG_EVENTS         (100000)
 #define MAX_DEBUG_THREADS        (32)
@@ -108,6 +108,9 @@ typedef struct DEBUG_thread_data
 
     u32                region_count;
     DEBUG_region_t     region_data[MAX_DEBUG_FRAME_SECTIONS];
+
+    // TODO(Sleepster): Cross frame region data 
+    //DEBUG_region_t     region_bank[MAX_DEBUG_FRAME_HISTORY][MAX_DEBUG_FRAME_SECTIONS];
 }DEBUG_thread_data_t;
 
 typedef struct DEBUG_state_data
