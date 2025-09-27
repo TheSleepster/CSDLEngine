@@ -437,8 +437,6 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
         result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
         result->first_child         = null;
         result->next_sibling        = parent->first_child;
-        result->begin_clock         = begin_clock;
-        result->end_clock           = end_clock;
         
         parent->first_child = result;
     }
@@ -452,13 +450,7 @@ DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
     DEBUG_region_t *thread_node = thread->region_data;
     ZeroStruct(*thread_node);
 
-    u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index];
-    u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index];
-
     thread_node->region_thread_index = thread_index;
-    thread_node->begin_clock         = min_t;
-    thread_node->end_clock           = max_t;
-
     for(s32 scope_stack_index = (thread->built_scope_count - 1);
         scope_stack_index >= 0;
         --scope_stack_index)
@@ -556,7 +548,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
     const float32 min_bar_width_for_text = 50.0f;
     const float32 label_size             = 12.0f;
     const float32 tooltip_size           = 14.0f;
-    const u32 max_depth_limit            = 32;
+    const u32 max_depth_limit            = 10;
 
     u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index];
     u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index];
@@ -571,8 +563,9 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
         DEBUG_region_t *thread_root = thread->region_data;
 
-        u32 max_depth       = DEBUG_get_graph_lane_depth(thread_root);
-        float32 lane_height = (float32)max_depth * lane_height_per_depth; 
+        u32 max_depth        = DEBUG_get_graph_lane_depth(thread_root);
+        u32 depth_to_advance = ClampTop(max_depth, max_depth_limit);
+        float32 lane_height  = (float32)depth_to_advance * lane_height_per_depth; 
 
         // NOTE(Sleepster): Thread label
         r_begin_renderpass(render_state, &background_layer);
@@ -681,6 +674,8 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
             u32 child_counter = 0;
             DEBUG_region_t *children[1024];
             DEBUG_region_t *child = region->first_child;
+            
+            float32 child_start_x = start_x;
             while(child)
             {
                 children[child_counter++] = child;
@@ -693,10 +688,10 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 --child_index)
             {
                 render_stack[++stack_top].region = children[child_index];
-                render_stack[stack_top].depth = depth + 1;
-                render_stack[stack_top].start_x = start_x; 
+                render_stack[stack_top].depth    = depth + 1;
+                render_stack[stack_top].start_x  = child_start_x; 
 
-                start_x += (float32)children[child_index]->region_cycle_count * cycle_to_pixel_scale;
+                child_start_x += (float32)children[child_index]->region_cycle_count * cycle_to_pixel_scale;
             }        
         }
 

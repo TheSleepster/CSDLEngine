@@ -69,9 +69,6 @@ typedef struct DEBUG_region
     u32             record_index;
     u32             reserved;
 
-    u64             begin_clock;
-    u64             end_clock;
-
     u64             region_cycle_count;
     u32             region_hit_count;
     u32             region_thread_index;
