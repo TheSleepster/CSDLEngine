@@ -291,8 +291,7 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
                             u32                  record_array_index)
 {
     DEBUG_region_t *result = null;
-
-    DEBUG_region_t *child   = parent->first_child;
+    DEBUG_region_t *child  = parent->first_child;
     while(child)
     {
         if(child->record_index == record_array_index)
@@ -323,15 +322,6 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
 internal void
 DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
 {
-    for(u32 i = 0; i < thread->built_scope_count; i++)
-    {
-        //DEBUG_scope_data_t *scope = thread->built_scope_stack + i;
-
-        //DEBUG_record_t *record = DEBUG_global_state->record_array + scope->record_array_index;
-        //printf("Scope %u: record=%s, parent=%d, frame=%u, begin=%llu\n",
-        //       i, record->block_name, scope->parent_scope_index, scope->frame_index, scope->begin_clock);
-    }
-    
     DEBUG_region_t *thread_node = thread->region_data;
     thread_node->region_thread_index = thread_index;
     ZeroStruct(*thread_node);
@@ -563,7 +553,9 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
     float32 cycle_to_pixel_scale = (frame_cycles > 0) ? lane_width / (float32)frame_cycles : 0.0f;
 
     vec2_t current_pos = vec2_add(starting_pos, {0.0f, 60.0f});
-    for(u32 thread_index = 0; thread_index < DEBUG_global_state->thread_count; ++thread_index)
+    for(u32 thread_index = 0; 
+        thread_index < DEBUG_global_state->thread_count; 
+        ++thread_index)
     {
         DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
         DEBUG_region_t *thread_root = thread->region_data;
