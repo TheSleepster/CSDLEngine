@@ -233,6 +233,7 @@ DEBUG_prune_thread_event_history(DEBUG_event_t *event)
     }
 }
 
+#if 0
 internal void
 DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
 {
@@ -268,6 +269,7 @@ DEBUG_prune_thread_stack_history(DEBUG_thread_data_t *thread)
         }
     }
 }
+#endif
 
 internal void 
 DEBUG_append_thread_event(DEBUG_event_t *event)
@@ -427,7 +429,8 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
             ++thread_index)
         {
             DEBUG_thread_data_t *thread = DEBUG_global_state->threads + thread_index;
-            thread->top_most_stack_index = 0;
+            thread->top_most_stack_index =  0;
+            thread->built_scope_count    =  0;
             thread->stack_depth          = -1;
 
             u32 thread_event_index = (thread->last_valid_event_index) % MAX_DEBUG_EVENTS;
@@ -445,25 +448,24 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
                         new_scope->parent_scope_index = -1;
                         new_scope->frame_index        = event->frame_index;
 
-                        thread->stack_depth      += 1;
+                        thread->stack_depth += 1;
                     }break;
                     case DEBUG_EVENT_TIMER_END:
                     {
-                        DEBUG_scope_data_t *our_open_block = thread->active_scope_stack + (thread->top_most_stack_index + thread->stack_depth);
-                        our_open_block->end_clock = event->cycle_counter;
-                        if(thread->built_scope_count == thread->last_valid_scope_index)
-                        {
-                            DEBUG_prune_thread_stack_history(thread);
-                        }
 
                         u32 scope_index = thread->built_scope_count;
-                        thread->built_scope_stack[scope_index] = *our_open_block;
-                        thread->built_scope_stack[scope_index].region_tree_node = null;
-                        thread->built_scope_count = (thread->built_scope_count + 1) % MAX_DEBUG_FRAME_SECTIONS;
+                        DEBUG_scope_data_t *our_open_block  = thread->active_scope_stack + (thread->top_most_stack_index + thread->stack_depth);
+                        DEBUG_scope_data_t *our_built_scope = thread->built_scope_stack  + scope_index;
+
+                        our_open_block->end_clock        = event->cycle_counter;
+                        our_open_block->region_tree_node = null;
+                        thread->built_scope_count        = (thread->built_scope_count + 1) % MAX_DEBUG_FRAME_SECTIONS;
                         if(thread->stack_depth > 0)
                         {
-                            thread->built_scope_stack[scope_index].parent_scope_index = thread->built_scope_count; 
+                            our_open_block->parent_scope_index = thread->built_scope_count; 
                         }
+
+                       *our_built_scope = *our_open_block;
                         thread->stack_depth -= 1;
                     }break;
                 }

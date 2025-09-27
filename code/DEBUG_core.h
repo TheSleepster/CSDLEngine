@@ -102,7 +102,6 @@ typedef struct DEBUG_thread_data
     DEBUG_scope_data_t active_scope_stack[MAX_DEBUG_FRAME_SECTIONS];
 
     u32                built_scope_count;
-    u32                last_valid_scope_index;
     DEBUG_scope_data_t built_scope_stack[MAX_DEBUG_FRAME_SECTIONS];
 
     u32                region_count;
