@@ -976,7 +976,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     {
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
         glViewport(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height);
-    
+
         glEnable(GL_DEPTH_TEST);
         glClearDepth(0.0f);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

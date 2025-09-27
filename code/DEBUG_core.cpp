@@ -323,9 +323,9 @@ DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
 {
     for(u32 i = 0; i < thread->built_scope_count; i++)
     {
-        DEBUG_scope_data_t *scope = thread->built_scope_stack + i;
+        //DEBUG_scope_data_t *scope = thread->built_scope_stack + i;
 
-        DEBUG_record_t *record = DEBUG_global_state->record_array + scope->record_array_index;
+        //DEBUG_record_t *record = DEBUG_global_state->record_array + scope->record_array_index;
         //printf("Scope %u: record=%s, parent=%d, frame=%u, begin=%llu\n",
         //       i, record->block_name, scope->parent_scope_index, scope->frame_index, scope->begin_clock);
     }
@@ -573,7 +573,12 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         r_begin_renderpass(render_state, &background_layer);
 
         char label[256];
-        snprintf(label, sizeof(label), "Thread %u (ID: %llu, %llu cy)", thread_index, thread->thread_id, thread_root->region_cycle_count);
+        snprintf(label, 
+                 sizeof(label), 
+                 "Thread %u (ID: %llu, %llu cy)", 
+                 thread_index, 
+                 (unsigned long long)thread->thread_id, 
+                 (unsigned long long)thread_root->region_cycle_count);
         r_draw_string(asset_manager, render_state, STR(label), font_handle, 16, current_pos, text_color, RQO_NONE);
 
         r_end_renderpass(render_state);
@@ -645,13 +650,13 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                     char buffer[4096];
                     snprintf(buffer,
                              sizeof(buffer),
-                             "%s: [%s, %d]\nTotal: %llu cy\nHits: %u\nThread: %llu",
+                             "%s: [%s, %d]\nTotal: %llu cy\nHits: %u\nThread: %u",
                              record->block_name,
                              record->filename,
                              record->line_number,
-                             region->region_cycle_count,
+                             (unsigned long long)region->region_cycle_count,
                              region->region_hit_count,
-                             (u64)region->region_thread_index);
+                             region->region_thread_index);
                     vec2_t tooltip_pos = vec2_add(mouse, vec2_create_float(10.0f, -20.0f));
                     r_draw_rect(render_state, vec2_subtract(tooltip_pos, {0.0f, 50.0f}), vec2_create_float(500.0f, 100.0f), background_color, 0, RQO_NONE);
                     r_end_renderpass(render_state);
