@@ -131,7 +131,7 @@ FILE_WATCHER_CALLBACK(test_callback)
 #endif
             if(c_string_compare(filename, game_dll_name))
             {
-                DEBUG_set_event_marker(DEBUG_EVENT_RELOAD_DLL);
+                DEBUG_global_state->should_reload_dll = true;
             }
 #endif
         }break;

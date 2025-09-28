@@ -18,7 +18,7 @@ DEBUG_create_debug_state()
 
     // TODO(Sleepster): Tune the cpu cycle -> ms conversion here. 
 
-    result->is_collecting          = true;
+    result->is_collecting          = false;
     result->next_debug_event_index = 0;
     return(result);
 }
@@ -332,10 +332,6 @@ DEBUG_handle_events(input_controller_t *DEBUG_controller)
 
                     DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index] = event->cycle_counter;
                     DEBUG_global_state->last_frame_index   = AtomicExchange(&DEBUG_global_state->current_frame_index, next_current_frame_index);
-                }break;
-                case DEBUG_EVENT_RELOAD_DLL:
-                {
-                    DEBUG_global_state->should_reload_dll = true;
                 }break;
                 default: {}break;
             }
@@ -706,8 +702,6 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           asset_handle_t   font,
                           float32          delta_time)
 {
-    DEBUG_TIMED_BLOCK();
-
     vec2_t starting_pos  = vec2_create_float(-960, 500);
     for(u32 record_index = 0;
         record_index < DEBUG_global_state->next_debug_record_entry_index;
