@@ -148,7 +148,7 @@ r_assign_uniform_type(shader_uniform_t *uniform, GLenum type)
             uniform->type   = SUT_FLOAT_MATRIX4;
             uniform->update = gl_update_float_mat4_uniform;
         }break;
-case GL_SAMPLER_2D:
+        case GL_SAMPLER_2D:
         {
             uniform->type = SUT_TEXTURE_BINDING;
         }break;
@@ -776,169 +776,173 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
     DEBUG_TIMED_BLOCK();
     Assert(group);
 
-    glUseProgram(group->render_desc.shader->program_id);
-    r_update_shader_gpu_data(group, group->render_desc.shader, true);
-    glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
-
-    GLenum src_color_blend_mode = 0;
-    GLenum dst_color_blend_mode = 0;
-
-    GLenum src_alpha_blend_mode = 0;
-    GLenum dst_alpha_blend_mode = 0;
-
-    GLenum color_blend_equation = 0;
-    GLenum alpha_blend_equation = 0;
-    GLenum depth_function       = 0;
-
-    if(group->render_desc.desired_pipeline_state.wants_blending)
+    if(group->vertex_count > 0)
     {
-        // set blend modes
+        glUseProgram(group->render_desc.shader->program_id);
+        r_update_shader_gpu_data(group, group->render_desc.shader, true);
+        glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
+
+        GLenum src_color_blend_mode = 0;
+        GLenum dst_color_blend_mode = 0;
+
+        GLenum src_alpha_blend_mode = 0;
+        GLenum dst_alpha_blend_mode = 0;
+
+        GLenum color_blend_equation = 0;
+        GLenum alpha_blend_equation = 0;
+        GLenum depth_function       = GL_GREATER;
+        if(group->render_desc.desired_pipeline_state.wants_blending)
         {
-            switch(group->render_desc.desired_pipeline_state.src_color_blend_mode)
+            // set blend modes
             {
-                case RGBM_Zero:             {src_color_blend_mode = GL_ZERO;               }break;
-                case RGBM_One:              {src_color_blend_mode = GL_ONE;                }break;
-                case RGBM_Constant:         {src_color_blend_mode = GL_CONSTANT_COLOR;     }break;
-                case RGBM_SrcColor:         {src_color_blend_mode = GL_SRC_COLOR;          }break;
-                case RGBM_OneMinusSrcColor: {src_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                case RGBM_DstColor:         {src_color_blend_mode = GL_DST_COLOR;          }break;
-                case RGBM_OneMinusDstColor: {src_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                switch(group->render_desc.desired_pipeline_state.src_color_blend_mode)
+                {
+                    case RGBM_Zero:             {src_color_blend_mode = GL_ZERO;               }break;
+                    case RGBM_One:              {src_color_blend_mode = GL_ONE;                }break;
+                    case RGBM_Constant:         {src_color_blend_mode = GL_CONSTANT_COLOR;     }break;
+                    case RGBM_SrcColor:         {src_color_blend_mode = GL_SRC_COLOR;          }break;
+                    case RGBM_OneMinusSrcColor: {src_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                    case RGBM_DstColor:         {src_color_blend_mode = GL_DST_COLOR;          }break;
+                    case RGBM_OneMinusDstColor: {src_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
 
-                case RGBM_SrcAlpha:         {src_color_blend_mode = GL_SRC_ALPHA;          }break;
-                case RGBM_OneMinusSrcAlpha: {src_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                case RGBM_DstAlpha:         {src_color_blend_mode = GL_DST_ALPHA;          }break;
-                case RGBM_OneMinusDstAlpha: {src_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-                default: {InvalidCodePath;}break;
+                    case RGBM_SrcAlpha:         {src_color_blend_mode = GL_SRC_ALPHA;          }break;
+                    case RGBM_OneMinusSrcAlpha: {src_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                    case RGBM_DstAlpha:         {src_color_blend_mode = GL_DST_ALPHA;          }break;
+                    case RGBM_OneMinusDstAlpha: {src_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+                    default: {InvalidCodePath;}break;
+                }
+
+                switch(group->render_desc.desired_pipeline_state.dst_color_blend_mode)
+                {
+                    case RGBM_Zero:             {dst_color_blend_mode = GL_ZERO;               }break;
+                    case RGBM_One:              {dst_color_blend_mode = GL_ONE;                }break;
+                    case RGBM_Constant:         {dst_color_blend_mode = GL_CONSTANT_COLOR;     }break;
+                    case RGBM_SrcColor:         {dst_color_blend_mode = GL_SRC_COLOR;          }break;
+                    case RGBM_OneMinusSrcColor: {dst_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                    case RGBM_DstColor:         {dst_color_blend_mode = GL_DST_COLOR;          }break;
+                    case RGBM_OneMinusDstColor: {dst_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+
+                    case RGBM_SrcAlpha:         {dst_color_blend_mode = GL_SRC_ALPHA;          }break;
+                    case RGBM_OneMinusSrcAlpha: {dst_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                    case RGBM_DstAlpha:         {dst_color_blend_mode = GL_DST_ALPHA;          }break;
+                    case RGBM_OneMinusDstAlpha: {dst_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+                    default: {InvalidCodePath;}break;
+                }
+
+                switch(group->render_desc.desired_pipeline_state.src_alpha_blend_mode)
+                {
+                    case RGBM_Zero:             {src_alpha_blend_mode = GL_ZERO;               }break;
+                    case RGBM_One:              {src_alpha_blend_mode = GL_ONE;                }break;
+                    case RGBM_Constant:         {src_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
+                    case RGBM_SrcAlpha:         {src_alpha_blend_mode = GL_SRC_ALPHA;          }break;
+                    case RGBM_OneMinusSrcAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                    case RGBM_DstAlpha:         {src_alpha_blend_mode = GL_DST_ALPHA;          }break;
+                    case RGBM_OneMinusDstAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+
+                    case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
+                    case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                    case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
+                    case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                    default: {InvalidCodePath;}break;
+                }
+
+                switch(group->render_desc.desired_pipeline_state.dst_alpha_blend_mode)
+                {
+                    case RGBM_Zero:             {dst_alpha_blend_mode = GL_ZERO;               }break;
+                    case RGBM_One:              {dst_alpha_blend_mode = GL_ONE;                }break;
+                    case RGBM_Constant:         {dst_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
+                    case RGBM_SrcAlpha:         {dst_alpha_blend_mode = GL_SRC_ALPHA;          }break;
+                    case RGBM_OneMinusSrcAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                    case RGBM_DstAlpha:         {dst_alpha_blend_mode = GL_DST_ALPHA;          }break;
+                    case RGBM_OneMinusDstAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+
+                    case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
+                    case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                    case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
+                    case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                    default: {InvalidCodePath;}break;
+                }
             }
 
-            switch(group->render_desc.desired_pipeline_state.dst_color_blend_mode)
+            // set blend eqs
             {
-                case RGBM_Zero:             {dst_color_blend_mode = GL_ZERO;               }break;
-                case RGBM_One:              {dst_color_blend_mode = GL_ONE;                }break;
-                case RGBM_Constant:         {dst_color_blend_mode = GL_CONSTANT_COLOR;     }break;
-                case RGBM_SrcColor:         {dst_color_blend_mode = GL_SRC_COLOR;          }break;
-                case RGBM_OneMinusSrcColor: {dst_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                case RGBM_DstColor:         {dst_color_blend_mode = GL_DST_COLOR;          }break;
-                case RGBM_OneMinusDstColor: {dst_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                switch(group->render_desc.desired_pipeline_state.color_blend_eq)
+                {
+                    case RGBE_Add:             {color_blend_equation = GL_FUNC_ADD;             }break;
+                    case RGBE_Subtract:        {color_blend_equation = GL_FUNC_SUBTRACT;        }break;
+                    case RGBE_ReverseSubtract: {color_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
+                    case RGBE_Min:             {color_blend_equation = GL_MIN;                  }break;
+                    case RGBE_Max:             {color_blend_equation = GL_MAX;                  }break;
+                    default: {InvalidCodePath;}break;
+                }
 
-                case RGBM_SrcAlpha:         {dst_color_blend_mode = GL_SRC_ALPHA;          }break;
-                case RGBM_OneMinusSrcAlpha: {dst_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                case RGBM_DstAlpha:         {dst_color_blend_mode = GL_DST_ALPHA;          }break;
-                case RGBM_OneMinusDstAlpha: {dst_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-                default: {InvalidCodePath;}break;
+                switch(group->render_desc.desired_pipeline_state.alpha_blend_eq)
+                {
+                    case RGBE_Add:             {alpha_blend_equation = GL_FUNC_ADD;             }break;
+                    case RGBE_Subtract:        {alpha_blend_equation = GL_FUNC_SUBTRACT;        }break;
+                    case RGBE_ReverseSubtract: {alpha_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
+                    case RGBE_Min:             {alpha_blend_equation = GL_MIN;                  }break;
+                    case RGBE_Max:             {alpha_blend_equation = GL_MAX;                  }break;
+                    default: {InvalidCodePath;}break;
+                }
             }
 
-            switch(group->render_desc.desired_pipeline_state.src_alpha_blend_mode)
-            {
-                case RGBM_Zero:             {src_alpha_blend_mode = GL_ZERO;               }break;
-                case RGBM_One:              {src_alpha_blend_mode = GL_ONE;                }break;
-                case RGBM_Constant:         {src_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
-                case RGBM_SrcAlpha:         {src_alpha_blend_mode = GL_SRC_ALPHA;          }break;
-                case RGBM_OneMinusSrcAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                case RGBM_DstAlpha:         {src_alpha_blend_mode = GL_DST_ALPHA;          }break;
-                case RGBM_OneMinusDstAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-
-                case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
-                case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
-                case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
-                default: {InvalidCodePath;}break;
-            }
-
-            switch(group->render_desc.desired_pipeline_state.dst_alpha_blend_mode)
-            {
-                case RGBM_Zero:             {dst_alpha_blend_mode = GL_ZERO;               }break;
-                case RGBM_One:              {dst_alpha_blend_mode = GL_ONE;                }break;
-                case RGBM_Constant:         {dst_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
-                case RGBM_SrcAlpha:         {dst_alpha_blend_mode = GL_SRC_ALPHA;          }break;
-                case RGBM_OneMinusSrcAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                case RGBM_DstAlpha:         {dst_alpha_blend_mode = GL_DST_ALPHA;          }break;
-                case RGBM_OneMinusDstAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-
-                case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
-                case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
-                case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
-                default: {InvalidCodePath;}break;
-            }
-        }
-
-        // set blend eqs
-        {
-            switch(group->render_desc.desired_pipeline_state.color_blend_eq)
-            {
-                case RGBE_Add:             {color_blend_equation = GL_FUNC_ADD;             }break;
-                case RGBE_Subtract:        {color_blend_equation = GL_FUNC_SUBTRACT;        }break;
-                case RGBE_ReverseSubtract: {color_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
-                case RGBE_Min:             {color_blend_equation = GL_MIN;                  }break;
-                case RGBE_Max:             {color_blend_equation = GL_MAX;                  }break;
-            }
-
-            switch(group->render_desc.desired_pipeline_state.alpha_blend_eq)
-            {
-                case RGBE_Add:             {alpha_blend_equation = GL_FUNC_ADD;             }break;
-                case RGBE_Subtract:        {alpha_blend_equation = GL_FUNC_SUBTRACT;        }break;
-                case RGBE_ReverseSubtract: {alpha_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
-                case RGBE_Min:             {alpha_blend_equation = GL_MIN;                  }break;
-                case RGBE_Max:             {alpha_blend_equation = GL_MAX;                  }break;
-            }
-        }
-
-        glEnable(GL_BLEND);
-        glBlendEquationSeparate(color_blend_equation, alpha_blend_equation);
-        glBlendFuncSeparate(src_color_blend_mode, dst_color_blend_mode, 
-                            src_alpha_blend_mode, dst_alpha_blend_mode);
-    }
-    else
-    {
-        glDisable(GL_BLEND);
-    }
-
-    // set depth functions
-    {
-        bool32 depth_testing_enabled = group->render_desc.desired_pipeline_state.wants_depth_testing;
-        bool32 depth_write_enabled   = group->render_desc.desired_pipeline_state.wants_depth_writing;
-
-        switch(group->render_desc.desired_pipeline_state.depth_func)
-        {
-            case RGDF_Greater:        {depth_function = GL_GREATER; }break;
-            case RGDF_Less:           {depth_function = GL_LESS;    }break;
-            case RGDF_Equal:          {depth_function = GL_EQUAL;   }break;
-            case RGDF_NotEqual:       {depth_function = GL_NOTEQUAL;}break;
-            case RGDF_LessOrEqual:    {depth_function = GL_LEQUAL;  }break;
-            case RGDF_GreaterOrEqual: {depth_function = GL_GEQUAL;  }break;
-            case RGDF_Never:          {depth_function = GL_NEVER;   }break;
-            case RGDF_Always:         {depth_function = GL_ALWAYS;  }break;
-        }
-        if(depth_testing_enabled) 
-        {
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(depth_function);
+            glEnable(GL_BLEND);
+            glBlendEquationSeparate(color_blend_equation, alpha_blend_equation);
+            glBlendFuncSeparate(src_color_blend_mode, dst_color_blend_mode, 
+                                src_alpha_blend_mode, dst_alpha_blend_mode);
         }
         else
         {
-            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_BLEND);
         }
 
-        if(depth_write_enabled) glDepthMask(GL_TRUE);
-        else                    glDepthMask(GL_FALSE);
-
-    }
-
-    switch(group->render_desc.primitive_type)
-    {
-        case RGPT_Quads:
+        // set depth functions
         {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-            glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
-        }break;
-        case RGPT_Lines:
+            bool32 depth_testing_enabled = group->render_desc.desired_pipeline_state.wants_depth_testing;
+            bool32 depth_write_enabled   = group->render_desc.desired_pipeline_state.wants_depth_writing;
+
+            switch(group->render_desc.desired_pipeline_state.depth_func)
+            {
+                case RGDF_Greater:        {depth_function = GL_GREATER; }break;
+                case RGDF_Less:           {depth_function = GL_LESS;    }break;
+                case RGDF_Equal:          {depth_function = GL_EQUAL;   }break;
+                case RGDF_NotEqual:       {depth_function = GL_NOTEQUAL;}break;
+                case RGDF_LessOrEqual:    {depth_function = GL_LEQUAL;  }break;
+                case RGDF_GreaterOrEqual: {depth_function = GL_GEQUAL;  }break;
+                case RGDF_Never:          {depth_function = GL_NEVER;   }break;
+                case RGDF_Always:         {depth_function = GL_ALWAYS;  }break;
+                default:                  {depth_function = GL_GREATER; }break;
+            }
+            if(depth_testing_enabled) 
+            {
+                glEnable(GL_DEPTH_TEST);
+                glDepthFunc(depth_function);
+            }
+            else
+            {
+                glDisable(GL_DEPTH_TEST);
+            }
+
+            if(depth_write_enabled) glDepthMask(GL_TRUE);
+            else                    glDepthMask(GL_FALSE);
+        }
+
+        switch(group->render_desc.primitive_type)
         {
-            glLineWidth(1.0f);
-            glDrawArrays(GL_LINES, 0, group->line_count * 2);
-        }break;
-        default: {InvalidCodePath;}break;
+            case RGPT_Quads:
+            {
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
+            }break;
+            case RGPT_Lines:
+            {
+                glLineWidth(1.0f);
+                glDrawArrays(GL_LINES, 0, group->line_count * 2);
+            }break;
+            default: {InvalidCodePath;}break;
+        }
     }
 }
 

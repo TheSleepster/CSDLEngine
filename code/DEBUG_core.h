@@ -117,6 +117,8 @@ typedef struct DEBUG_state_data
 {
     memory_arena_t      DEBUG_arena;
     u64                 cpu_freq;
+
+    UI_state_t          UI_data;
     
     volatile u32        next_debug_record_entry_index;
     volatile u32        next_debug_event_index;
@@ -150,8 +152,8 @@ struct DEBUG_flame_stack_t
     u32             depth;
 };
 
+internal void                DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_manager);
 internal void                DEBUG_handle_ui_input(input_controller_t *DEBUG_controller);
-internal DEBUG_state_data_t *DEBUG_create_debug_state();
 internal true_inline void    DEBUG_record_event(u32 record_index, u8 type);
 internal true_inline void    DEBUG_record_allocation_event(u8 type, u64 allocation_size);
 internal true_inline void    DEBUG_set_event_marker(u8 type);

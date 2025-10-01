@@ -85,14 +85,15 @@
   ../code/r_asset_texture.h ../code/at_atlas_handler.h \
   ../code/a_asset_loaded_sound.h ../code/r_renderer_data.h \
   ../code/s_audio_manager.h ../code/s_input_manager.h \
-  ../code/DEBUG_core.cpp ../code/DEBUG_core.h ../code/r_render_API.h \
-  ../code/c_memory_arena.cpp ../code/c_zone_allocator.cpp \
-  ../code/c_string.cpp ../code/c_array.cpp ../code/c_file_api.cpp \
-  ../code/c_file_watcher.cpp ../code/c_hash_table.cpp \
-  ../code/s_multithreading_work_queue.cpp ../code/s_asset_manager.cpp \
-  ../code/asset_builder/ab_packer_info.h \
+  ../code/s_user_interface.h ../code/DEBUG_core.cpp ../code/DEBUG_core.h \
+  ../code/r_render_API.h ../code/c_memory_arena.cpp \
+  ../code/c_zone_allocator.cpp ../code/c_string.cpp ../code/c_array.cpp \
+  ../code/c_file_api.cpp ../code/c_file_watcher.cpp \
+  ../code/c_hash_table.cpp ../code/s_multithreading_work_queue.cpp \
+  ../code/s_asset_manager.cpp ../code/asset_builder/ab_packer_info.h \
   ../code/asset_builder/../s_asset_manager.h ../code/s_audio_manager.cpp \
-  ../code/s_input_manager.cpp ../code/at_atlas_handler.cpp \
-  ../code/a_asset_loaded_sound.cpp ../code/r_asset_shader.cpp \
-  ../code/r_asset_texture.cpp ../code/r_asset_dynamic_render_font.cpp \
-  ../code/r_render_API.cpp ../code/r_opengl.cpp ../code/g_main.cpp
+  ../code/s_input_manager.cpp ../code/s_user_interface.cpp \
+  ../code/at_atlas_handler.cpp ../code/a_asset_loaded_sound.cpp \
+  ../code/r_asset_shader.cpp ../code/r_asset_texture.cpp \
+  ../code/r_asset_dynamic_render_font.cpp ../code/r_render_API.cpp \
+  ../code/r_opengl.cpp ../code/g_main.cpp

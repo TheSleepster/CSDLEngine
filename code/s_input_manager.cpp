@@ -196,8 +196,6 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
 internal void
 s_input_manager_initialize_keyboard_controller(input_manager_t *input_manager, s32 index)
 {
-    DEBUG_TIMED_BLOCK();
-
     input_controller_t *controller = input_manager->controllers + index;
     ZeroStruct(*controller);
 
@@ -355,6 +353,13 @@ s_input_manager_is_alt_key_down(input_controller_t *controller)
     return(result);
 }
 
+internal inline action_button_t*
+s_input_manager_get_key_state(input_controller_t *controller, s32 key_index)
+{
+    action_button_t *button = controller->keyboard.input + key_index;
+    return(button);
+}
+
 /*=============================================
   =============== GAMEPAD INPUT ===============
   =============================================*/
@@ -423,6 +428,13 @@ s_input_manager_consume_gamepad_button_release(input_controller_t *controller, s
     action_button_t *button         = controller->gamepad.digital_buttons + button_index;
     button->is_released             = false;
     button->half_transition_counter = 0;
+}
+
+internal inline action_button_t*
+s_input_manager_get_button_state(input_controller_t *controller, s32 button_index)
+{
+    action_button_t *button = controller->gamepad.digital_buttons + button_index;
+    return(button);
 }
 
 /*===============================================

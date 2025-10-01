@@ -20,6 +20,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     DEBUG_TIMED_BLOCK();
     
     draw_frame_t *draw_frame = &render_state->draw_frame;
+    r_reset_draw_frame_pipeline_state(render_state);
 
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();
@@ -116,7 +117,6 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGPT_Quads);
     r_begin_renderpass(render_state, &test_group5);
     r_draw_rect(render_state, vec2_create_float(10, 40), vec2_create_float(20, 20), vec4_create_float4(1.0f, 0.0f, 0.0f, 0.05f), 0, RQO_NONE);
-    r_draw_rect(render_state, vec2_create_float(10, 40), vec2_create_float(20, 20), vec4_create_float4(1.0f, 0.0f, 0.0f, 0.05f), 0, RQO_NONE);
     r_end_renderpass(render_state);
 
     r_set_active_blending_state(render_state, false);
@@ -144,6 +144,8 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_begin_renderpass(render_state, &test_group7);
     r_draw_rect(render_state, vec2_create_float(-160, 90), vec2_create_float(320, -180), COLOR_BLACK, 0, RQO_NONE);
     r_end_renderpass(render_state);
+
+    r_reset_draw_frame_pipeline_state(render_state);
 }
 
 internal void
@@ -161,7 +163,9 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
         DEBUG_global_state = DEBUG_global_state_in;
 #endif
     }
+#ifdef INTERNAL_DEBUG
     DEBUG_TIMED_BLOCK();
+#endif
 
 
     r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);

@@ -32,4 +32,5 @@ internal inline void r_set_active_depth_func(render_state_t *render_state, rende
 internal inline void r_set_active_blending_state(render_state_t *render_state, bool32 blending);
 internal inline void r_set_active_depth_state(render_state_t *render_state, bool32 depth_test, bool32 depth_mask);
 internal        void r_reset_draw_frame_pipeline_state(render_state_t *render_state);
+internal inline void r_set_active_blending_eqs(render_state_t *render_state, render_group_blending_equation_t color_blend_eq, render_group_blending_equation_t alpha_blend_eq);
 #endif

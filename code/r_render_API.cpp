@@ -431,6 +431,15 @@ r_set_active_blend_mode(render_state_t              *render_state,
 }
 
 internal inline void
+r_set_active_blending_eqs(render_state_t *render_state,
+                          render_group_blending_equation_t color_blend_eq,
+                          render_group_blending_equation_t alpha_blend_eq)
+{
+    render_state->draw_frame.active_color_blend_eq = color_blend_eq;
+    render_state->draw_frame.active_alpha_blend_eq = alpha_blend_eq;
+}
+
+internal inline void
 r_set_active_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func)
 {
     render_state->draw_frame.active_depth_func = depth_func;

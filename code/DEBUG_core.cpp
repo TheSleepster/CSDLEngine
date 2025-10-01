@@ -10,17 +10,20 @@
 
 #include "DEBUG_core.h"
 
-internal DEBUG_state_data_t*
-DEBUG_create_debug_state()
+internal void 
+DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_manager)
 {
-    DEBUG_state_data_t *result = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, GB(4));
-    Assert(result != null);
+    DEBUG_global_state = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, GB(4));
+    ZeroStruct(*DEBUG_global_state);
+
+    Assert(DEBUG_global_state != null);
 
     // TODO(Sleepster): Tune the cpu cycle -> ms conversion here. 
 
-    result->is_collecting          = false;
-    result->next_debug_event_index = 0;
-    return(result);
+    DEBUG_global_state->is_collecting          = false;
+    DEBUG_global_state->next_debug_event_index = 0;
+    DEBUG_global_state->UI_data                = {};
+    ui_init_state(render_state, input_manager, &DEBUG_global_state->UI_data);
 }
 
 internal true_inline void
@@ -749,22 +752,44 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                   starting_pos = vec2_add(starting_pos, vec2_create_float(0.0, -20.0)),
                   vec4_create(1.0f),
                   RQO_NONE);
+
     return(starting_pos);
 }
 
 internal void
 DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
 {
-    
     if(DEBUG_global_state->overlay_active)
     {
+#if 0
+        ui_layout_begin(&DEBUG_global_state->UI_data);
+
+        ui_text("DEBUG DATA");
+        ui_text_seperator();
+        ui_submenu_begin("Visualization", &condition)
+            ui_button("Show Call Graph", &call_graph)
+            ui_button("Show Memory Usage", &show_memory_usage)
+        ui_submenu_end()
+
+        ui_slider_float("camera zoom", &camera_zoom, min_value, max_value);
+        ui_checkbox("is_collecting", &is_collecting);
+
+        ui_layout_end(&DEBUG_global_state->UI_data);
+#endif
+        ui_layout_begin(&DEBUG_global_state->UI_data);
+        ui_widget_pane(&DEBUG_global_state->UI_data, STR("Show Call Graph"));
+        ui_layout_end(&DEBUG_global_state->UI_data);
+
+        ui_resolve_layouts(&DEBUG_global_state->UI_data);
+        ui_render_all_widgets(render_state, &DEBUG_global_state->UI_data);
+
         asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
-    
+
         mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
         mat4_t font_view_matrix       = mat4_identity();
         render_group_desc_t DEBUG_group_desc = r_build_renderpass_desc(render_state,
                                                                        &render_state->font_shader,
-                                                                       0,
+                                                                       1,
                                                                        font_view_matrix,
                                                                        font_projection_matrix,
                                                                        RGE_None,
@@ -779,7 +804,7 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
         render_group_desc_t DEBUG_group_desc_transparent = r_build_renderpass_desc(render_state,
                                                                                    &render_state->font_shader,
-                                                                                   1,
+                                                                                   6,
                                                                                    font_view_matrix,
                                                                                    font_projection_matrix,
                                                                                    RGE_None,
@@ -795,8 +820,6 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         r_end_renderpass(render_state);
 
         DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
-
-        r_set_active_blending_state(render_state, false);
-        r_set_active_depth_state(render_state, true, true);
+        r_reset_draw_frame_pipeline_state(render_state);
     }
 }

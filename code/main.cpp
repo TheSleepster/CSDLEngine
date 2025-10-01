@@ -193,10 +193,6 @@ c_process_window_events(SDL_Window *window, input_manager_t *input_manager)
 int
 main(int argc, char **argv)
 {
-#if INTERNAL_DEBUG
-    DEBUG_global_state = DEBUG_create_debug_state();
-#endif
-
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_AUDIO|SDL_INIT_GAMEPAD|SDL_INIT_JOYSTICK) == 0)
     {
         log_fatal("Failed to start SDL critical subsystems...exit code: '%s'\n", SDL_GetError());
@@ -222,18 +218,22 @@ main(int argc, char **argv)
         DEBUG_get_game_functions(&game_functions, &GPU_functions);
         asset_manager.gpu_data = &GPU_functions;
 #endif
-
-        multithreading_work_queue_manager_t work_manager = {};
-        s_work_queue_manager_init(&work_manager);
         
         render_state_t render_state = {};
         r_init_renderer_data(window, &render_state);
 
-        s_asset_manager_init(&asset_manager, STR("asset_file.wad"));
-        asset_manager.queue_manager = &work_manager;
-
         input_manager_t input_manager = {};
         s_input_manager_initialize_keyboard_controller(&input_manager, 0);
+
+#if INTERNAL_DEBUG
+        DEBUG_create_debug_state(&render_state, &input_manager);
+#endif
+
+        multithreading_work_queue_manager_t work_manager = {};
+        s_work_queue_manager_init(&work_manager);
+
+        s_asset_manager_init(&asset_manager, STR("asset_file.wad"));
+        asset_manager.queue_manager = &work_manager;
 
         audio_manager_t audio_manager = {};
         s_audio_manager_init(&audio_manager);
