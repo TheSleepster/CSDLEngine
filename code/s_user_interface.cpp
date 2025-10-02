@@ -7,7 +7,10 @@
 #include "s_user_interface.h"
 
 internal void
-ui_init_state(render_state_t *render_state, input_manager_t *input_manager, UI_state_t *state)
+ui_init_state(render_state_t  *render_state, 
+              input_manager_t *input_manager, 
+              asset_manager_t *asset_manager, 
+              UI_state_t      *state)
 {
     Assert(state->is_valid == false);
 
@@ -19,6 +22,9 @@ ui_init_state(render_state_t *render_state, input_manager_t *input_manager, UI_s
     state->first_layout->interaction_hash =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_interaction_data_t));
     state->first_layout->arena            = &state->arena;
     state->first_layout->is_valid         =  true;
+
+    state->widget_padding_x = 12;
+    state->widget_padding_y = 6;
 
     state->layout_counter = 0;
     state->input_manager  = input_manager;
@@ -36,7 +42,7 @@ ui_init_state(render_state_t *render_state, input_manager_t *input_manager, UI_s
                                                  RGP_PostBlitPass,
                                                  RGPT_Quads);
     state->text_desc = state->widget_desc;
-    state->text_desc.render_layer = 2;
+    state->text_desc.render_layer = 0;
 
     r_set_active_blending_state(render_state, true);
     r_set_active_depth_state(render_state, true, true);
@@ -44,14 +50,16 @@ ui_init_state(render_state_t *render_state, input_manager_t *input_manager, UI_s
     r_set_active_blending_eqs(render_state, RGBE_Add, RGBE_Add);
     state->background_desc = r_build_renderpass_desc(render_state,
                                                      &render_state->font_shader,
-                                                     0,
+                                                     2,
                                                      font_view_matrix,
                                                      font_projection_matrix,
                                                      RGE_None,
                                                      RGP_PostBlitPass,
                                                      RGPT_Quads);
     r_reset_draw_frame_pipeline_state(render_state);
-    state->is_valid = true;
+
+    state->DEBUG_font = s_asset_font_get(asset_manager, STR("arial"));
+    state->is_valid   = true;
 }
 
 // TODO(Sleepster): This... 
@@ -149,6 +157,7 @@ ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags)
         widget->widget_flags = widget_flags;
         widget->ID           = layout->widget_counter++;
         widget->name         = name;
+        widget->font_size    = 16;
         c_hash_insert_kv_pair(&layout->widget_hash, name, widget);
     }
 
@@ -254,12 +263,43 @@ ui_widget_pane(UI_state_t *state, string_t name)
     return(widget);
 }
 
+internal inline void
+ui_widget_set_position(UI_widget_t *widget, vec2_t pos)
+{
+    widget->position = pos;
+}
+
+internal inline void
+ui_widget_set_size(UI_widget_t *widget, vec2_t size)
+{
+    widget->size = size;
+}
+
+// TODO(Sleepster): Current all of these do the same thing. Change that. 
+internal inline void
+ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color)
+{
+    widget->color = color;
+}
+
+internal inline void
+ui_widget_set_hot_color(UI_widget_t *widget, vec4_t color)
+{
+    widget->color = color;
+}
+
+internal inline void
+ui_widget_set_active_color(UI_widget_t *widget, vec4_t color)
+{
+    widget->color = color;
+}
+
 /*===========================================
   ================== CORE API ===============
   ===========================================*/
 
 internal void
-ui_resolve_layouts(UI_state_t *state)
+ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 {
     for(UI_layout_t *this_layout = state->first_layout;
         this_layout;
@@ -269,8 +309,14 @@ ui_resolve_layouts(UI_state_t *state)
             widget;
             widget = widget->next_attached_widget)
         {
+            dynamic_render_font_varient_t *font = s_asset_font_get_at_size(asset_manager, 
+                                                                           state->DEBUG_font,
+                                                                           widget->font_size);
+            
             widget->position    = {0, 0};
-            widget->size        = {150, 40};
+            widget->size        = r_prepare_string_for_rendering(asset_manager, font, widget->name);
+            widget->size.x     += state->widget_padding_x;
+            widget->size.y     += state->widget_padding_y;
             widget->widget_rect = rect_create(widget->position, vec2_add(widget->position, widget->size));
         } 
     }
@@ -283,7 +329,7 @@ ui_resolve_layouts(UI_state_t *state)
 #define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
 
 internal void
-ui_render_all_widgets(render_state_t *render_state, UI_state_t *state)
+ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state)
 {
     input_controller_t *primary_controller = s_input_manager_get_primary_controller(state->input_manager);
     state->mouse_pos = s_input_manager_transform_mouse_data(primary_controller, 
@@ -321,6 +367,14 @@ ui_render_all_widgets(render_state_t *render_state, UI_state_t *state)
             r_begin_renderpass(render_state, &state->text_desc);
             if((widget->widget_flags & UIWF_DrawText) != 0)
             {
+                r_draw_string(asset_manager, 
+                              render_state, 
+                              widget->name, 
+                              state->DEBUG_font, 
+                              20, 
+                              {widget->position.x + (widget->size.x * 0.20f) - (state->widget_padding_x * 0.5f), widget->position.y + (widget->size.y * 0.25f)},
+                              COLOR_BLACK,
+                              RQO_NONE);
             }
             r_end_renderpass(render_state);
             if((widget->widget_flags & UIWF_DrawBackground) != 0)

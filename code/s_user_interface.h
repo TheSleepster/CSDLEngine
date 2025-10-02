@@ -34,6 +34,8 @@ typedef struct UI_widget
     vec4_t     color;
     rectangle2 widget_rect;
 
+    u32        font_size;
+
     UI_widget *parent_widget;
     UI_widget *first_attached_widget;
     UI_widget *last_attached_widget;
@@ -88,13 +90,19 @@ typedef struct UI_state
     UI_widget_t     *active_widget;
 
     UI_layout_t     *active_layout;
+    asset_handle_t   DEBUG_font;  
+    u32              default_font_size;
 
-    render_group_desc_t background_desc;
-    render_group_desc_t widget_desc;
-    render_group_desc_t text_desc;
+    float32          widget_padding_x;
+    float32          widget_padding_y;
+
+    render_group_desc_t   background_desc;
+    render_group_desc_t   widget_desc;
+    render_group_desc_t   text_desc;
+
 }UI_state_t;
 
-internal void                   ui_init_state(render_state_t *render_state, input_manager_t *input_manager, UI_state_t *state);
+internal void                   ui_init_state(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager, UI_state_t *state);
 internal void                   ui_deinit_state(UI_state_t *state);
 
 /*===========================================
@@ -113,8 +121,15 @@ internal UI_interaction_data_t* ui_widget_get_interaction_data(UI_layout_t *layo
 internal bool8                  ui_widget_button(UI_state_t *state, string_t name);
 internal UI_widget_t*           ui_widget_pane(UI_state_t *state, string_t name);
 
-internal void                   ui_render_all_widgets(render_state_t *render_state, UI_state_t *state);
-internal void                   ui_resolve_layouts(UI_state_t *state);
+internal void                   ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state);
+internal void                   ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state);
+
+internal inline void ui_widget_set_position(UI_widget_t *widget, vec2_t pos);
+internal inline void ui_widget_set_size(UI_widget_t *widget, vec2_t size);
+internal inline void ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color);
+internal inline void ui_widget_set_hot_color(UI_widget_t *widget, vec4_t color);
+internal inline void ui_widget_set_active_color(UI_widget_t *widget, vec4_t color);
+
 
 #endif // S_USER_INTERFACE_H
 

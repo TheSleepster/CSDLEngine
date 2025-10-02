@@ -152,7 +152,7 @@ struct DEBUG_flame_stack_t
     u32             depth;
 };
 
-internal void                DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_manager);
+internal void                DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager);
 internal void                DEBUG_handle_ui_input(input_controller_t *DEBUG_controller);
 internal true_inline void    DEBUG_record_event(u32 record_index, u8 type);
 internal true_inline void    DEBUG_record_allocation_event(u8 type, u64 allocation_size);

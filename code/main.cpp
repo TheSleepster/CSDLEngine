@@ -226,7 +226,7 @@ main(int argc, char **argv)
         s_input_manager_initialize_keyboard_controller(&input_manager, 0);
 
 #if INTERNAL_DEBUG
-        DEBUG_create_debug_state(&render_state, &input_manager);
+        DEBUG_create_debug_state(&render_state, &input_manager, &asset_manager);
 #endif
 
         multithreading_work_queue_manager_t work_manager = {};
@@ -237,6 +237,8 @@ main(int argc, char **argv)
 
         audio_manager_t audio_manager = {};
         s_audio_manager_init(&audio_manager);
+
+        ui_init_state(&render_state, &input_manager, &asset_manager, &DEBUG_global_state->UI_data);
 
         u64 performance_counter_frequency = SDL_GetPerformanceFrequency();
         u64 last_tsc                      = SDL_GetPerformanceCounter();

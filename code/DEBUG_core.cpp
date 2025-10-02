@@ -11,7 +11,9 @@
 #include "DEBUG_core.h"
 
 internal void 
-DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_manager)
+DEBUG_create_debug_state(render_state_t  *render_state, 
+                         input_manager_t *input_manager, 
+                         asset_manager_t *asset_manager)
 {
     DEBUG_global_state = c_arena_bootstrap_allocate_struct(DEBUG_state_data_t, DEBUG_arena, GB(4));
     ZeroStruct(*DEBUG_global_state);
@@ -23,7 +25,7 @@ DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_ma
     DEBUG_global_state->is_collecting          = false;
     DEBUG_global_state->next_debug_event_index = 0;
     DEBUG_global_state->UI_data                = {};
-    ui_init_state(render_state, input_manager, &DEBUG_global_state->UI_data);
+    //ui_init_state(render_state, input_manager, asset_manager, &DEBUG_global_state->UI_data);
 }
 
 internal true_inline void
@@ -781,8 +783,8 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         ui_widget_button(&DEBUG_global_state->UI_data, STR("Test Button"));
         ui_layout_end(&DEBUG_global_state->UI_data);
 
-        ui_resolve_layouts(&DEBUG_global_state->UI_data);
-        ui_render_all_widgets(render_state, &DEBUG_global_state->UI_data);
+        ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
+        ui_render_all_widgets(render_state, asset_manager, &DEBUG_global_state->UI_data);
 
         asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
 

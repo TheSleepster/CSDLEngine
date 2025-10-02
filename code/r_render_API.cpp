@@ -226,17 +226,22 @@ r_draw_rect(render_state_t       *render_state,
     return(result);
 }
 
-internal s32
+internal vec2_t 
 r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, string_t output)
 {
     DEBUG_TIMED_BLOCK();
-    s32 result = 0;
+    vec2_t result = {0, (float32)varient->line_spacing};
     for(u8 *p_character = output.data;
         p_character < output.data + output.count;
         p_character = unicode_next_character(p_character))
     {
+        if(*p_character == '\n')
+        {
+            result.y += varient->line_spacing;
+        }
+
         font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
-        result += glyph->glyph_render_size.x + glyph->advance;
+        result.x += glyph->glyph_render_size.x + glyph->advance;
 
         if(glyph->owner_page->bitmap_dirty)
         {
@@ -257,7 +262,7 @@ r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_fo
     return(result);
 }
 
-internal s32
+internal vec2_t 
 r_draw_string(asset_manager_t       *asset_manager,
               render_state_t        *render_state,
               string_t               output,
@@ -268,12 +273,12 @@ r_draw_string(asset_manager_t       *asset_manager,
               render_quad_options_t  render_options)
 {
     DEBUG_TIMED_BLOCK();
-    s32 result = 0;
+    vec2_t result = {};
 
     dynamic_render_font_varient_t *varient = s_asset_font_get_at_size(asset_manager, font, pixel_size);
     if(varient)
     {
-        result =  r_prepare_string_for_rendering(asset_manager, varient, output);
+        result = r_prepare_string_for_rendering(asset_manager, varient, output);
         
         vec2_t draw_position = position;
         for(u8 *p_character = output.data;
