@@ -197,15 +197,15 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     {
         widget->is_hot = true;
 
-        result->clicked        = left_mouse_state->half_transition_counter  >= 2;
+        result->clicked        = left_mouse_state->is_down;
         result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
         result->double_clicked = left_mouse_state->half_transition_counter  >= 4;
         result->pressed        = left_mouse_state->is_pressed;
         result->released       = left_mouse_state->is_released;
-        result->dragging       = left_mouse_state->is_down;
+        result->dragging       = left_mouse_state->is_down && !left_mouse_state->is_released;
 
         result->last_hot_frame = state->current_frame;
-        if(result->dragging)
+        if(result->clicked)
         {
             widget->is_active = true;
             result->last_active_frame = state->current_frame;
@@ -297,43 +297,38 @@ ui_render_all_widgets(render_state_t *render_state, UI_state_t *state)
             widget;
             widget = widget->next_attached_widget)
         {
+            widget->color = COLOR_WHITE;
+                
             r_begin_renderpass(render_state, &state->widget_desc);
             if((widget->widget_flags & UIWF_HotAnimation) != 0)
+            {
+                if(widget->is_hot)
+                {
+                    widget->color = COLOR_RED;
+                }
+            }
+            if((widget->widget_flags & UIWF_ActiveAnimation) != 0)
             {
                 if(widget->is_active)
                 {
                     widget->color = COLOR_GREEN;
                 }
-                else if(widget->is_hot)
-                {
-                    widget->color = COLOR_RED;
-                }
-                else
-                {
-                    widget->color = COLOR_WHITE;
-                }
-            }
-            if((widget->widget_flags & UIWF_ActiveAnimation) != 0)
-            {
             }
             if((widget->widget_flags & UIWF_Clickable) != 0)
             {
             }
             r_end_renderpass(render_state);
-
             r_begin_renderpass(render_state, &state->text_desc);
             if((widget->widget_flags & UIWF_DrawText) != 0)
             {
             }
             r_end_renderpass(render_state);
-
             if((widget->widget_flags & UIWF_DrawBackground) != 0)
             {
                 r_begin_renderpass(render_state, &state->background_desc);
                 r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
                 r_end_renderpass(render_state);
             }
-
         }
     }
 
