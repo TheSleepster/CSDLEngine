@@ -176,7 +176,7 @@ ui_widget_pop_parent(UI_layout_t *layout)
     layout->active_parent_widget = null;
 }
 
-internal inline UI_interaction_data_t*
+internal UI_interaction_data_t*
 ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
 {
     UI_interaction_data_t *result = (UI_interaction_data_t *)c_hash_get_value(&state->active_layout->interaction_hash, widget->name);
@@ -186,15 +186,16 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     }
     Assert(result);
 
-    input_controller_t *controller = s_input_manager_get_primary_controller(state->input_manager);
-    action_button_t *left_mouse_state   = s_input_manager_get_key_state(controller, SDL_LEFT_MOUSE);
-    action_button_t *right_mouse_state  = s_input_manager_get_key_state(controller, SDL_RIGHT_MOUSE);
+    input_controller_t *controller        = s_input_manager_get_primary_controller(state->input_manager);
+    action_button_t    *left_mouse_state  = s_input_manager_get_key_state(controller, SDL_LEFT_MOUSE);
+    action_button_t    *right_mouse_state = s_input_manager_get_key_state(controller, SDL_RIGHT_MOUSE);
 
-    result->widget         = widget;
-    result->hovering       = rect_vec2_test(widget->widget_rect, state->mouse_pos);
+    result->widget   = widget;
+    bool8 intersect  = rect_vec2_test(widget->widget_rect, state->mouse_pos);
+    result->hovering = intersect;     
     if(result->hovering)
     {
-        state->hot_widget = widget;
+        widget->is_hot = true;
 
         result->clicked        = left_mouse_state->half_transition_counter  >= 2;
         result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
@@ -203,11 +204,21 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
         result->released       = left_mouse_state->is_released;
         result->dragging       = left_mouse_state->is_down;
 
-        result->last_interacted_frame = state->current_frame;
-        if(result->clicked)
+        result->last_hot_frame = state->current_frame;
+        if(result->dragging)
         {
-            state->hot_widget = widget;
+            widget->is_active = true;
+            result->last_active_frame = state->current_frame;
         }
+    }
+
+    if(result->last_hot_frame != state->current_frame)
+    {
+        widget->is_hot = false;
+    }
+    if(result->last_active_frame != state->current_frame)
+    {
+        widget->is_active = false;
     }
 
     return(result);
@@ -258,8 +269,8 @@ ui_resolve_layouts(UI_state_t *state)
             widget;
             widget = widget->next_attached_widget)
         {
-            widget->position = {0, 0};
-            widget->size     = {60, 20};
+            widget->position    = {0, 0};
+            widget->size        = {150, 40};
             widget->widget_rect = rect_create(widget->position, vec2_add(widget->position, widget->size));
         } 
     }
@@ -286,17 +297,14 @@ ui_render_all_widgets(render_state_t *render_state, UI_state_t *state)
             widget;
             widget = widget->next_attached_widget)
         {
-            if((widget->widget_flags & UIWF_DrawBackground) != 0)
-            {
-                r_begin_renderpass(render_state, &state->background_desc);
-                r_draw_rect(render_state, widget->position, widget->size, COLOR_WHITE, 0, RQO_NONE);
-                r_end_renderpass(render_state);
-            }
-
             r_begin_renderpass(render_state, &state->widget_desc);
             if((widget->widget_flags & UIWF_HotAnimation) != 0)
             {
-                if(widget == state->hot_widget)
+                if(widget->is_active)
+                {
+                    widget->color = COLOR_GREEN;
+                }
+                else if(widget->is_hot)
                 {
                     widget->color = COLOR_RED;
                 }
@@ -318,6 +326,14 @@ ui_render_all_widgets(render_state_t *render_state, UI_state_t *state)
             {
             }
             r_end_renderpass(render_state);
+
+            if((widget->widget_flags & UIWF_DrawBackground) != 0)
+            {
+                r_begin_renderpass(render_state, &state->background_desc);
+                r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
+                r_end_renderpass(render_state);
+            }
+
         }
     }
 

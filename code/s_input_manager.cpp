@@ -22,7 +22,6 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
             new_controller.is_analog = true;
             new_controller.is_valid  = true;
             new_controller.type      = IM_CONTROLLER_GAMEPAD;
-
             if(SDL_IsGamepad(event->gdevice.which))
             {
                 new_controller.gamepad.gamepad_id = event->gdevice.which;
@@ -90,6 +89,8 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
             controller->keyboard.is_shift_key_down   = (event->key.mod & SDL_KMOD_SHIFT) != 0;
             controller->keyboard.is_control_key_down = (event->key.mod & SDL_KMOD_CTRL)  != 0;
             controller->keyboard.is_alt_key_down     = (event->key.mod & SDL_KMOD_ALT)   != 0;
+
+            action_key->half_transition_counter += 1;
         }break;
         case SDL_EVENT_MOUSE_MOTION:
         {
@@ -110,16 +111,15 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
             input_controller_t *controller = input_manager->controllers;
             Assert(controller->type == IM_CONTROLLER_KEYBOARD);
 
-            u32 key_index = event->button.button + SDL_SCANCODE_MAX;
+            u32 key_index = event->button.button + SDL_SCANCODE_COUNT;
 
             action_button_t *button = controller->keyboard.input + key_index;
-            button->is_pressed  = (event->button.down == true);
-            button->is_released = (event->button.down == false);
-            button->is_down     = ((event->button.down == true) && (button->half_transition_counter <= 1));
+            button->is_down     = event->button.down;
+            button->is_pressed  = event->button.down  == true;
+            button->is_released = event->button.down  == false;
 
             button->half_transition_counter += event->button.clicks;
         }break;
-
         case SDL_EVENT_GAMEPAD_BUTTON_UP:
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
         {
@@ -130,6 +130,8 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
             button->is_pressed  = ((button_data.down == true) && (button->half_transition_counter <= 1));
             button->is_down     = (button_data.down  == true);
             button->is_released = (button_data.down  == false);
+
+            button->half_transition_counter += 1;
         }break;
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
         {
@@ -158,7 +160,7 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
                 case IM_CONTROLLER_KEYBOARD:
                 {
                     for(u32 key_index = 0;
-                        key_index < SDL_SCANCODE_MAX;
+                        key_index < SDL_SCANCODE_MAX + SDL_MOUSE_BUTTON_COUNT;
                         ++key_index)
                     {
                         action_button_t *button = controller->keyboard.input + key_index;
@@ -244,7 +246,7 @@ s_input_manager_transform_mouse_data(input_controller_t *controller,
                                      mat4_t             view_matrix,
                                      mat4_t             projection_matrix)
 {
-    vec2_t result;
+    vec2_t result = {};
 
     vec2_t mouse_pos   = controller->keyboard.current_mouse_pos;
     vec2_t window_size = global_context->window_size;

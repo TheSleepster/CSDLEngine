@@ -25,11 +25,12 @@ typedef enum controller_type
 
 typedef enum input_mouse_buttons
 {
-    SDL_LEFT_MOUSE   = 513,
-    SDL_RIGHT_MOUSE  = 514,
-    SDL_MIDDLE_MOUSE = 515,
-    SDL_X1_MOUSE     = 516,
-    SDL_X2_MOUSE     = 517,
+    SDL_LEFT_MOUSE         = 513,
+    SDL_RIGHT_MOUSE        = 514,
+    SDL_MIDDLE_MOUSE       = 515,
+    SDL_X1_MOUSE           = 516,
+    SDL_X2_MOUSE           = 517,
+    SDL_MOUSE_BUTTON_COUNT = 5
 }input_mouse_buttons_t;
 
 typedef struct action_button
@@ -43,7 +44,7 @@ typedef struct action_button
 
 typedef struct keyboard_controller_data
 {
-    action_button_t input[SDL_SCANCODE_MAX];
+    action_button_t input[SDL_SCANCODE_MAX + SDL_MOUSE_BUTTON_COUNT];
 
     vec2_t          current_mouse_pos;
     vec2_t          last_mouse_pos;

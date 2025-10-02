@@ -24,7 +24,6 @@ typedef struct UI_widget
 {
     u32        ID;
     u32        widget_flags;
-    u32        last_used_frame_index;
 
     bool8      is_hot;
     bool8      is_active;
@@ -45,7 +44,8 @@ typedef struct UI_widget
 typedef struct UI_interaction_data
 {
     UI_widget_t *widget;
-    u64          last_interacted_frame;
+    u64          last_hot_frame; 
+    u64          last_active_frame;
 
     bool8        clicked;
     bool8        double_clicked;
