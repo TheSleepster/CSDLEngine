@@ -929,6 +929,10 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
             else                    glDepthMask(GL_FALSE);
         }
 
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
+
         switch(group->render_desc.primitive_type)
         {
             case RGPT_Quads:

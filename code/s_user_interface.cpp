@@ -6,6 +6,8 @@
    ======================================================================== */
 #include "s_user_interface.h"
 
+#define FONT_SIZE 32
+
 internal void
 ui_init_state(render_state_t  *render_state, 
               input_manager_t *input_manager, 
@@ -34,22 +36,25 @@ ui_init_state(render_state_t  *render_state,
 
     r_reset_draw_frame_pipeline_state(render_state);
     state->widget_desc = r_build_renderpass_desc(render_state,
-                                                 &render_state->font_shader,
+                                                &render_state->test_shader,
                                                  1,
                                                  font_view_matrix,
                                                  font_projection_matrix,
                                                  RGE_None,
                                                  RGP_PostBlitPass,
                                                  RGPT_Quads);
-    state->text_desc = state->widget_desc;
-    state->text_desc.render_layer = 0;
 
-    r_set_active_blending_state(render_state, true);
-    r_set_active_depth_state(render_state, true, true);
-    r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
-    r_set_active_blending_eqs(render_state, RGBE_Add, RGBE_Add);
+    state->text_desc = r_build_renderpass_desc(render_state,
+                                               &render_state->font_shader,
+                                               0,
+                                               font_view_matrix,
+                                               font_projection_matrix,
+                                               RGE_None,
+                                               RGP_PostBlitPass,
+                                               RGPT_Quads);
+
     state->background_desc = r_build_renderpass_desc(render_state,
-                                                     &render_state->font_shader,
+                                                    &render_state->font_shader,
                                                      2,
                                                      font_view_matrix,
                                                      font_projection_matrix,
@@ -58,7 +63,7 @@ ui_init_state(render_state_t  *render_state,
                                                      RGPT_Quads);
     r_reset_draw_frame_pipeline_state(render_state);
 
-    state->DEBUG_font = s_asset_font_get(asset_manager, STR("arial"));
+    state->DEBUG_font = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     state->is_valid   = true;
 }
 
@@ -157,7 +162,7 @@ ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags)
         widget->widget_flags = widget_flags;
         widget->ID           = layout->widget_counter++;
         widget->name         = name;
-        widget->font_size    = 16;
+        widget->font_size    = FONT_SIZE;
         c_hash_insert_kv_pair(&layout->widget_hash, name, widget);
     }
 
@@ -364,6 +369,7 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
             {
             }
             r_end_renderpass(render_state);
+
             r_begin_renderpass(render_state, &state->text_desc);
             if((widget->widget_flags & UIWF_DrawText) != 0)
             {
@@ -371,18 +377,19 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
                               render_state, 
                               widget->name, 
                               state->DEBUG_font, 
-                              20, 
+                              FONT_SIZE, 
                               {widget->position.x + (widget->size.x * 0.20f) - (state->widget_padding_x * 0.5f), widget->position.y + (widget->size.y * 0.25f)},
                               COLOR_BLACK,
                               RQO_NONE);
             }
             r_end_renderpass(render_state);
+
+            r_begin_renderpass(render_state, &state->background_desc);
             if((widget->widget_flags & UIWF_DrawBackground) != 0)
             {
-                r_begin_renderpass(render_state, &state->background_desc);
                 r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
-                r_end_renderpass(render_state);
             }
+            r_end_renderpass(render_state);
         }
     }
 

@@ -79,8 +79,4 @@ r_update_shader_uniform_data(GPU_shader_t *shader, string_t name, void *data)
     {
         uniform->data = data;
     }
-    else
-    {
-        log_error("Attempted to supply data to uniform with name '%s', but could not find it...\n");
-    }
 }
