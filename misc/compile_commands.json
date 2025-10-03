@@ -150,11 +150,11 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/main-d94249.o",
+      "/tmp/main-74f9cc.o",
       "main.cpp"
     ],
     "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
     "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/main.cpp",
-    "output": "/tmp/main-d94249.o"
+    "output": "/tmp/main-74f9cc.o"
   }
 ]

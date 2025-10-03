@@ -88,7 +88,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                   render_state,
                   STR("This is another test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
                   lm_font_handle,
-                  24,
+                  16,
                   vec2_create_float(-800, -300),
                   COLOR_WHITE,
                   RQO_NONE);

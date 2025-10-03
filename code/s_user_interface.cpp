@@ -6,7 +6,7 @@
    ======================================================================== */
 #include "s_user_interface.h"
 
-#define FONT_SIZE 32
+#define FONT_SIZE 16 
 
 internal void
 ui_init_state(render_state_t  *render_state, 
@@ -35,6 +35,7 @@ ui_init_state(render_state_t  *render_state,
     mat4_t font_view_matrix       = mat4_identity();
 
     r_reset_draw_frame_pipeline_state(render_state);
+    r_set_active_blending_state(render_state, false);
     state->widget_desc = r_build_renderpass_desc(render_state,
                                                 &render_state->test_shader,
                                                  1,
