@@ -113,7 +113,7 @@ UI_create_new_layout(UI_state_t *state)
     return(result);
 }
 
-internal inline void
+internal inline UI_layout_t * 
 ui_layout_begin(UI_state_t *state)
 {
     UI_layout_t *layout = UI_create_new_layout(state);
@@ -121,6 +121,8 @@ ui_layout_begin(UI_state_t *state)
     {
         state->active_layout = layout;
     }
+
+    return(layout);
 }
 
 internal inline void
@@ -318,7 +320,6 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
             dynamic_render_font_varient_t *font = s_asset_font_get_at_size(asset_manager, 
                                                                            state->DEBUG_font,
                                                                            widget->font_size);
-            
             widget->position    = {0, 0};
             widget->size        = r_prepare_string_for_rendering(asset_manager, font, widget->name);
             widget->size.x     += state->widget_padding_x;

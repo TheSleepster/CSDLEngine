@@ -109,7 +109,7 @@ internal void                   ui_deinit_state(UI_state_t *state);
   ================ WIDGET API ===============
   ===========================================*/
 internal UI_layout_t*           UI_create_new_layout(UI_state_t *state);
-internal void                   ui_layout_begin(UI_state_t *state);
+internal UI_layout_t*           ui_layout_begin(UI_state_t *state);
 internal void                   ui_layout_end(UI_state_t *state);
 
 internal UI_widget_t*           ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags);
