@@ -9,15 +9,16 @@
 
 typedef enum UI_widget_flags
 {
-    UIWF_Clickable       = (1 << 0),
-    UIWF_ViewScroll      = (1 << 1),
-    UIWF_DrawText        = (1 << 2),
-    UIWF_DrawBorder      = (1 << 3),
-    UIWF_DrawBackground  = (1 << 4),
-    UIWF_DrawDropShadow  = (1 << 5),
-    UIWF_Clip            = (1 << 6),
-    UIWF_HotAnimation    = (1 << 7),
-    UIWF_ActiveAnimation = (1 << 8),
+    UIWF_Clickable        = (1 << 0),
+    UIWF_ViewScroll       = (1 << 1),
+    UIWF_DrawText         = (1 << 2),
+    UIWF_DrawBorder       = (1 << 3),
+    UIWF_DrawInBackground = (1 << 4),
+    UIWF_FilledBox        = (1 << 5),
+    UIWF_DrawDropShadow   = (1 << 6),
+    UIWF_Clip             = (1 << 7),
+    UIWF_HotAnimation     = (1 << 8),
+    UIWF_ActiveAnimation  = (1 << 9),
 }UI_widget_flags_t;
 
 typedef struct UI_widget
@@ -27,6 +28,7 @@ typedef struct UI_widget
 
     bool8      is_hot;
     bool8      is_active;
+    bool8      started_inside;
 
     string_t   name;
     vec2_t     position;
@@ -58,6 +60,10 @@ typedef struct UI_interaction_data
     bool8        hovering;
 }UI_interaction_data_t;
 
+/* NOTE(Sleepster): Layouts and standard widgets are different. 
+ * A layout's purpose is to store the widgets contained within itself. 
+ * A layout is a special widget.
+ */
 typedef struct UI_layout
 {
     bool8            is_valid;
@@ -68,15 +74,18 @@ typedef struct UI_layout
     hash_table_t     widget_hash;
     hash_table_t     interaction_hash;
     u32              widget_counter;
-    UI_widget_t     *active_parent_widget;
-    UI_widget_t     *first_attached_widget;
 
-    UI_layout      *next_layout;
+    UI_widget_t     *active_parent_widget;
+    UI_widget_t     *layout_pane;
+
+    UI_layout       *next_layout;
 }UI_layout_t;
 
 typedef struct UI_state
 {
     bool8            is_valid;
+    bool8            is_interacting;
+
     memory_arena_t   arena;
     input_manager_t *input_manager;
     vec2_t           mouse_pos;
@@ -95,11 +104,12 @@ typedef struct UI_state
 
     float32          widget_padding_x;
     float32          widget_padding_y;
+    float32          default_widget_width;
+    float32          default_widget_height;
 
     render_group_desc_t   background_desc;
     render_group_desc_t   widget_desc;
     render_group_desc_t   text_desc;
-
 }UI_state_t;
 
 internal void                   ui_init_state(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager, UI_state_t *state);
@@ -121,6 +131,7 @@ internal UI_interaction_data_t* ui_widget_get_interaction_data(UI_layout_t *layo
 internal bool8                  ui_widget_button(UI_state_t *state, string_t name);
 internal UI_widget_t*           ui_widget_pane(UI_state_t *state, string_t name);
 
+internal void                   ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget);
 internal void                   ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state);
 internal void                   ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state);
 

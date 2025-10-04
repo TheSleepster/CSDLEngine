@@ -20,13 +20,19 @@ ui_init_state(render_state_t  *render_state,
     state->first_layout   = c_arena_push_struct(&state->arena, UI_layout_t);
     ZeroStruct(*state->first_layout);
 
-    state->first_layout->widget_hash      =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_widget_t));
-    state->first_layout->interaction_hash =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_interaction_data_t));
-    state->first_layout->arena            = &state->arena;
-    state->first_layout->is_valid         =  true;
+    state->active_layout  = state->first_layout;
 
-    state->widget_padding_x = 12;
-    state->widget_padding_y = 6;
+    state->first_layout->arena                = &state->arena;
+    state->first_layout->widget_hash          =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_widget_t));
+    state->first_layout->interaction_hash     =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_interaction_data_t));
+    state->first_layout->layout_pane          =  ui_widget_pane(state, STR("DEFAULT WIDGET PANE")); 
+    state->first_layout->active_parent_widget =  state->first_layout->layout_pane;
+    state->first_layout->is_valid             =  true;
+
+    state->widget_padding_x      = 12;
+    state->widget_padding_y      = 6;
+    state->default_widget_width  = 60;
+    state->default_widget_height = 30;
 
     state->layout_counter = 0;
     state->input_manager  = input_manager;
@@ -37,7 +43,7 @@ ui_init_state(render_state_t  *render_state,
     r_reset_draw_frame_pipeline_state(render_state);
     r_set_active_blending_state(render_state, false);
     state->widget_desc = r_build_renderpass_desc(render_state,
-                                                &render_state->test_shader,
+                                                &render_state->font_shader,
                                                  1,
                                                  font_view_matrix,
                                                  font_projection_matrix,
@@ -98,10 +104,12 @@ UI_create_new_layout(UI_state_t *state)
         result =  c_arena_push_struct(&state->arena, UI_layout_t);
         ZeroStruct(*result);
 
-        result->widget_hash      =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_widget_t));
-        result->interaction_hash =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_interaction_data_t));
-        result->arena            = &state->arena;
-        result->input_manager    =  state->input_manager;
+        result->widget_hash           =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_widget_t));
+        result->interaction_hash      =  c_hash_table_create_ma(&state->arena, 2048, sizeof(UI_interaction_data_t));
+        result->arena                 = &state->arena;
+        result->input_manager         =  state->input_manager;
+        result->layout_pane           =  ui_widget_pane(state, STR("DEFAULT WIDGET PANE"));
+        result->active_parent_widget  =  result->layout_pane;
 
         UI_layout_t *last_layout = state->first_layout;
         state->first_layout      = result;
@@ -134,28 +142,37 @@ ui_layout_end(UI_state_t *state)
 internal void
 ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget)
 {
+    Assert(layout);
     Assert(layout->active_parent_widget);
 
     UI_widget_t *parent = layout->active_parent_widget;
     widget->parent_widget = parent;
     if(!parent->first_attached_widget)
     {
+        // NOTE(Sleepster): First 
         parent->first_attached_widget = widget;
         parent->last_attached_widget  = widget;
+        parent->next_attached_widget  = null;
+        parent->prev_attached_widget  = null;
     }
     else
     {
+        // NOTE(Sleepster): Append 
         UI_widget_t *last_widget = parent->last_attached_widget;
-
         last_widget->next_attached_widget = widget;
+
         widget->prev_attached_widget      = last_widget;
-        parent->last_attached_widget      = widget;
+        widget->next_attached_widget      = null;
+
+        parent->last_attached_widget = widget;
     }
 }
 
 internal UI_widget_t* 
 ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags)
 {
+    Assert(layout);
+
     UI_widget_t *widget = (UI_widget_t *)c_hash_get_value(&layout->widget_hash, name);
     if(!widget)
     {
@@ -169,10 +186,10 @@ ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags)
         c_hash_insert_kv_pair(&layout->widget_hash, name, widget);
     }
 
-    if(layout->first_attached_widget == null)
-    {
-        layout->first_attached_widget = widget;
-    }
+    widget->next_attached_widget  = null;
+    widget->prev_attached_widget  = null;
+    widget->first_attached_widget = null;
+    widget->last_attached_widget  = null;
 
     if(layout->active_parent_widget)
     {
@@ -190,7 +207,7 @@ ui_widget_push_parent(UI_layout_t *layout, UI_widget *widget)
 internal inline void
 ui_widget_pop_parent(UI_layout_t *layout)
 {
-    layout->active_parent_widget = null;
+    layout->active_parent_widget = layout->layout_pane;
 }
 
 internal UI_interaction_data_t*
@@ -208,34 +225,40 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     action_button_t    *right_mouse_state = s_input_manager_get_key_state(controller, SDL_RIGHT_MOUSE);
 
     result->widget   = widget;
-    bool8 intersect  = rect_vec2_test(widget->widget_rect, state->mouse_pos);
-    result->hovering = intersect;     
+    result->hovering = rect_vec2_test(widget->widget_rect, state->mouse_pos);
+
+    result->clicked        = left_mouse_state->is_down;
+    result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
+    result->double_clicked = left_mouse_state->half_transition_counter  >= 4;
+    result->pressed        = left_mouse_state->is_pressed;
+    result->released       = left_mouse_state->is_released;
+    result->dragging       = left_mouse_state->is_down && !left_mouse_state->is_released;
     if(result->hovering)
     {
-        widget->is_hot = true;
-
-        result->clicked        = left_mouse_state->is_down;
-        result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
-        result->double_clicked = left_mouse_state->half_transition_counter  >= 4;
-        result->pressed        = left_mouse_state->is_pressed;
-        result->released       = left_mouse_state->is_released;
-        result->dragging       = left_mouse_state->is_down && !left_mouse_state->is_released;
-
+        widget->is_hot         = true;
         result->last_hot_frame = state->current_frame;
-        if(result->clicked)
+
+        bool8 down_this_frame = result->pressed;
+        if(down_this_frame)
         {
-            widget->is_active = true;
+            widget->started_inside = true;
+        }
+
+        if(widget->started_inside)
+        {
+            widget->is_active         = result->clicked;
             result->last_active_frame = state->current_frame;
         }
     }
-
-    if(result->last_hot_frame != state->current_frame)
+    else if(result->last_hot_frame != state->current_frame)
     {
-        widget->is_hot = false;
+        widget->is_hot         = false;
+        widget->is_active      = false;
     }
-    if(result->last_active_frame != state->current_frame)
+
+    if(!result->dragging)
     {
-        widget->is_active = false;
+        widget->started_inside = false;
     }
 
     return(result);
@@ -245,17 +268,17 @@ internal bool8
 ui_widget_button(UI_state_t *state, string_t name)
 {
     bool8 result = false;
-        
+
     UI_widget_t *widget = ui_widget_create(state->active_layout, 
                                            name, 
                                            UIWF_Clickable|
                                            UIWF_DrawBorder|
                                            UIWF_DrawText|
-                                           UIWF_DrawBackground|
+                                           UIWF_FilledBox|
                                            UIWF_HotAnimation|
                                            UIWF_ActiveAnimation); 
     UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, widget);
-    result = interaction_info->clicked;
+    result = interaction_info->pressed;
 
     return(result);
 }
@@ -265,7 +288,7 @@ ui_widget_pane(UI_state_t *state, string_t name)
 {
     UI_widget_t *widget = ui_widget_create(state->active_layout, 
                                            name, 
-                                           UIWF_DrawBackground|
+                                           UIWF_DrawInBackground|
                                            UIWF_DrawBorder|
                                            UIWF_Clip); 
     return(widget);
@@ -313,17 +336,37 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
         this_layout;
         this_layout = this_layout->next_layout)
     {
-        for(UI_widget_t *widget = this_layout->first_attached_widget;
+        for(UI_widget_t *widget = this_layout->layout_pane;
             widget;
             widget = widget->next_attached_widget)
         {
-            dynamic_render_font_varient_t *font = s_asset_font_get_at_size(asset_manager, 
-                                                                           state->DEBUG_font,
-                                                                           widget->font_size);
             widget->position    = {0, 0};
-            widget->size        = r_prepare_string_for_rendering(asset_manager, font, widget->name);
+            widget->size        = {0, 0};
             widget->size.x     += state->widget_padding_x;
             widget->size.y     += state->widget_padding_y;
+            float32 next_widget_offset = 0.0f;
+            for(UI_widget_t *child = widget->last_attached_widget;
+                child;
+                child = child->prev_attached_widget)
+            {
+                dynamic_render_font_varient_t *child_font = s_asset_font_get_at_size(asset_manager, 
+                                                                                     state->DEBUG_font,
+                                                                                     child->font_size);
+                child->position = {widget->position.x + (state->widget_padding_x * 0.5f), 
+                                  (widget->position.y + next_widget_offset) + (state->widget_padding_y * 0.5f)};
+
+                child->size        = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
+                child->size.x     += state->widget_padding_x;
+                child->size.y     += state->widget_padding_y;
+                child->widget_rect = rect_create(child->position, vec2_add(child->position, child->size));
+
+                next_widget_offset += child->size.y;
+                widget->size.y     += child->size.y;
+                if(child->size.x > widget->size.x) 
+                {
+                    widget->size.x = child->size.x + state->widget_padding_x;
+                }
+            }
             widget->widget_rect = rect_create(widget->position, vec2_add(widget->position, widget->size));
         } 
     }
@@ -336,6 +379,65 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 #define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
 
 internal void
+ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget)
+{
+    if((widget->widget_flags & UIWF_HotAnimation) != 0)
+    {
+        if(widget->is_hot)
+        {
+            widget->color = COLOR_RED;
+        }
+    }
+    if((widget->widget_flags & UIWF_ActiveAnimation) != 0)
+    {
+        if(widget->is_active)
+        {
+            widget->color = COLOR_GREEN;
+        }
+    }
+    if((widget->widget_flags & UIWF_Clickable) != 0)
+    {
+    }
+
+    r_begin_renderpass(render_state, &state->widget_desc);
+    if((widget->widget_flags & UIWF_FilledBox) != 0)
+    {
+        r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
+    }
+    r_end_renderpass(render_state);
+
+    r_begin_renderpass(render_state, &state->text_desc);
+    if((widget->widget_flags & UIWF_DrawText) != 0)
+    {
+        r_draw_string(asset_manager, 
+                      render_state, 
+                      widget->name, 
+                      state->DEBUG_font, 
+                      FONT_SIZE, 
+                      {widget->position.x + (widget->size.x * 0.20f) - (state->widget_padding_x * 0.5f), widget->position.y + (widget->size.y * 0.25f)},
+                      COLOR_BLACK,
+                      RQO_NONE);
+    }
+    r_end_renderpass(render_state);
+
+    r_begin_renderpass(render_state, &state->background_desc);
+    if((widget->widget_flags & UIWF_DrawInBackground) != 0)
+    {
+        r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
+    }
+    r_end_renderpass(render_state);
+
+    // NOTE(Sleepster): recurse for children 
+    for(UI_widget_t *child = widget->last_attached_widget;
+        child;
+        child = child->prev_attached_widget)
+    {
+        child->color = COLOR_BLUE;
+        ui_render_widget(render_state, asset_manager, state, child);
+    }
+}
+
+internal void
 ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state)
 {
     input_controller_t *primary_controller = s_input_manager_get_primary_controller(state->input_manager);
@@ -346,53 +448,18 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
         this_layout;
         this_layout = this_layout->next_layout)
     {
-        for(UI_widget_t *widget = this_layout->first_attached_widget;
+        for(UI_widget_t *widget = this_layout->layout_pane;
             widget;
             widget = widget->next_attached_widget)
         {
-            widget->color = COLOR_WHITE;
-                
-            r_begin_renderpass(render_state, &state->widget_desc);
-            if((widget->widget_flags & UIWF_HotAnimation) != 0)
-            {
-                if(widget->is_hot)
-                {
-                    widget->color = COLOR_RED;
-                }
-            }
-            if((widget->widget_flags & UIWF_ActiveAnimation) != 0)
-            {
-                if(widget->is_active)
-                {
-                    widget->color = COLOR_GREEN;
-                }
-            }
-            if((widget->widget_flags & UIWF_Clickable) != 0)
-            {
-            }
-            r_end_renderpass(render_state);
-
-            r_begin_renderpass(render_state, &state->text_desc);
-            if((widget->widget_flags & UIWF_DrawText) != 0)
-            {
-                r_draw_string(asset_manager, 
-                              render_state, 
-                              widget->name, 
-                              state->DEBUG_font, 
-                              FONT_SIZE, 
-                              {widget->position.x + (widget->size.x * 0.20f) - (state->widget_padding_x * 0.5f), widget->position.y + (widget->size.y * 0.25f)},
-                              COLOR_BLACK,
-                              RQO_NONE);
-            }
-            r_end_renderpass(render_state);
-
-            r_begin_renderpass(render_state, &state->background_desc);
-            if((widget->widget_flags & UIWF_DrawBackground) != 0)
-            {
-                r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
-            }
-            r_end_renderpass(render_state);
+            widget->color = {0.03, 0.03, 0.03, 0.05};
+            ui_render_widget(render_state, asset_manager, state, widget);
         }
+
+        this_layout->layout_pane->next_attached_widget  = null;
+        this_layout->layout_pane->last_attached_widget  = null;
+        this_layout->layout_pane->first_attached_widget = null;
+        this_layout->layout_pane->prev_attached_widget  = null;
     }
 
     state->current_frame++;

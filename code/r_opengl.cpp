@@ -779,6 +779,10 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
     if(group->vertex_count > 0)
     {
         glUseProgram(group->render_desc.shader->program_id);
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
+        r_update_shader_uniform_data(group->render_desc.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
+
         r_update_shader_gpu_data(group, group->render_desc.shader, true);
         glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
@@ -928,10 +932,6 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
             if(depth_write_enabled) glDepthMask(GL_TRUE);
             else                    glDepthMask(GL_FALSE);
         }
-
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
 
         switch(group->render_desc.primitive_type)
         {
