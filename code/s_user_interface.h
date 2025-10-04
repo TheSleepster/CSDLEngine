@@ -32,6 +32,7 @@ typedef struct UI_widget
 
     string_t   name;
     vec2_t     position;
+    vec2_t     string_position;
     vec2_t     size;
     vec4_t     color;
     rectangle2 widget_rect;

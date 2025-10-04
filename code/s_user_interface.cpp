@@ -233,33 +233,6 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     result->pressed        = left_mouse_state->is_pressed;
     result->released       = left_mouse_state->is_released;
     result->dragging       = left_mouse_state->is_down && !left_mouse_state->is_released;
-    if(result->hovering)
-    {
-        widget->is_hot         = true;
-        result->last_hot_frame = state->current_frame;
-
-        bool8 down_this_frame = result->pressed;
-        if(down_this_frame)
-        {
-            widget->started_inside = true;
-        }
-
-        if(widget->started_inside)
-        {
-            widget->is_active         = result->clicked;
-            result->last_active_frame = state->current_frame;
-        }
-    }
-    else if(result->last_hot_frame != state->current_frame)
-    {
-        widget->is_hot         = false;
-        widget->is_active      = false;
-    }
-
-    if(!result->dragging)
-    {
-        widget->started_inside = false;
-    }
 
     return(result);
 }
@@ -278,8 +251,35 @@ ui_widget_button(UI_state_t *state, string_t name)
                                            UIWF_HotAnimation|
                                            UIWF_ActiveAnimation); 
     UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, widget);
-    result = interaction_info->pressed;
+    if(interaction_info->hovering)
+    {
+        widget->is_hot = true;
+        interaction_info->last_hot_frame = state->current_frame;
 
+        bool8 down_this_frame = interaction_info->pressed;
+        if(down_this_frame)
+        {
+            widget->started_inside = true;
+        }
+
+        if(widget->started_inside)
+        {
+            widget->is_active = interaction_info->clicked;
+            interaction_info->last_active_frame = state->current_frame;
+        }
+    }
+    else if(interaction_info->last_hot_frame != state->current_frame)
+    {
+        widget->is_hot    = false;
+        widget->is_active = false;
+    }
+
+    if(!interaction_info->dragging)
+    {
+        widget->started_inside = false;
+    }
+
+    result = interaction_info->pressed;
     return(result);
 }
 
@@ -307,6 +307,8 @@ ui_widget_set_size(UI_widget_t *widget, vec2_t size)
 }
 
 // TODO(Sleepster): Current all of these do the same thing. Change that. 
+//
+// TODO(Sleepster): Maybe just make these change state->default_*_color... 
 internal inline void
 ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color)
 {
@@ -359,6 +361,8 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
                 child->size.x     += state->widget_padding_x;
                 child->size.y     += state->widget_padding_y;
                 child->widget_rect = rect_create(child->position, vec2_add(child->position, child->size));
+                child->string_position = {child->position.x + (child->size.x * 0.20f) - (state->widget_padding_x * 0.5f), 
+                                          child->position.y + (child->size.y * 0.25f)};
 
                 next_widget_offset += child->size.y;
                 widget->size.y     += child->size.y;
@@ -368,6 +372,7 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
                 }
             }
             widget->widget_rect = rect_create(widget->position, vec2_add(widget->position, widget->size));
+
         } 
     }
 }
@@ -414,7 +419,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
                       widget->name, 
                       state->DEBUG_font, 
                       FONT_SIZE, 
-                      {widget->position.x + (widget->size.x * 0.20f) - (state->widget_padding_x * 0.5f), widget->position.y + (widget->size.y * 0.25f)},
+                      widget->string_position,
                       COLOR_BLACK,
                       RQO_NONE);
     }
