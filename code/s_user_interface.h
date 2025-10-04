@@ -7,6 +7,21 @@
    ======================================================================== */
 #define S_USER_INTERFACE_H
 
+ /* TODO: What widgets do we want?
+  *
+  *  - [ ] UI Text. No box.
+  *  - [ ] Different button types.
+  *  - [ ] Support dropdown menus
+  *  - [ ] Value sliders
+  *  - [ ] Checkboxes
+  *  - [ ] Scroll bars
+  *  - [ ] Resizable widgets
+  *  - [ ] Graph boxes
+  *  - [ ] Bitmap Containers
+  *  - [ ] Seperators
+  *  - [ ] Text Seperators
+  */
+
 typedef enum UI_widget_flags
 {
     UIWF_Clickable        = (1 << 0),
@@ -38,6 +53,12 @@ typedef struct UI_widget
     rectangle2 widget_rect;
 
     u32        font_size;
+
+    vec4_t     render_color;
+    vec4_t     font_color;
+    vec4_t     idle_color;
+    vec4_t     hot_color;
+    vec4_t     active_color;
 
     UI_widget *parent_widget;
     UI_widget *first_attached_widget;
@@ -82,6 +103,7 @@ typedef struct UI_layout
     UI_layout       *next_layout;
 }UI_layout_t;
 
+// NOTE(Sleepster): UI_manager_t?
 typedef struct UI_state
 {
     bool8            is_valid;
@@ -108,6 +130,11 @@ typedef struct UI_state
     float32          default_widget_width;
     float32          default_widget_height;
 
+    vec4_t           default_widget_idle_color;
+    vec4_t           default_widget_hot_color;
+    vec4_t           default_widget_active_color;
+    vec4_t           default_widget_text_color;
+
     render_group_desc_t   background_desc;
     render_group_desc_t   widget_desc;
     render_group_desc_t   text_desc;
@@ -123,24 +150,29 @@ internal UI_layout_t*           UI_create_new_layout(UI_state_t *state);
 internal UI_layout_t*           ui_layout_begin(UI_state_t *state);
 internal void                   ui_layout_end(UI_state_t *state);
 
-internal UI_widget_t*           ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags);
+internal UI_widget_t*           ui_widget_create(UI_state_t *state, string_t name, u32 widget_flags);
 internal void                   ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget);
 internal void                   ui_widget_push_parent(UI_layout_t *layout, UI_widget_t *widget);
 internal void                   ui_widget_pop_parent(UI_layout_t *layout);
 internal UI_interaction_data_t* ui_widget_get_interaction_data(UI_layout_t *layout, UI_widget_t *widget);
 
-internal bool8                  ui_widget_button(UI_state_t *state, string_t name);
+internal bool8                  ui_widget_default_button(UI_state_t *state, string_t name);
 internal UI_widget_t*           ui_widget_pane(UI_state_t *state, string_t name);
 
 internal void                   ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget);
 internal void                   ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state);
 internal void                   ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state);
 
-internal inline void ui_widget_set_position(UI_widget_t *widget, vec2_t pos);
-internal inline void ui_widget_set_size(UI_widget_t *widget, vec2_t size);
-internal inline void ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color);
-internal inline void ui_widget_set_hot_color(UI_widget_t *widget, vec4_t color);
-internal inline void ui_widget_set_active_color(UI_widget_t *widget, vec4_t color);
+internal true_inline void ui_widget_set_position(UI_widget_t *widget, vec2_t pos);
+internal true_inline void ui_widget_set_size(UI_widget_t *widget, vec2_t size);
+internal true_inline void ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color);
+internal true_inline void ui_widget_set_hot_color(UI_widget_t *widget, vec4_t color);
+internal true_inline void ui_widget_set_active_color(UI_widget_t *widget, vec4_t color);
+
+internal true_inline void ui_widget_set_default_idle_color(UI_state_t *state, vec4_t color);
+internal true_inline void ui_widget_set_default_hot_color(UI_state_t *state, vec4_t color);
+internal true_inline void ui_widget_set_default_active_color(UI_state_t *state, vec4_t color);
+internal true_inline void ui_widget_set_default_text_color(UI_state_t *state, vec4_t color);
 
 
 #endif // S_USER_INTERFACE_H

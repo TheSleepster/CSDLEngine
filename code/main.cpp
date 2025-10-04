@@ -199,6 +199,8 @@ main(int argc, char **argv)
         return(-1);
     }
 
+    SDL_SetHint(SDL_HINT_MOUSE_WHEEL_DELTA_MODE, SDL_MOUSEWHEEL_DELTA_PIXEL);
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,  SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);

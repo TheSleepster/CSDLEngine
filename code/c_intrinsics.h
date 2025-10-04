@@ -14,6 +14,8 @@
   TODO:
   - MSVC native intrinsics (????)
   - ARM NEON intrinsics
+  - clean this up so that we can just use the clang/gcc intrinsics for all platforms, 
+    but then have a section for x64 specific like __rdtsc and __readgsqword()
  */
 
 #if defined COMPILER_CLANG || defined COMPILER_GCC

@@ -7,6 +7,12 @@
 #include "s_user_interface.h"
 
 #define FONT_SIZE 16 
+#define COLOR_WHITE  ((vec4_t){1.0, 1.0, 1.0, 1.0})
+#define COLOR_RED    ((vec4_t){1.0, 0.0, 0.0, 1.0})
+#define COLOR_GREEN  ((vec4_t){0.0, 1.0, 0.0, 1.0})
+#define COLOR_BLUE   ((vec4_t){0.0, 0.0, 1.0, 1.0})
+#define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
+
 
 internal void
 ui_init_state(render_state_t  *render_state, 
@@ -33,6 +39,11 @@ ui_init_state(render_state_t  *render_state,
     state->widget_padding_y      = 6;
     state->default_widget_width  = 60;
     state->default_widget_height = 30;
+
+    state->default_widget_idle_color   = COLOR_WHITE;
+    state->default_widget_hot_color    = COLOR_BLUE;
+    state->default_widget_active_color = COLOR_GREEN;
+    state->default_widget_text_color   = COLOR_BLACK;
 
     state->layout_counter = 0;
     state->input_manager  = input_manager;
@@ -139,6 +150,18 @@ ui_layout_end(UI_state_t *state)
     state->active_layout = null;
 }
 
+internal inline void
+ui_widget_push_parent(UI_layout_t *layout, UI_widget *widget)
+{
+    layout->active_parent_widget = widget;
+}
+
+internal inline void
+ui_widget_pop_parent(UI_layout_t *layout)
+{
+    layout->active_parent_widget = layout->layout_pane;
+}
+
 internal void
 ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget)
 {
@@ -168,48 +191,6 @@ ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget)
     }
 }
 
-internal UI_widget_t* 
-ui_widget_create(UI_layout_t *layout, string_t name, u32 widget_flags)
-{
-    Assert(layout);
-
-    UI_widget_t *widget = (UI_widget_t *)c_hash_get_value(&layout->widget_hash, name);
-    if(!widget)
-    {
-        widget = c_arena_push_struct(layout->arena, UI_widget_t);
-        ZeroStruct(*widget);
-
-        widget->widget_flags = widget_flags;
-        widget->ID           = layout->widget_counter++;
-        widget->name         = name;
-        widget->font_size    = FONT_SIZE;
-        c_hash_insert_kv_pair(&layout->widget_hash, name, widget);
-    }
-
-    widget->next_attached_widget  = null;
-    widget->prev_attached_widget  = null;
-    widget->first_attached_widget = null;
-    widget->last_attached_widget  = null;
-
-    if(layout->active_parent_widget)
-    {
-        ui_widget_attach(layout, widget);
-    }
-    return(widget);
-}
-
-internal inline void
-ui_widget_push_parent(UI_layout_t *layout, UI_widget *widget)
-{
-    layout->active_parent_widget = widget;
-}
-
-internal inline void
-ui_widget_pop_parent(UI_layout_t *layout)
-{
-    layout->active_parent_widget = layout->layout_pane;
-}
-
 internal UI_interaction_data_t*
 ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
 {
@@ -237,12 +218,49 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     return(result);
 }
 
+internal UI_widget_t* 
+ui_widget_create(UI_state_t *state, string_t name, u32 widget_flags)
+{
+    Assert(state->active_layout);
+
+    UI_widget_t *widget = (UI_widget_t *)c_hash_get_value(&state->active_layout->widget_hash, name);
+    if(!widget)
+    {
+        widget = c_arena_push_struct(&state->arena, UI_widget_t);
+        ZeroStruct(*widget);
+
+        widget->widget_flags = widget_flags;
+        widget->ID           = state->active_layout->widget_counter++;
+        widget->name         = name;
+        widget->font_size    = FONT_SIZE;
+
+        widget->idle_color   = state->default_widget_idle_color;
+        widget->hot_color    = state->default_widget_hot_color;
+        widget->active_color = state->default_widget_active_color;
+        widget->font_color   = state->default_widget_text_color;
+
+        c_hash_insert_kv_pair(&state->active_layout->widget_hash, name, widget);
+    }
+    widget->render_color = widget->idle_color;
+
+    widget->next_attached_widget  = null;
+    widget->prev_attached_widget  = null;
+    widget->first_attached_widget = null;
+    widget->last_attached_widget  = null;
+
+    if(state->active_layout->active_parent_widget)
+    {
+        ui_widget_attach(state->active_layout, widget);
+    }
+    return(widget);
+}
+
 internal bool8
-ui_widget_button(UI_state_t *state, string_t name)
+ui_widget_default_button(UI_state_t *state, string_t name)
 {
     bool8 result = false;
 
-    UI_widget_t *widget = ui_widget_create(state->active_layout, 
+    UI_widget_t *widget = ui_widget_create(state, 
                                            name, 
                                            UIWF_Clickable|
                                            UIWF_DrawBorder|
@@ -286,7 +304,7 @@ ui_widget_button(UI_state_t *state, string_t name)
 internal inline UI_widget_t*
 ui_widget_pane(UI_state_t *state, string_t name)
 {
-    UI_widget_t *widget = ui_widget_create(state->active_layout, 
+    UI_widget_t *widget = ui_widget_create(state, 
                                            name, 
                                            UIWF_DrawInBackground|
                                            UIWF_DrawBorder|
@@ -294,37 +312,64 @@ ui_widget_pane(UI_state_t *state, string_t name)
     return(widget);
 }
 
-internal inline void
+internal true_inline void
 ui_widget_set_position(UI_widget_t *widget, vec2_t pos)
 {
     widget->position = pos;
 }
 
-internal inline void
+internal true_inline void
 ui_widget_set_size(UI_widget_t *widget, vec2_t size)
 {
     widget->size = size;
 }
 
-// TODO(Sleepster): Current all of these do the same thing. Change that. 
-//
-// TODO(Sleepster): Maybe just make these change state->default_*_color... 
-internal inline void
+internal true_inline void
 ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color)
 {
-    widget->color = color;
+    widget->idle_color = color;
 }
 
-internal inline void
+internal true_inline void
 ui_widget_set_hot_color(UI_widget_t *widget, vec4_t color)
 {
-    widget->color = color;
+    widget->hot_color = color;
 }
 
-internal inline void
+internal true_inline void
 ui_widget_set_active_color(UI_widget_t *widget, vec4_t color)
 {
-    widget->color = color;
+    widget->active_color = color;
+}
+
+internal true_inline void
+ui_widget_set_text_color(UI_widget_t *widget, vec4_t color)
+{
+    widget->font_color = color;
+}
+
+internal true_inline void
+ui_widget_set_default_idle_color(UI_state_t *state, vec4_t color)
+{
+    state->default_widget_idle_color = color;
+}
+
+internal true_inline void
+ui_widget_set_default_hot_color(UI_state_t *state, vec4_t color)
+{
+    state->default_widget_hot_color = color;
+}
+
+internal true_inline void
+ui_widget_set_default_active_color(UI_state_t *state, vec4_t color)
+{
+    state->default_widget_active_color = color;
+}
+
+internal true_inline void
+ui_widget_set_default_text_color(UI_state_t *state, vec4_t color)
+{
+    state->default_widget_text_color = color;
 }
 
 /*===========================================
@@ -377,12 +422,6 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
     }
 }
 
-#define COLOR_WHITE  ((vec4_t){1.0, 1.0, 1.0, 1.0})
-#define COLOR_RED    ((vec4_t){1.0, 0.0, 0.0, 1.0})
-#define COLOR_GREEN  ((vec4_t){0.0, 1.0, 0.0, 1.0})
-#define COLOR_BLUE   ((vec4_t){0.0, 0.0, 1.0, 1.0})
-#define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
-
 internal void
 ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget)
 {
@@ -390,14 +429,14 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     {
         if(widget->is_hot)
         {
-            widget->color = COLOR_RED;
+            widget->render_color = widget->hot_color;
         }
     }
     if((widget->widget_flags & UIWF_ActiveAnimation) != 0)
     {
         if(widget->is_active)
         {
-            widget->color = COLOR_GREEN;
+            widget->render_color = widget->active_color;
         }
     }
     if((widget->widget_flags & UIWF_Clickable) != 0)
@@ -407,7 +446,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     r_begin_renderpass(render_state, &state->widget_desc);
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
-        r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
+        r_draw_rect(render_state, widget->position, widget->size, widget->render_color, 0, RQO_NONE);
     }
     r_end_renderpass(render_state);
 
@@ -420,7 +459,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
                       state->DEBUG_font, 
                       FONT_SIZE, 
                       widget->string_position,
-                      COLOR_BLACK,
+                      widget->font_color,
                       RQO_NONE);
     }
     r_end_renderpass(render_state);
@@ -428,7 +467,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     r_begin_renderpass(render_state, &state->background_desc);
     if((widget->widget_flags & UIWF_DrawInBackground) != 0)
     {
-        r_draw_rect(render_state, widget->position, widget->size, widget->color, 0, RQO_NONE);
+        r_draw_rect(render_state, widget->position, widget->size, widget->render_color, 0, RQO_NONE);
     }
     r_end_renderpass(render_state);
 

@@ -120,6 +120,11 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
 
             button->half_transition_counter += event->button.clicks;
         }break;
+        case SDL_EVENT_MOUSE_WHEEL: 
+        {
+            s32 scroll_amount = event->wheel.integer_y;
+            log_info("Scrolled...: '%d'\n", scroll_amount);
+        }break;
         case SDL_EVENT_GAMEPAD_BUTTON_UP:
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
         {

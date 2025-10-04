@@ -214,7 +214,7 @@ typedef struct global_context
 {
     // NOTE(Sleepster): Persistent allocations... Use sparingly... 
     memory_arena_t context_arena;
-    // NOTE(Sleepster): Resets "per-frame" 
+    // NOTE(Sleepster): Resets with each call to gc_reset_temporary_data() 
     memory_arena_t temporary_arena;
 
     bool8  running;
@@ -239,7 +239,7 @@ gc_reset_temporary_data()
 }
 
 internal inline void
-gc_reset_contexdt_arena()
+gc_reset_context_arena()
 {
     c_arena_reset(&global_context->context_arena);
 }

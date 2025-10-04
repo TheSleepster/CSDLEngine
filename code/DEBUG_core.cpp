@@ -779,9 +779,8 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         ui_layout_end(&DEBUG_global_state->UI_data);
 #endif
         ui_layout_begin(&DEBUG_global_state->UI_data);
-            ui_widget_button(&DEBUG_global_state->UI_data, STR("Test Button"));
-            ui_widget_button(&DEBUG_global_state->UI_data, STR("Second Test Button"));
-            ui_widget_button(&DEBUG_global_state->UI_data, STR("Third Test Button is here"));
+            ui_widget_default_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"));
+            ui_widget_default_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"));
         ui_layout_end(&DEBUG_global_state->UI_data);
 
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
