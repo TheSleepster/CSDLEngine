@@ -13,7 +13,6 @@
 #define COLOR_BLUE   ((vec4_t){0.0, 0.0, 1.0, 1.0})
 #define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
 
-
 internal void
 ui_init_state(render_state_t  *render_state, 
               input_manager_t *input_manager, 
