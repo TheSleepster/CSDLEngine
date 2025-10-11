@@ -58,7 +58,7 @@
 #include "s_asset_manager.cpp"
 #include "s_audio_manager.cpp"
 #include "s_input_manager.cpp"
-#include "s_user_interface.cpp"
+#include "s_user_interface_core.cpp"
 #include "at_atlas_handler.cpp"
 #include "a_asset_loaded_sound.cpp"
 #include "r_asset_shader.cpp"

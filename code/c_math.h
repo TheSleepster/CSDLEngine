@@ -1899,6 +1899,9 @@ typedef struct rectangle2
 {
     vec2_t min;
     vec2_t max;
+
+    vec2_t position;
+    vec2_t size;
 }rectangle2_t;
 
 internal rectangle2_t

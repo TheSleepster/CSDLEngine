@@ -134,7 +134,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGP_MainGamePass,
                                                               RGPT_Quads);
     r_begin_renderpass(render_state, &test_group7);
-    r_draw_rect(render_state, vec2_create_float(-160, 90), vec2_create_float(320, -180), COLOR_BLACK, 0, RQO_NONE);
+    r_draw_rect(render_state, vec2_create_float(-160, 90), vec2_create_float(320, -180), {0.3, 0.3, 0.3, 1.0}, 0, RQO_NONE);
     r_end_renderpass(render_state);
 
     r_reset_draw_frame_pipeline_state(render_state);

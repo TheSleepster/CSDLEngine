@@ -764,23 +764,29 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
     if(DEBUG_global_state->overlay_active)
     {
 #if 0
-        ui_layout_begin(&DEBUG_global_state->UI_data);
+        UI_layout_t *layout = ui_layout_begin(&DEBUG_global_state->UI_data, 
+                                              window_rect,
+                                              "DEBUG panel", 
+                                              UIWF_Closable|UIWF_Titled|UIWF_Movable);
+        ui_layout_push_row(layout);
+        {
+            ui_button();
+            ui_button();
+        }
 
-        ui_text("DEBUG DATA");
-        ui_text_seperator();
-        ui_submenu_begin("Visualization", &condition)
-            ui_button("Show Call Graph", &call_graph)
-            ui_button("Show Memory Usage", &show_memory_usage)
-        ui_submenu_end()
-
-        ui_slider_float("camera zoom", &camera_zoom, min_value, max_value);
-        ui_checkbox("is_collecting", &is_collecting);
-
-        ui_layout_end(&DEBUG_global_state->UI_data);
+        ui_layout_push_row(layout)
+        {
+            float32 value = 1.0f;
+            ui_label("label stuff", left);
+            ui_widget_set_next_offset();
+            ui_slider(&value, 1.0f, 0.0f);
+        }
 #endif
         ui_layout_begin(&DEBUG_global_state->UI_data);
-            ui_widget_default_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"));
-            ui_widget_default_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"));
+            ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"));
+            ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"));
+            ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
+            ui_widget_text(&DEBUG_global_state->UI_data, STR("Test Text..."));
         ui_layout_end(&DEBUG_global_state->UI_data);
 
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
@@ -814,12 +820,13 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                                                                                    RGP_PostBlitPass,
                                                                                    RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc_transparent);
-        r_draw_rect(render_state,
-                    vec2_create_float(-960, -600),
-                    vec2_create_float(1500, 2000),
-                    vec4_create_float4(0.003f, 0.003f, 0.003f, 0.99f),
-                    0,
-                    RQO_NONE);
+        // r_draw_rect(render_state,
+        //             vec2_create_float(-960, -600),
+        //             vec2_create_float(1500, 2000),
+        //             vec4_create_float4(0.003f, 0.003f, 0.003f, 0.99f),
+        //             0,
+        //             RQO_NONE);
+
         r_end_renderpass(render_state);
 
         DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
