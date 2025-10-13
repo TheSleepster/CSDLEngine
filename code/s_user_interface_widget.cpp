@@ -61,7 +61,7 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     action_button_t    *right_mouse_state = s_input_manager_get_key_state(controller, SDL_RIGHT_MOUSE);
 
     result->widget   = widget;
-    result->hovering = rect_vec2_test(widget->widget_rect, state->mouse_pos);
+    result->hovering = rect2_vec2_test(widget->widget_rect, state->mouse_pos);
 
     result->clicked        = left_mouse_state->is_down;
     result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
@@ -106,9 +106,14 @@ ui_widget_create(UI_state_t *state,
     widget->prev_attached_widget  = null;
     widget->first_attached_widget = null;
     widget->last_attached_widget  = null;
+    if((widget_flags & UIWF_DrawText) != 0)
+    {
+        widget->render_font = s_asset_font_get_at_size(state->asset_manager, 
+                                                       state->DEBUG_font,
+                                                       widget->font_size);
+    }
 
-    widget->panel_position = {};
-
+    widget->panel_position = layout->next_widget_cursor;
     if(layout->active_parent_widget)
     {
         ui_widget_attach(layout, widget);
@@ -189,20 +194,20 @@ ui_widget_titled_window(UI_state_t  *state,
     if((layout_flags & UILF_Closeable) != 0)
     {
         string_t widget_icon = {};
-        if(layout->pane_opened)
+        if(layout->layout_toggle)
         {
-            widget_icon = STR(" X ");
+            widget_icon = STR("X");
             if(ui_widget_labeled_button(state, widget_icon))
             {
-                layout->pane_opened = false;
+                layout->layout_toggle = false;
             }
         }
         else
         {
-            widget_icon = STR(" ▼ ");
+            widget_icon = STR("▼");
             if(ui_widget_labeled_button(state, widget_icon))
             {
-                layout->pane_opened = true;
+                layout->layout_toggle = true;
             }
         }
     }

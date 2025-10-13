@@ -62,14 +62,14 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
         {
             audio_manager->playing_sound_arena = c_arena_create(MB(100));
         }
-        //s_asset_playing_sound_create(audio_manager, test_handle, vec2_create_float(1.0f, 1.0f));
+        //s_asset_playing_sound_create(audio_manager, test_handle, vec2(1.0f, 1.0f));
 
         initialized_stuff = true;
     }
 
-    r_draw_texture(render_state, vec2_create_float(20, 40),     vec2_create_float(16, 16), COLOR_WHITE, 0, block_handle, RQO_NONE);
-    //r_draw_rect(render_state,    vec2_create_float(-50.0, -40), vec2_create_float(30, 30), COLOR_WHITE, 0, RQO_NONE);
-    r_draw_texture(render_state, vec2_create_float(50, -50),    vec2_create_float(16, 16), COLOR_WHITE, 0, block_handle, RQO_NONE);
+    r_draw_texture(render_state, vec2(20, 40),  vec2(16, 16), COLOR_WHITE, 0, block_handle, RQO_NONE);
+    //r_draw_rect(render_state,    vec2(-50.0, -40), vec2(30, 30), COLOR_WHITE, 0, RQO_NONE);
+    r_draw_texture(render_state, vec2(50, -50), vec2(16, 16), COLOR_WHITE, 0, block_handle, RQO_NONE);
     
     r_end_renderpass(render_state);
 
@@ -89,7 +89,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                   STR("This is another test of the rendering engine...\nDoes this font render properly?\nPerhaps there's an issue we don't know about?\nThe quick brown fox jumps over the lazy dog\nTHE QUICK BROWN FOX JUMPS OVER THE WIRED FENCE"),
                   lm_font_handle,
                   16,
-                  vec2_create_float(-800, -300),
+                  vec2(-800, -300),
                   COLOR_WHITE,
                   RQO_NONE);
     
@@ -108,7 +108,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGP_MainGamePass,
                                                               RGPT_Quads);
     r_begin_renderpass(render_state, &test_group5);
-    r_draw_rect(render_state, vec2_create_float(10, 40), vec2_create_float(20, 20), vec4_create_float4(1.0f, 0.0f, 0.0f, 0.05f), 0, RQO_NONE);
+    r_draw_rect(render_state, vec2(10, 40), vec2(20, 20), vec4(1.0f, 0.0f, 0.0f, 0.05f), 0, RQO_NONE);
     r_end_renderpass(render_state);
 
     r_set_active_blending_state(render_state, false);
@@ -122,7 +122,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGP_PostBlitPass,
                                                               RGPT_Lines);
     r_begin_renderpass(render_state, &test_group6);
-    r_create_render_line(render_state, vec2_create_float(-100.0, -70), vec2_create_float(100, -70), 1.0f, COLOR_WHITE);
+    r_create_render_line(render_state, vec2(-100.0, -70), vec2(100, -70), 1.0f, COLOR_WHITE);
     r_end_renderpass(render_state);
 
     render_group_desc_t test_group7 = r_build_renderpass_desc(render_state,
@@ -134,7 +134,7 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
                                                               RGP_MainGamePass,
                                                               RGPT_Quads);
     r_begin_renderpass(render_state, &test_group7);
-    r_draw_rect(render_state, vec2_create_float(-160, 90), vec2_create_float(320, -180), {0.3, 0.3, 0.3, 1.0}, 0, RQO_NONE);
+    r_draw_rect(render_state, vec2(-160, 90), vec2(320, -180), {0.3, 0.3, 0.3, 1.0}, 0, RQO_NONE);
     r_end_renderpass(render_state);
 
     r_reset_draw_frame_pipeline_state(render_state);

@@ -56,10 +56,10 @@ r_create_render_quad(render_state_t       *render_state,
     float32 layer_depth_value = near_value  + (render_group_data->render_layer * depth_step);
 
     result.layer_depth            = layer_depth_value;
-    result.top_left.vPosition     = vec3_create_float(left, top,     layer_depth_value);
-    result.top_right.vPosition    = vec3_create_float(right, top,    layer_depth_value);
-    result.bottom_left.vPosition  = vec3_create_float(left, bottom,  layer_depth_value);
-    result.bottom_right.vPosition = vec3_create_float(right, bottom, layer_depth_value);
+    result.top_left.vPosition     = vec3(left, top,     layer_depth_value);
+    result.top_right.vPosition    = vec3(right, top,    layer_depth_value);
+    result.bottom_left.vPosition  = vec3(left, bottom,  layer_depth_value);
+    result.bottom_right.vPosition = vec3(right, bottom, layer_depth_value);
 
     vec4_t min_clip_pos = vec3_expand_vec4(result.top_left.vPosition, 1);
     vec4_t max_clip_pos = vec3_expand_vec4(result.bottom_right.vPosition, 1);
@@ -93,8 +93,8 @@ r_create_render_quad(render_state_t       *render_state,
             vec2_t uv_max =  vec2_add(texture_offset, texture_size);
 
             result.top_left.vUVData     = uv_min;
-            result.top_right.vUVData    = vec2_create_float(uv_max.x, uv_min.y);
-            result.bottom_left.vUVData  = vec2_create_float(uv_min.x, uv_max.y);
+            result.top_right.vUVData    = vec2(uv_max.x, uv_min.y);
+            result.bottom_left.vUVData  = vec2(uv_min.x, uv_max.y);
             result.bottom_right.vUVData = uv_max;
 
             r_add_texture_to_texture_list(render_state->draw_frame.active_render_group, gpu_texture_id);
@@ -183,8 +183,8 @@ r_draw_texture(render_state_t       *render_state,
     DEBUG_TIMED_BLOCK();
     render_quad_t *result = null;
     
-    vec2_t uv_min     = vec2();
-    vec2_t uv_max     = vec2();
+    vec2_t uv_min     = vec2_zero();
+    vec2_t uv_max     = vec2_zero();
     u32    texture_id = MAX_U32;
     if(texture_handle.is_valid)
     {
@@ -304,8 +304,8 @@ r_draw_string(asset_manager_t       *asset_manager,
             else
             {
                 r_draw_texture_ex(render_state,
-                                  vec2_create_float(floorf(draw_position.x + glyph->offset_x),
-                                                    floorf(draw_position.y - glyph->offset_y)),
+                                  vec2(floorf(draw_position.x + glyph->offset_x),
+                                       floorf(draw_position.y - glyph->offset_y)),
                                   glyph->glyph_render_size,
                                   color,
                                   0.0f,

@@ -208,10 +208,9 @@ main(int argc, char **argv)
     if(window)
     {
         gc_setup();
-        global_context->window_size = vec2_create_float(1920.0f, 1080.0f);
-        
-        asset_manager_t asset_manager = {};
+        global_context->window_size = vec2(1920.0f, 1080.0f);
 
+        asset_manager_t asset_manager = {};
 #if DEVELOPER_BUILD
         GPU_functions_t GPU_functions  = {};
         game_dll_data_t game_functions = {};

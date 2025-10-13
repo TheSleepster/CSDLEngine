@@ -62,11 +62,11 @@ s_font_atlas_find_next_free_line(dynamic_render_font_page_t *page, s32 glyph_wid
         page->bitmap_cursor_x  = 0;
         page->bitmap_cursor_y += page->owner_varient->max_ascender;
 
-        result = vec2_create_float(0, page->bitmap_cursor_y);
+        result = vec2(0, page->bitmap_cursor_y);
     }
     else
     {
-        result = vec2_create_float(page->bitmap_cursor_x + 1, page->bitmap_cursor_y + 1);
+        result = vec2(page->bitmap_cursor_x + 1, page->bitmap_cursor_y + 1);
     }
 
     return(result);
@@ -89,8 +89,8 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
         page->font_atlas.bitmap.stride     = 32;
         page->font_atlas.bitmap.data.data  = c_arena_push_size(arena, (4096 * 4096 * 4) * sizeof(u8));
         page->font_atlas.bitmap.data.count = (4096 * 4096 * 4) * sizeof(u8);
-        page->font_atlas.uv_min            = vec2_create_float(0.0, 0.0);
-        page->font_atlas.uv_max            = vec2_create_float(1.0, 1.0);
+        page->font_atlas.uv_min            = vec2(0.0, 0.0);
+        page->font_atlas.uv_max            = vec2(1.0, 1.0);
         page->font_atlas.has_AA            = false;
         page->font_atlas.filter_type       = TAAFT_NEAREST;
         page->font_atlas.view              = s_asset_texture_view_generate(asset_manager, null, &page->font_atlas);
@@ -108,13 +108,13 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
     glyph->advance    = (s16)(font_face->glyph->advance.x >> 6);
     glyph->ascent     = (s16)(font_face->glyph->metrics.horiBearingY >> 6);
 
-    glyph->glyph_render_size = vec2_create_float(glyph_width, row_height);
+    glyph->glyph_render_size = vec2(glyph_width, row_height);
     vec2_t bitmap_offset     = s_font_atlas_find_next_free_line(page, glyph_width, row_height);
-    glyph->atlas_offset      = vec2_create_float((float32)bitmap_offset.x / (float32)page->font_atlas.bitmap.width,
-                                                 (float32)bitmap_offset.y / (float32)page->font_atlas.bitmap.height);
+    glyph->atlas_offset      = vec2((float32)bitmap_offset.x / (float32)page->font_atlas.bitmap.width,
+                                    (float32)bitmap_offset.y / (float32)page->font_atlas.bitmap.height);
 
-    glyph->glyph_size = vec2_create_float((float32)glyph_width / (float32)page->font_atlas.bitmap.width,
-                                          (float32)row_height  / (float32)page->font_atlas.bitmap.height);
+    glyph->glyph_size = vec2((float32)glyph_width / (float32)page->font_atlas.bitmap.width,
+                             (float32)row_height  / (float32)page->font_atlas.bitmap.height);
     
     for(s32 row = 0;
         row < row_height;
@@ -215,8 +215,10 @@ s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_
 
             glyph->hash_key   = c_string_make_copy(&varient->parent->font_arena, temp);
             glyph->owner_page = valid_page;
-
-            s_font_copy_glyph_data_to_page_bitmap(asset_manager, &varient->parent->font_arena, valid_page, glyph);
+            if(asset_manager)
+            {
+                s_font_copy_glyph_data_to_page_bitmap(asset_manager, &varient->parent->font_arena, valid_page, glyph);
+            }
             c_hash_insert_kv_pair(&valid_page->glyph_lookup, glyph->hash_key, glyph);
             result = glyph;
 

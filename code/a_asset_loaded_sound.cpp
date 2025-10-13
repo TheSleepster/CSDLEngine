@@ -173,7 +173,7 @@ s_asset_playing_sound_create(audio_manager_t *audio_manager,
     ZeroStruct(*result);
     result->sound_handle           = sound_handle;
     result->play_cursor            = 0.0f;
-    result->current_playing_volume = vec2_create_float(1.0f, 1.0f);
+    result->current_playing_volume = vec2(1.0f, 1.0f);
     result->pitch_shift            = 1.0f;
     result->is_paused              = false;
     result->next                   = audio_manager->first_playing_sound;
@@ -185,8 +185,8 @@ s_asset_playing_sound_create(audio_manager_t *audio_manager,
 internal inline void
 s_asset_playing_sound_set_target_volume(playing_sound_t *sound, float32 target_x, float32 target_y, float32 fade_x, float32 fade_y)
 {
-    sound->target_playing_volume  = vec2_create_float(target_x, target_y);
-    sound->d_volumet              = vec2_create_float(fade_x, fade_y);
+    sound->target_playing_volume  = vec2(target_x, target_y);
+    sound->d_volumet              = vec2(fade_x, fade_y);
 }
 
 internal inline void
@@ -210,7 +210,7 @@ a_playing_sound_continue(playing_sound_t *sound)
 internal inline void
 a_playing_sound_set_volume(playing_sound_t *sound, float32 norm_volume_x, float32 norm_volume_y)
 {
-    sound->current_playing_volume = vec2_create_float(norm_volume_x, norm_volume_y);
+    sound->current_playing_volume = vec2(norm_volume_x, norm_volume_y);
 }
 
 internal inline void

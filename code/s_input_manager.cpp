@@ -103,7 +103,7 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
             controller->keyboard.current_mouse_pos.x = event->motion.x;
             controller->keyboard.current_mouse_pos.y = event->motion.y;
                 
-            controller->keyboard.mouse_delta = vec2_subtract(controller->keyboard.current_mouse_pos, vec2_create_float(old_mouse_pos_x, old_mouse_pos_y));
+            controller->keyboard.mouse_delta = vec2_subtract(controller->keyboard.current_mouse_pos, vec2(old_mouse_pos_x, old_mouse_pos_y));
         }break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -255,7 +255,7 @@ s_input_manager_transform_mouse_data(input_controller_t *controller,
 
     vec2_t mouse_pos   = controller->keyboard.current_mouse_pos;
     vec2_t window_size = global_context->window_size;
-    vec4_t ndc_pos     = vec4_create_float4((mouse_pos.x / (window_size.x * 0.5f)) - 1.0f, 1.0f - (mouse_pos.y / (window_size.y * 0.5f)), 0.0f, 1.0f);
+    vec4_t ndc_pos     = vec4((mouse_pos.x / (window_size.x * 0.5f)) - 1.0f, 1.0f - (mouse_pos.y / (window_size.y * 0.5f)), 0.0f, 1.0f);
 
     mat4_t inverse_projection = mat4_invert(projection_matrix);
     mat4_t inverse_view       = mat4_invert(view_matrix);

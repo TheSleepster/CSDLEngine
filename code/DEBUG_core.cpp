@@ -608,8 +608,8 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 r_begin_renderpass(render_state, &background_layer);
                 u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
                 r_draw_rect(render_state,
-                            vec2_create_float(x, y),
-                            vec2_create_float(width, height),
+                            vec2(x, y),
+                            vec2(width, height),
                             colors[color_idx],
                             0,
                             RQO_NONE);
@@ -631,7 +631,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                                       STR(label),
                                       font_handle,
                                       label_size,
-                                      vec2_create_float(x + 2.0f, y + 2.0f),
+                                      vec2(x + 2.0f, y + 2.0f),
                                       text_color,
                                       RQO_NONE);
                     }
@@ -640,8 +640,8 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
 
                 // NOTE(Sleepster): Tooltip
                 vec2_t mouse = s_input_manager_transform_mouse_data(controller, font_view_matrix, font_projection_matrix);
-                rectangle2_t bar_rect = rect_create(vec2_create_float(x, y), vec2_add(vec2_create_float(x, y), vec2_create_float(width, height)));
-                if(rect_vec2_test(bar_rect, mouse))
+                rectangle2_t bar_rect = rect2_create(vec2(x, y), vec2(width, height));
+                if(rect2_vec2_test(bar_rect, mouse))
                 {
                     r_begin_renderpass(render_state, &background_layer);
                     DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;
@@ -655,8 +655,8 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                              (unsigned long long)region->region_cycle_count,
                              region->region_hit_count,
                              region->region_thread_index);
-                    vec2_t tooltip_pos = vec2_add(mouse, vec2_create_float(10.0f, -20.0f));
-                    r_draw_rect(render_state, vec2_subtract(tooltip_pos, {0.0f, 50.0f}), vec2_create_float(500.0f, 100.0f), background_color, 0, RQO_NONE);
+                    vec2_t tooltip_pos = vec2_add(mouse, vec2(10.0f, -20.0f));
+                    r_draw_rect(render_state, vec2_subtract(tooltip_pos, {0.0f, 50.0f}), vec2(500.0f, 100.0f), background_color, 0, RQO_NONE);
                     r_end_renderpass(render_state);
 
                     r_begin_renderpass(render_state, &label_layer);
@@ -665,7 +665,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                                   STR(buffer),
                                   font_handle,
                                   tooltip_size,
-                                  vec2_add(tooltip_pos, vec2_create_float(5.0f, 5.0f)),
+                                  vec2_add(tooltip_pos, vec2(5.0f, 5.0f)),
                                   text_color,
                                   RQO_NONE);
                     r_end_renderpass(render_state);
@@ -707,7 +707,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           asset_handle_t   font,
                           float32          delta_time)
 {
-    vec2_t starting_pos  = vec2_create_float(-960, 500);
+    vec2_t starting_pos  = vec2(-960, 500);
     for(u32 record_index = 0;
         record_index < DEBUG_global_state->next_debug_record_entry_index;
         ++record_index)
@@ -738,7 +738,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           RQO_NONE);
             #endif
 
-            starting_pos = vec2_add(starting_pos, vec2_create_float(0, -32));
+            starting_pos = vec2_add(starting_pos, vec2(0, -32));
         }
     }
     char buffer[4096] = {};
@@ -751,7 +751,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                   STR(buffer),
                   font,
                   24,
-                  starting_pos = vec2_add(starting_pos, vec2_create_float(0.0, -20.0)),
+                  starting_pos = vec2_add(starting_pos, vec2(0.0, -20.0)),
                   vec4_create(1.0f),
                   RQO_NONE);
 
@@ -821,8 +821,8 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                                                                                    RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc_transparent);
         // r_draw_rect(render_state,
-        //             vec2_create_float(-960, -600),
-        //             vec2_create_float(1500, 2000),
+        //             vec2(-960, -600),
+        //             vec2(1500, 2000),
         //             vec4_create_float4(0.003f, 0.003f, 0.003f, 0.99f),
         //             0,
         //             RQO_NONE);

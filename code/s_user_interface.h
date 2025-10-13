@@ -83,6 +83,8 @@ typedef struct UI_widget
     UI_widget *last_attached_widget;
     UI_widget *next_attached_widget;
     UI_widget *prev_attached_widget;
+
+    dynamic_render_font_varient_t *render_font;
 }UI_widget_t;
 
 typedef struct UI_interaction_data
@@ -107,14 +109,14 @@ typedef struct UI_interaction_data
 typedef struct UI_layout
 {
     bool8            is_valid;
-    bool8            pane_opened;
-    bool8            row_pushed;
+    bool8            layout_toggle;
+    bool8            row_pushed; 
 
     memory_arena_t  *arena;
     input_manager_t *input_manager;
 
     vec2_t           next_widget_cursor;
-    vec2_t           max_window_size;
+    float32          this_row_y;
 
     float32          largest_widget_width;
     float32          largest_widget_height;
@@ -140,8 +142,9 @@ typedef struct UI_state
 
     memory_arena_t   arena;
     input_manager_t *input_manager;
-    vec2_t           mouse_pos;
+    asset_manager_t *asset_manager;
 
+    vec2_t           mouse_pos;
     u32              current_frame;
 
     UI_layout_t     *first_layout;

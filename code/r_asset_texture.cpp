@@ -69,8 +69,8 @@ s_asset_texture_create(asset_manager_t  *asset_manager,
 {
     texture2D_t result = {};
     result.bitmap      = s_asset_bitmap_create(zone, width, height, format);
-    result.uv_min      = vec2_create_float(0.0, 0.0);
-    result.uv_min      = vec2_create_float((float32)width, (float32)height);
+    result.uv_min      = vec2(0.0, 0.0);
+    result.uv_min      = vec2((float32)width, (float32)height);
     result.has_AA      = has_AA;
     result.filter_type = filtering;
 

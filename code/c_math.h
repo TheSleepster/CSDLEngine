@@ -399,7 +399,17 @@ typedef struct ivec2
   ===========================================*/
 
 internal inline vec2_t
-vec2()
+vec2(float32 A, float32 B)
+{
+    vec2_t result;
+    result.x = A;
+    result.y = B;
+    
+    return(result);
+}
+
+internal inline vec2_t
+vec2_zero()
 {
     vec2_t result = {};
     return(result);
@@ -412,16 +422,6 @@ vec2_create(float32 A)
     result.x = A;
     result.y = A;
 
-    return(result);
-}
-
-internal inline vec2_t
-vec2_create_float(float32 A, float32 B)
-{
-    vec2_t result;
-    result.x = A;
-    result.y = B;
-    
     return(result);
 }
 
@@ -632,7 +632,18 @@ vec2_unlerp(vec2_t A, vec2_t B, vec2_t X)
   ===========================================*/
 
 internal inline vec3_t
-vec3()
+vec3(float32 A, float32 B, float32 C)
+{
+    vec3_t result;
+    result.x = A;
+    result.y = B;
+    result.z = C;
+
+    return(result);
+}
+
+internal inline vec3_t
+vec3_zero()
 {
     vec3_t result = {};
     return(result);
@@ -645,17 +656,6 @@ vec3_create(float32 A)
     result.x = A;
     result.y = A;
     result.z = A;
-
-    return(result);
-}
-
-internal inline vec3_t
-vec3_create_float(float32 A, float32 B, float32 C)
-{
-    vec3_t result;
-    result.x = A;
-    result.y = B;
-    result.z = C;
 
     return(result);
 }
@@ -852,7 +852,16 @@ vec3_unlerp(vec3_t A, vec3_t B, vec3_t X)
   ================= VECTOR 4 ================
   ===========================================*/
 internal inline vec4_t
-vec4()
+vec4(float32 A, float32 B, float32 C, float32 D)
+{
+    vec4_t result;
+    result.SSE = _mm_setr_ps(A, B, C, D);
+
+    return(result);
+}
+
+internal inline vec4_t
+vec4_zero()
 {
     vec4_t result = {};
     return(result);
@@ -865,15 +874,6 @@ vec4_create(float32 A)
     // TODO(Sleepster): Perhaps make this a 32 bit -> 128bit SIMD function???
     // (128bit load)
     result.SSE = _mm_set_ps1(A);
-
-    return(result);
-}
-
-internal inline vec4_t
-vec4_create_float4(float32 A, float32 B, float32 C, float32 D)
-{
-    vec4_t result;
-    result.SSE = _mm_setr_ps(A, B, C, D);
 
     return(result);
 }
@@ -1899,23 +1899,20 @@ typedef struct rectangle2
 {
     vec2_t min;
     vec2_t max;
-
-    vec2_t position;
-    vec2_t size;
 }rectangle2_t;
 
 internal rectangle2_t
-rect_create(vec2_t min, vec2_t max)
+rect2_create(vec2_t position, vec2_t size)
 {
     rectangle2_t result;
-    result.min = min;
-    result.max = max;
+    result.min = position;
+    result.max = vec2_add(position, size);
 
     return(result);
 }
 
 internal rectangle2_t
-rect_shift_by(rectangle2_t rect, vec2_t shift)
+rect2_shift_by(rectangle2_t rect, vec2_t shift)
 {
     rectangle2_t result = rect;
     rect.min = vec2_add(rect.min, shift);
@@ -1925,7 +1922,7 @@ rect_shift_by(rectangle2_t rect, vec2_t shift)
 }
 
 internal vec2_t 
-rect_get_center(rectangle2_t rect)
+rect2_get_center(rectangle2_t rect)
 {
     vec2_t result;
     result.x = rect.min.x + (rect.max.x * 0.5f);
@@ -1935,17 +1932,17 @@ rect_get_center(rectangle2_t rect)
 }
 
 internal rectangle2_t
-rect_make_centered(rectangle2_t rect)
+rect2_make_centered(rectangle2_t rect)
 {
     rectangle2_t result;
-    result.min = vec2_add(rect.min, vec2_multiply(rect.max, vec2_create_float(0.5f, 0.5f)));
-    result.max = vec2_add(rect.max, vec2_multiply(rect.max, vec2_create_float(0.5f, 0.5f)));
+    result.min = vec2_add(rect.min, vec2_multiply(rect.max, vec2(0.5f, 0.5f)));
+    result.max = vec2_add(rect.max, vec2_multiply(rect.max, vec2(0.5f, 0.5f)));
 
     return(result);
 }
 
 internal vec2_t
-rect_get_size(rectangle2_t rect)
+rect2_get_size(rectangle2_t rect)
 {
     vec2_t result;
     vec2_t size = vec2_subtract(rect.max, rect.min);
@@ -1955,15 +1952,21 @@ rect_get_size(rectangle2_t rect)
     return(result);
 }
 
+internal inline vec2_t
+rect2_get_position(rectangle2_t rect)
+{
+    return(rect.min);
+}
+
 internal bool8
-rect_vec2_test(rectangle2_t rect, vec2_t point)
+rect2_vec2_test(rectangle2_t rect, vec2_t point)
 {
     return (point.x >= rect.min.x && point.x <= rect.max.x && 
             point.y >= rect.min.y && point.y <= rect.max.y);
 }
 
 internal bool8
-rect_AABB_test(rectangle2_t A, rectangle2_t B)
+rect2_AABB_test(rectangle2_t A, rectangle2_t B)
 {
     return (A.min.x <= B.max.x && A.max.x >= B.min.x &&
             A.min.y <= B.max.y && A.max.y >= B.min.y);

@@ -446,8 +446,8 @@ r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_typ
 
     // NOTE(Sleepster): This is in pixels... 
     texture->uv_min      = vec2_create(0.0);
-    texture->uv_max      = vec2_create_float(texture->bitmap.width,
-                                             texture->bitmap.height);
+    texture->uv_max      = vec2(texture->bitmap.width,
+                                texture->bitmap.height);
 }
 
 internal void 

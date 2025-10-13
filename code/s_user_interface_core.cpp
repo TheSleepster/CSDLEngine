@@ -9,6 +9,10 @@
 #include "s_user_interface_layout.cpp"
 #include "s_user_interface_widget.cpp"
 
+/*===========================================
+  ================== CORE API ===============
+  ===========================================*/
+
 internal void
 ui_init_state(render_state_t  *render_state, 
               input_manager_t *input_manager, 
@@ -42,6 +46,7 @@ ui_init_state(render_state_t  *render_state,
 
     state->layout_counter = 0;
     state->input_manager  = input_manager;
+    state->asset_manager  = asset_manager;
 
     mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
     mat4_t font_view_matrix       = mat4_identity();
@@ -86,14 +91,6 @@ ui_deinit_state(UI_state_t *state)
 {
 }
 
-/*===========================================
-  ================ WIDGET API ===============
-  ===========================================*/
-
-/*===========================================
-  ================== CORE API ===============
-  ===========================================*/
-
 internal void
 ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 {
@@ -123,7 +120,7 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
                 child->panel_size        = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
                 child->panel_size.x     += state->widget_padding_x;
                 child->panel_size.y     += state->widget_padding_y;
-                child->widget_rect       = rect_create(child->panel_position, vec2_add(child->panel_position, child->panel_size));
+                child->widget_rect       = rect2_create(child->panel_position, child->panel_size);
                 child->string_position   = {child->panel_position.x + (child->panel_size.x * 0.20f) - (state->widget_padding_x * 0.5f), 
                                             child->panel_position.y + (child->panel_size.y * 0.25f)};
 
@@ -134,8 +131,7 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
                     widget->panel_size.x = child->panel_size.x + state->widget_padding_x;
                 }
             }
-            widget->widget_rect = rect_create(widget->panel_position, 
-                                              vec2_add(widget->panel_position, widget->panel_size));
+            widget->widget_rect = rect2_create(widget->panel_position, widget->panel_size);
         } 
     }
 }
