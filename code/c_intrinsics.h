@@ -19,6 +19,8 @@
  */
 
 #if defined COMPILER_CLANG || defined COMPILER_GCC
+    #define restrict __restrict
+
     #if ARCH_X64
         #include <emmintrin.h>
         #include <xmmintrin.h>

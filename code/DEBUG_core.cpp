@@ -782,11 +782,26 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
             ui_slider(&value, 1.0f, 0.0f);
         }
 #endif
-        ui_layout_begin(&DEBUG_global_state->UI_data);
+        bool8 test_var = false;
+
+        ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
+        UI_layout_t *this_layout = ui_layout_begin_titled(&DEBUG_global_state->UI_data, STR("Debug menu"), {0, 0}, UILF_HasTitlebar);
+        ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
+        {
+            ui_widget_push_parent(this_layout, this_layout->layout_pane);
             ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"));
             ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"));
+
             ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
             ui_widget_text(&DEBUG_global_state->UI_data, STR("Test Text..."));
+            ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
+
+            ui_widget_toggle_box(&DEBUG_global_state->UI_data, STR("This is a test box"), {20, 20}, &test_var);
+            if(test_var)
+            {
+                log_info("TestBox Works...\n");
+            }
+        }
         ui_layout_end(&DEBUG_global_state->UI_data);
 
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);

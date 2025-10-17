@@ -5,6 +5,8 @@
    $Creator: Justin Lewis $
    ======================================================================== */
 
+// TODO(Sleepster): The adding of widgets to a hierarchy is broken. The parent is storing itself as a parent, causing an endless loop. 
+
 internal inline void
 ui_widget_push_parent(UI_layout_t *layout, UI_widget *widget)
 {
@@ -28,21 +30,21 @@ ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget)
     if(!parent->first_attached_widget)
     {
         // NOTE(Sleepster): First 
-        parent->first_attached_widget = widget;
-        parent->last_attached_widget  = widget;
-        parent->next_attached_widget  = null;
-        parent->prev_attached_widget  = null;
+        parent->first_attached_widget  = widget;
+        parent->oldest_attached_widget = widget;
+        parent->next_attached_widget   = null;
+        parent->prev_attached_widget   = null;
     }
     else
     {
         // NOTE(Sleepster): Append 
-        UI_widget_t *last_widget = parent->last_attached_widget;
+        UI_widget_t *last_widget = parent->oldest_attached_widget;
         last_widget->next_attached_widget = widget;
 
         widget->prev_attached_widget      = last_widget;
         widget->next_attached_widget      = null;
 
-        parent->last_attached_widget = widget;
+        parent->oldest_attached_widget = widget;
     }
 }
 
@@ -62,13 +64,15 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
 
     result->widget   = widget;
     result->hovering = rect2_vec2_test(widget->widget_rect, state->mouse_pos);
-
-    result->clicked        = left_mouse_state->is_down;
-    result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
-    result->double_clicked = left_mouse_state->half_transition_counter  >= 4;
-    result->pressed        = left_mouse_state->is_pressed;
-    result->released       = left_mouse_state->is_released;
-    result->dragging       = left_mouse_state->is_down && !left_mouse_state->is_released;
+    if(result->hovering)
+    {
+        result->clicked        = left_mouse_state->is_down;
+        result->right_clicked  = right_mouse_state->half_transition_counter >= 2;
+        result->double_clicked = left_mouse_state->half_transition_counter  >= 4;
+        result->pressed        = left_mouse_state->is_pressed;
+        result->released       = left_mouse_state->is_released;
+        result->dragging       = left_mouse_state->is_down && !left_mouse_state->is_released;
+    }
 
     return(result);
 }
@@ -102,10 +106,10 @@ ui_widget_create(UI_state_t *state,
     Assert(widget);
     widget->render_color = widget->idle_color;
 
-    widget->next_attached_widget  = null;
-    widget->prev_attached_widget  = null;
-    widget->first_attached_widget = null;
-    widget->last_attached_widget  = null;
+    widget->next_attached_widget   = null;
+    widget->prev_attached_widget   = null;
+    widget->first_attached_widget  = null;
+    widget->oldest_attached_widget = null;
     if((widget_flags & UIWF_DrawText) != 0)
     {
         widget->render_font = s_asset_font_get_at_size(state->asset_manager, 
@@ -113,7 +117,7 @@ ui_widget_create(UI_state_t *state,
                                                        widget->font_size);
     }
 
-    widget->panel_position = layout->next_widget_cursor;
+    widget->panel_offset = layout->next_widget_cursor;
     if(layout->active_parent_widget)
     {
         ui_widget_attach(layout, widget);
@@ -179,18 +183,18 @@ ui_widget_titled_window(UI_state_t  *state,
                         UI_layout_t *layout, 
                         string_t     title, 
                         vec2_t       position, 
-                        vec2_t       size, 
                         u32          layout_flags)
 {
     // NOTE(Sleepster): UIWF_DrawInBackground doesn't mean "draw a rect" it just 
     // means that the layer is of that of the background 
+
+    ui_widget_set_default_idle_color(state, {0.01, 0.01, 0.01, 0.03});
     UI_widget_t *window_pane = ui_widget_create(state, 
                                                 STR("LAYOUT WINDOW"), 
-                                                UIWF_DrawInBackground|
-                                                UIWF_DrawBorder|
-                                                UIWF_FilledBox);
-    ui_widget_push_parent(layout, window_pane);
+                                                UIWF_DrawInBackground);
+    ui_widget_set_default_idle_color(state, COLOR_WHITE);
     ui_layout_row_push(layout);
+    ui_widget_push_parent(layout, window_pane);
     if((layout_flags & UILF_Closeable) != 0)
     {
         string_t widget_icon = {};
@@ -214,8 +218,8 @@ ui_widget_titled_window(UI_state_t  *state,
 
     if((layout_flags & UILF_HasTitlebar) != 0)
     {
-        ui_widget_text(state, title); 
-        ui_widget_rect(state, window_pane->panel_size, {0, 0, 0, 1});
+        UI_widget_t *title_text = ui_widget_text(state, title); 
+        ui_widget_rect(state, title_text->panel_size, {0, 0, 0, 1});
     }
 
     ui_widget_pop_parent(layout);
@@ -225,7 +229,7 @@ ui_widget_titled_window(UI_state_t  *state,
 }
 
 internal UI_widget_t*
-ui_get_widget_from_layout(UI_layout_t *layout, string_t hash_id)
+ui_layout_get_widget(UI_layout_t *layout, string_t hash_id)
 {
     UI_widget_t *result = null;
     result = (UI_widget_t*)c_hash_get_value(&layout->widget_hash, hash_id);
@@ -257,14 +261,46 @@ ui_widget_rect(UI_state_t *state, vec2_t size, vec4_t color)
     UI_widget_t *widget = ui_widget_create(state,
                                            STR("WIDGET PANE TITLE PANEL"),
                                            UIWF_FilledBox);
+    widget->panel_size   = size;
+    widget->render_color = color;
+
     return(widget);
 }
 
+internal bool8
+ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *condition)
+{
+    bool8 result = false;
+    UI_widget_t *widget = ui_widget_create(state,
+                                           hash_name,
+                                           UIWF_FilledBox|
+                                           UIWF_Clickable|
+                                           UIWF_DrawBorder|
+                                           UIWF_HotAnimation|
+                                           UIWF_ActiveAnimation);
+    widget->panel_size = size;
+
+    UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, widget);
+    ui_widget_do_button(state, widget, interaction_info);
+    result = interaction_info->pressed;
+    if(result)
+    {
+        bool8 prev_condition = *condition;
+        *condition = !prev_condition;
+    }
+
+    if(*condition)
+    {
+        widget->is_active = true;
+    }
+
+    return(result);
+}
 
 internal true_inline void
-ui_widget_set_position(UI_widget_t *widget, vec2_t pos)
+ui_widget_set_pane_offset(UI_widget_t *widget, vec2_t pos)
 {
-    widget->panel_position = pos;
+    widget->panel_offset = pos;
 }
 
 internal true_inline void

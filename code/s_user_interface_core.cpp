@@ -98,47 +98,57 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
         this_layout;
         this_layout = this_layout->next_layout)
     {
-        for(UI_widget_t *widget = this_layout->layout_pane;
-            widget;
-            widget = widget->next_attached_widget)
+        UI_widget_t *root_widget = this_layout->layout_pane;
+        root_widget->panel_size  = {};
+
+        this_layout->next_widget_cursor = vec2_zero();
+        for(UI_widget_t *child = root_widget->oldest_attached_widget;
+            child;
+            child = child->prev_attached_widget)
         {
-            widget->panel_position = {0, 0};
-            widget->panel_size     = {0, 0};
-            widget->panel_size.x  += state->widget_padding_x;
-            widget->panel_size.y  += state->widget_padding_y;
-            float32 next_widget_offset = 0.0f;
-            for(UI_widget_t *child = widget->last_attached_widget;
-                child;
-                child = child->prev_attached_widget)
+            child->panel_offset = this_layout->next_widget_cursor;
+            dynamic_render_font_varient_t *child_font = s_asset_font_get_at_size(asset_manager, 
+                                                                                 state->DEBUG_font,
+                                                                                 child->font_size);
+            vec2_t child_panel_position = vec2_add(this_layout->panel_position, child->panel_offset);
+            child->panel_offset = {
+                child_panel_position.x + state->widget_padding_x,
+                child_panel_position.y + state->widget_padding_y
+            }; 
+
+            if((child->widget_flags & UIWF_DrawText) != 0)
             {
-                dynamic_render_font_varient_t *child_font = s_asset_font_get_at_size(asset_manager, 
-                                                                                     state->DEBUG_font,
-                                                                                     child->font_size);
-                child->panel_position = {widget->panel_position.x + (state->widget_padding_x * 0.5f), 
-                                        (widget->panel_position.y + next_widget_offset) + (state->widget_padding_y * 0.5f)};
-
-                child->panel_size        = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
-                child->panel_size.x     += state->widget_padding_x;
-                child->panel_size.y     += state->widget_padding_y;
-                child->widget_rect       = rect2_create(child->panel_position, child->panel_size);
-                child->string_position   = {child->panel_position.x + (child->panel_size.x * 0.20f) - (state->widget_padding_x * 0.5f), 
-                                            child->panel_position.y + (child->panel_size.y * 0.25f)};
-
-                next_widget_offset   += child->panel_size.y;
-                widget->panel_size.y += child->panel_size.y;
-                if(child->panel_size.x > widget->panel_size.x) 
-                {
-                    widget->panel_size.x = child->panel_size.x + state->widget_padding_x;
-                }
+                child->panel_size = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
             }
-            widget->widget_rect = rect2_create(widget->panel_position, widget->panel_size);
-        } 
+
+            child->panel_size.x   += state->widget_padding_x;
+            child->panel_size.y   += state->widget_padding_y;
+            child->widget_rect     = rect2_create(child->panel_offset, child->panel_size);
+            child->string_offset   = {child->panel_offset.x + (child->panel_size.x * 0.20f) - (state->widget_padding_x * 0.5f), 
+                                      child->panel_offset.y + (child->panel_size.y * 0.25f)};
+
+            root_widget->panel_size.y += child->panel_size.y + state->widget_padding_y;
+            if(child->panel_size.x > root_widget->panel_size.x) 
+            {
+                root_widget->panel_size.x = child->panel_size.x + state->widget_padding_x;
+            }
+
+            this_layout->next_widget_cursor.y += child->panel_size.y + state->widget_padding_y;
+        }
+        root_widget->widget_rect = rect2_create(this_layout->panel_position, vec2_add(root_widget->panel_size, vec2(state->widget_padding_x, state->widget_padding_y)));
     }
 }
 
 internal void
 ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget)
 {
+    if((widget->widget_flags & UIWF_DrawInBackground) != 0)
+    {
+        r_begin_renderpass(render_state, &state->background_desc);
+        r_draw_rect(render_state, widget->panel_offset, widget->panel_size, widget->render_color, 0, RQO_NONE);
+        r_end_renderpass(render_state);
+    }
+
     if((widget->widget_flags & UIWF_HotAnimation) != 0)
     {
         if(widget->is_hot)
@@ -160,7 +170,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     r_begin_renderpass(render_state, &state->widget_desc);
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
-        r_draw_rect(render_state, widget->panel_position, widget->panel_size, widget->render_color, 0, RQO_NONE);
+        r_draw_rect(render_state, widget->panel_offset, widget->panel_size, widget->render_color, 0, RQO_NONE);
     }
     r_end_renderpass(render_state);
 
@@ -172,21 +182,14 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
                       widget->name, 
                       state->DEBUG_font, 
                       FONT_SIZE, 
-                      widget->string_position,
+                      widget->string_offset,
                       widget->font_color,
                       RQO_NONE);
     }
     r_end_renderpass(render_state);
 
-    r_begin_renderpass(render_state, &state->background_desc);
-    if((widget->widget_flags & UIWF_DrawInBackground) != 0)
-    {
-        r_draw_rect(render_state, widget->panel_position, widget->panel_size, widget->render_color, 0, RQO_NONE);
-    }
-    r_end_renderpass(render_state);
-
     // NOTE(Sleepster): recurse for children 
-    for(UI_widget_t *child = widget->last_attached_widget;
+    for(UI_widget_t *child = widget->oldest_attached_widget;
         child;
         child = child->prev_attached_widget)
     {
@@ -206,18 +209,15 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
         this_layout;
         this_layout = this_layout->next_layout)
     {
-        for(UI_widget_t *widget = this_layout->layout_pane;
-            widget;
-            widget = widget->next_attached_widget)
-        {
-            widget->color = {0.03, 0.03, 0.03, 0.05};
-            ui_render_widget(render_state, asset_manager, state, widget);
-        }
+        UI_widget_t *root_widget = this_layout->layout_pane;
+        root_widget->color       = {0.03, 0.03, 0.03, 0.05};
 
-        this_layout->layout_pane->next_attached_widget  = null;
-        this_layout->layout_pane->last_attached_widget  = null;
-        this_layout->layout_pane->first_attached_widget = null;
-        this_layout->layout_pane->prev_attached_widget  = null;
+        ui_render_widget(render_state, asset_manager, state, root_widget);
+
+        this_layout->layout_pane->next_attached_widget   = null;
+        this_layout->layout_pane->oldest_attached_widget = null;
+        this_layout->layout_pane->first_attached_widget  = null;
+        this_layout->layout_pane->prev_attached_widget   = null;
     }
 
     state->current_frame++;

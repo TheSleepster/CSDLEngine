@@ -46,9 +46,9 @@ typedef enum UI_widget_flags
 
 typedef enum UI_layout_flags
 {
-    UILF_HasTitlebar,
-    UILF_Movable,
-    UILF_Closeable,
+    UILF_HasTitlebar = (1 << 0),
+    UILF_Movable     = (1 << 1),
+    UILF_Closeable   = (1 << 2),
 }UI_layout_flags_t;
 
 typedef struct UI_widget
@@ -60,17 +60,18 @@ typedef struct UI_widget
     bool8      is_active;
 
     bool8      started_inside;
-    bool8      expanded;
+    bool8      is_expanded;
 
-    vec2_t     panel_position;
+    vec2_t     panel_offset;
     vec2_t     panel_size;
     rectangle2 widget_rect;
 
     string_t   name;
-    vec2_t     string_position;
+    vec2_t     string_offset;
     vec4_t     color;
 
     u32        font_size;
+    u32        widget_icon;
 
     vec4_t     render_color;
     vec4_t     font_color;
@@ -80,7 +81,7 @@ typedef struct UI_widget
 
     UI_widget *parent_widget;
     UI_widget *first_attached_widget;
-    UI_widget *last_attached_widget;
+    UI_widget *oldest_attached_widget;
     UI_widget *next_attached_widget;
     UI_widget *prev_attached_widget;
 
@@ -116,6 +117,8 @@ typedef struct UI_layout
     input_manager_t *input_manager;
 
     vec2_t           next_widget_cursor;
+    vec2_t           panel_position;
+
     float32          this_row_y;
 
     float32          largest_widget_width;
@@ -127,6 +130,8 @@ typedef struct UI_layout
     hash_table_t     widget_hash;
     hash_table_t     interaction_hash;
     u32              widget_counter;
+
+    float32          ui_scale;
 
     UI_widget_t     *active_parent_widget;
     UI_widget_t     *layout_pane;
@@ -189,11 +194,15 @@ internal void                   ui_resolve_layouts(asset_manager_t *asset_manage
   ===========================================*/
 internal        UI_layout_t*    UI_create_new_layout(UI_state_t *state);
 internal        UI_layout_t*    ui_layout_create(UI_state_t *state, string_t layout_title, u32 layout_flags);
+
 internal        UI_layout_t*    ui_layout_begin(UI_state_t *state);
+internal        UI_layout_t*    ui_layout_begin_titled(UI_state_t *state, string_t title, vec2_t postion, u32 layout_flags);
 internal        void            ui_layout_end(UI_state_t *state);
+
 internal inline void            ui_layout_row_push(UI_layout_t *layout);
 internal inline void            ui_layout_row_pop(UI_layout_t *layout);
-internal        UI_layout_t*    ui_layout_begin_titled(UI_state_t *state, string_t title, u32 layout_flags);
+
+internal inline UI_widget_t*    ui_layout_get_widget(UI_layout_t *layout, string_t widget_name);
 
 /*===========================================
   ================ WIDGET API ===============
@@ -204,7 +213,7 @@ internal void                   ui_widget_push_parent(UI_layout_t *layout, UI_wi
 internal void                   ui_widget_pop_parent(UI_layout_t *layout);
 internal UI_interaction_data_t* ui_widget_get_interaction_data(UI_layout_t *layout, UI_widget_t *widget);
 
-internal true_inline void       ui_widget_set_position(UI_widget_t *widget, vec2_t pos);
+internal true_inline void       ui_widget_set_pane_offset(UI_widget_t *widget, vec2_t pos);
 internal true_inline void       ui_widget_set_size(UI_widget_t *widget, vec2_t size);
 internal true_inline void       ui_widget_set_idle_color(UI_widget_t *widget, vec4_t color);
 internal true_inline void       ui_widget_set_hot_color(UI_widget_t *widget, vec4_t color);
@@ -217,10 +226,11 @@ internal true_inline void       ui_widget_set_default_text_color(UI_state_t *sta
 
 // I.M WIDGETS
 internal        bool8           ui_widget_labeled_button(UI_state_t *state, string_t name);
+internal        bool8           ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *condition);
 internal inline UI_widget_t*    ui_widget_pane(UI_state_t *state, string_t name);
 internal inline UI_widget_t*    ui_widget_text(UI_state_t *state, string_t display_text);
 internal inline UI_widget_t*    ui_widget_rect(UI_state_t *state, vec2_t size, vec4_t color);
-internal        UI_widget_t*    ui_widget_titled_window(UI_state_t *state, UI_layout_t *layout, string_t title, vec2_t position, vec2_t size, u32 layout_flags);
+internal        UI_widget_t*    ui_widget_titled_window(UI_state_t *state, UI_layout_t *layout, string_t title, vec2_t position, u32 layout_flags);
 
 #endif // S_USER_INTERFACE_H
 

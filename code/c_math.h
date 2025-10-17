@@ -147,6 +147,20 @@ f32_sin_breathe(float32 time, float32 modifier)
     return(sinf(time * modifier));
 }
 
+#if 0
+#ifdef __cplusplus
+#include <typeinfo>
+
+// -std=c++20 
+internal inline auto 
+lerp(auto A, auto B)
+{
+    return(A + B);
+}
+
+#endif
+#endif
+
 /*===========================================
   ============= FLOAT64 FUNCTIONS ===========
   ===========================================*/
