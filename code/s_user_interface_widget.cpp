@@ -327,6 +327,12 @@ ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *
     return(result);
 }
 
+internal void
+ui_widget_float_slider(UI_state_t *state, float32 *value, float32 min, float32 max)
+{
+    UI_widget_t *widget = ;
+}
+
 internal true_inline void
 ui_widget_set_pane_offset(UI_widget_t *widget, vec2_t pos)
 {
