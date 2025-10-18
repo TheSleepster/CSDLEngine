@@ -10,11 +10,11 @@
  /* TODO: What widgets do we want?
   *
   *  - [x] UI Text. No box.
-  *  - [ ] Add titled windows.
-  *  - [ ] Different button types.
-  *  - [ ] Support dropdown menus
+  *  - [x] Add titled windows.
+  *  - [x] Different button types.
+  *  - [x] Support dropdown menus
+  *  - [x] Checkboxes
   *  - [ ] Value sliders
-  *  - [ ] Checkboxes
   *  - [ ] Scroll bars
   *  - [ ] Resizable widgets
   *  - [ ] Graph boxes
@@ -30,7 +30,7 @@
 #define COLOR_BLUE   ((vec4_t){0.0, 0.0, 1.0, 1.0})
 #define COLOR_BLACK  ((vec4_t){0.0, 0.0, 0.0, 1.0})
 
-typedef enum UI_widget_flags
+typedef enum UI_widget_flags 
 {
     UIWF_Clickable        = (1 <<  0),
     UIWF_ViewScroll       = (1 <<  1),
@@ -68,6 +68,7 @@ typedef struct UI_widget
 
     string_t   name;
     vec2_t     string_offset;
+    vec2_t     string_size; 
     vec4_t     color;
 
     u32        font_size;
@@ -88,7 +89,7 @@ typedef struct UI_widget
     dynamic_render_font_varient_t *render_font;
 }UI_widget_t;
 
-typedef struct UI_interaction_data
+typedef struct UI_interaction_data 
 {
     UI_widget_t *widget;
     u64          last_hot_frame; 
@@ -118,6 +119,7 @@ typedef struct UI_layout
 
     vec2_t           next_widget_cursor;
     vec2_t           panel_position;
+    vec2_t           drag_offset;
 
     float32          this_row_y;
 
@@ -196,11 +198,11 @@ internal        UI_layout_t*    UI_create_new_layout(UI_state_t *state);
 internal        UI_layout_t*    ui_layout_create(UI_state_t *state, string_t layout_title, u32 layout_flags);
 
 internal        UI_layout_t*    ui_layout_begin(UI_state_t *state);
-internal        UI_layout_t*    ui_layout_begin_titled(UI_state_t *state, string_t title, vec2_t postion, u32 layout_flags);
+internal        UI_layout_t*    ui_layout_begin_titled(UI_state_t *state, string_t title, vec2_t *position, u32 layout_flags);
 internal        void            ui_layout_end(UI_state_t *state);
 
-internal inline void            ui_layout_row_push(UI_layout_t *layout);
-internal inline void            ui_layout_row_pop(UI_layout_t *layout);
+internal inline void            ui_layout_row_pop(UI_state_t *state, UI_layout_t *layout);
+internal inline void            ui_layout_row_push(UI_state_t *state, UI_layout_t *layout);
 
 internal inline UI_widget_t*    ui_layout_get_widget(UI_layout_t *layout, string_t widget_name);
 
@@ -230,7 +232,9 @@ internal        bool8           ui_widget_toggle_box(UI_state_t *state, string_t
 internal inline UI_widget_t*    ui_widget_pane(UI_state_t *state, string_t name);
 internal inline UI_widget_t*    ui_widget_text(UI_state_t *state, string_t display_text);
 internal inline UI_widget_t*    ui_widget_rect(UI_state_t *state, vec2_t size, vec4_t color);
-internal        UI_widget_t*    ui_widget_titled_window(UI_state_t *state, UI_layout_t *layout, string_t title, vec2_t position, u32 layout_flags);
+internal        UI_widget_t*    ui_widget_titled_window(UI_state_t *state, UI_layout_t *layout, string_t title, vec2_t *position, u32 layout_flags);
+
+internal        void            ui_widget_do_interactable(UI_state_t *state, UI_widget_t *widget, UI_interaction_data_t *interaction_info);
 
 #endif // S_USER_INTERFACE_H
 

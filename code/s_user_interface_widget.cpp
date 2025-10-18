@@ -116,8 +116,10 @@ ui_widget_create(UI_state_t *state,
                                                        state->DEBUG_font,
                                                        widget->font_size);
     }
+    widget->panel_offset = vec2_subtract(layout->next_widget_cursor, layout->panel_position);
+    layout->last_widget_height = widget->panel_size.y;
 
-    widget->panel_offset = layout->next_widget_cursor;
+    if(!layout->row_pushed) layout->next_widget_cursor.y -= (widget->panel_size.y + (state->widget_padding_y * 2.0f));
     if(layout->active_parent_widget)
     {
         ui_widget_attach(layout, widget);
@@ -126,8 +128,9 @@ ui_widget_create(UI_state_t *state,
     return(widget);
 }
 
+// TODO(Sleepster): How about we just make these get the interaction_info themselves...
 internal void
-ui_widget_do_button(UI_state_t *state, UI_widget_t *widget, UI_interaction_data_t *interaction_info)
+ui_widget_do_interactable(UI_state_t *state, UI_widget_t *widget, UI_interaction_data_t *interaction_info)
 {
     if(interaction_info->hovering)
     {
@@ -172,7 +175,7 @@ ui_widget_labeled_button(UI_state_t *state, string_t name)
                                            UIWF_HotAnimation|
                                            UIWF_ActiveAnimation); 
     UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, widget);
-    ui_widget_do_button(state, widget, interaction_info);
+    ui_widget_do_interactable(state, widget, interaction_info);
 
     result = interaction_info->pressed;
     return(result);
@@ -182,7 +185,7 @@ internal UI_widget_t*
 ui_widget_titled_window(UI_state_t  *state, 
                         UI_layout_t *layout, 
                         string_t     title, 
-                        vec2_t       position, 
+                        vec2_t      *position, 
                         u32          layout_flags)
 {
     // NOTE(Sleepster): UIWF_DrawInBackground doesn't mean "draw a rect" it just 
@@ -192,8 +195,32 @@ ui_widget_titled_window(UI_state_t  *state,
     UI_widget_t *window_pane = ui_widget_create(state, 
                                                 STR("LAYOUT WINDOW"), 
                                                 UIWF_DrawInBackground);
+    if((layout_flags & UILF_Movable) != 0 && 
+       s_input_manager_is_alt_key_down(s_input_manager_get_primary_controller(state->input_manager))) 
+    {
+        UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, window_pane);
+        ui_widget_do_interactable(state, window_pane, interaction_info);
+
+        if(interaction_info->pressed)
+        {
+            layout->drag_offset = vec2_subtract(*position, state->mouse_pos);
+        }
+
+        if (interaction_info->clicked)
+        {
+            *position = vec2_add(state->mouse_pos, layout->drag_offset);
+        }
+    }
+    layout->panel_position = *position;
+
+    // NOTE(Sleepster): This '5.0f' is just there to solidify alignment
+    layout->next_widget_cursor.x  = layout->panel_position.x + state->widget_padding_x;
+    layout->next_widget_cursor.y  = (layout->panel_position.y - (state->widget_padding_y * 5.0f)) + window_pane->panel_size.y;
+
     ui_widget_set_default_idle_color(state, COLOR_WHITE);
-    ui_layout_row_push(layout);
+    ui_widget_set_default_text_color(state, COLOR_BLACK);
+
+    ui_layout_row_push(state, layout);
     ui_widget_push_parent(layout, window_pane);
     if((layout_flags & UILF_Closeable) != 0)
     {
@@ -216,14 +243,17 @@ ui_widget_titled_window(UI_state_t  *state,
         }
     }
 
+    ui_widget_set_default_text_color(state, COLOR_WHITE);
     if((layout_flags & UILF_HasTitlebar) != 0)
     {
+        layout->next_widget_cursor.x += state->widget_padding_x * 4;
         UI_widget_t *title_text = ui_widget_text(state, title); 
         ui_widget_rect(state, title_text->panel_size, {0, 0, 0, 1});
     }
+    layout->next_widget_cursor.x -= state->widget_padding_x * 4;
 
     ui_widget_pop_parent(layout);
-    ui_layout_row_pop(layout);
+    ui_layout_row_pop(state, layout);
 
     return(window_pane);
 }
@@ -281,7 +311,7 @@ ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *
     widget->panel_size = size;
 
     UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, widget);
-    ui_widget_do_button(state, widget, interaction_info);
+    ui_widget_do_interactable(state, widget, interaction_info);
     result = interaction_info->pressed;
     if(result)
     {

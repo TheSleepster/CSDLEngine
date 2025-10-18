@@ -99,41 +99,38 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
         this_layout = this_layout->next_layout)
     {
         UI_widget_t *root_widget = this_layout->layout_pane;
-        root_widget->panel_size  = {};
+        root_widget->panel_size  = vec2(0, 0);
 
-        this_layout->next_widget_cursor = vec2_zero();
+        this_layout->next_widget_cursor = this_layout->panel_position;
         for(UI_widget_t *child = root_widget->oldest_attached_widget;
             child;
             child = child->prev_attached_widget)
         {
-            child->panel_offset = this_layout->next_widget_cursor;
             dynamic_render_font_varient_t *child_font = s_asset_font_get_at_size(asset_manager, 
                                                                                  state->DEBUG_font,
                                                                                  child->font_size);
-            vec2_t child_panel_position = vec2_add(this_layout->panel_position, child->panel_offset);
-            child->panel_offset = {
-                child_panel_position.x + state->widget_padding_x,
-                child_panel_position.y + state->widget_padding_y
-            }; 
 
+            vec2_t child_panel_position = vec2_add(this_layout->panel_position, child->panel_offset);
             if((child->widget_flags & UIWF_DrawText) != 0)
             {
-                child->panel_size = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
+                child->string_size = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
+
+                child->panel_size.x = child->string_size.x + state->widget_padding_x * 2.0f;
+                child->panel_size.y = child->string_size.y + state->widget_padding_y * 2.0f;
             }
 
-            child->panel_size.x   += state->widget_padding_x;
-            child->panel_size.y   += state->widget_padding_y;
-            child->widget_rect     = rect2_create(child->panel_offset, child->panel_size);
-            child->string_offset   = {child->panel_offset.x + (child->panel_size.x * 0.20f) - (state->widget_padding_x * 0.5f), 
-                                      child->panel_offset.y + (child->panel_size.y * 0.25f)};
+            child->widget_rect = rect2_create(child_panel_position, child->panel_size);
+
+            child->string_offset = { 
+                child_panel_position.x + (child->panel_size.x - child->string_size.x) * 0.5f,
+                child_panel_position.y + (child->panel_size.y - child->string_size.y) * 0.5f
+            };
 
             root_widget->panel_size.y += child->panel_size.y + state->widget_padding_y;
             if(child->panel_size.x > root_widget->panel_size.x) 
             {
-                root_widget->panel_size.x = child->panel_size.x + state->widget_padding_x;
+                root_widget->panel_size.x = child->panel_size.x + (state->widget_padding_x * 2);
             }
-
-            this_layout->next_widget_cursor.y += child->panel_size.y + state->widget_padding_y;
         }
         root_widget->widget_rect = rect2_create(this_layout->panel_position, vec2_add(root_widget->panel_size, vec2(state->widget_padding_x, state->widget_padding_y)));
     }
@@ -142,10 +139,11 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 internal void
 ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget)
 {
+    vec2_t render_pos = widget->widget_rect.min;
     if((widget->widget_flags & UIWF_DrawInBackground) != 0)
     {
         r_begin_renderpass(render_state, &state->background_desc);
-        r_draw_rect(render_state, widget->panel_offset, widget->panel_size, widget->render_color, 0, RQO_NONE);
+        r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
         r_end_renderpass(render_state);
     }
 
@@ -170,7 +168,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     r_begin_renderpass(render_state, &state->widget_desc);
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
-        r_draw_rect(render_state, widget->panel_offset, widget->panel_size, widget->render_color, 0, RQO_NONE);
+        r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
     }
     r_end_renderpass(render_state);
 

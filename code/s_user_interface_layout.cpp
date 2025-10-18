@@ -66,7 +66,7 @@ ui_layout_end(UI_state_t *state)
 }
 
 internal UI_layout_t*
-ui_layout_create(UI_state_t *state, string_t layout_title, vec2_t position, u32 layout_flags)
+ui_layout_create(UI_state_t *state, string_t layout_title, vec2_t *position, u32 layout_flags)
 {
     UI_layout_t *result = null;
     for(UI_layout_t *this_layout = state->first_layout;
@@ -100,18 +100,17 @@ ui_layout_create(UI_state_t *state, string_t layout_title, vec2_t position, u32 
     state->active_layout         = result;
 
     result->active_parent_widget = null;
-    result->next_widget_cursor = vec2(position.x + state->widget_padding_x,
-                                      position.y + state->widget_padding_y);
+    result->next_widget_cursor = vec2(position->x + state->widget_padding_x,
+                                      position->y + state->widget_padding_y);
 
-    result->layout_pane           = ui_widget_titled_window(state, result, layout_title, position, layout_flags);
-    result->panel_position        = position;
-    result->active_parent_widget  = result->layout_pane;
+    result->layout_pane           =  ui_widget_titled_window(state, result, layout_title, position, layout_flags);
+    result->active_parent_widget  =  result->layout_pane;
 
     return(result);
 }
 
 internal UI_layout_t*
-ui_layout_begin_titled(UI_state_t *state, string_t title, vec2_t position, u32 layout_flags)
+ui_layout_begin_titled(UI_state_t *state, string_t title, vec2_t *position, u32 layout_flags)
 {
     UI_layout_t *result = ui_layout_create(state, title, position, layout_flags);
     return(result);
@@ -120,15 +119,16 @@ ui_layout_begin_titled(UI_state_t *state, string_t title, vec2_t position, u32 l
 // NOTE(Sleepster): Perhaps instead of getting the widget size and position data
 // when we go to process the layout data, we instead just compute the size of the widget on creation
 internal inline void
-ui_layout_row_push(UI_layout_t *layout)
+ui_layout_row_push(UI_state_t *state, UI_layout_t *layout)
 {
     layout->row_pushed = true;
     layout->this_row_y = layout->next_widget_cursor.y;
 }
 
 internal inline void
-ui_layout_row_pop(UI_layout_t *layout)
+ui_layout_row_pop(UI_state_t *state, UI_layout_t *layout)
 {
-    layout->row_pushed = true;
-    layout->next_widget_cursor.y += layout->last_widget_height + 4;
+    layout->row_pushed = false;
+    // NOTE(Sleepster): This '4.0f' is just there to solidify alignment
+    layout->next_widget_cursor.y -= layout->last_widget_height + (state->widget_padding_y * 4.0f);
 }
