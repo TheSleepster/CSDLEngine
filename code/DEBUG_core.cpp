@@ -782,8 +782,9 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
             ui_slider(&value, 1.0f, 0.0f);
         }
 #endif
-        local_persist bool8 test_var        = false;
-        local_persist vec2_t panel_position = {0, 0};
+        local_persist bool8   test_var        = false;
+        local_persist vec2_t  panel_position  = {0, 0};
+        local_persist float32 test_slider_val = 0.0f;
 
         ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
         UI_layout_t *this_layout = ui_layout_begin_titled(&DEBUG_global_state->UI_data, STR("Debug menu"), &panel_position, UILF_HasTitlebar|UILF_Movable|UILF_Closeable);
@@ -809,6 +810,8 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                 {
                     log_info("TestBox Works...\n");
                 }
+
+                ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("This is a test slider"), &test_slider_val, 0.0f, 100.0f);
             }
         }
         ui_layout_end(&DEBUG_global_state->UI_data);

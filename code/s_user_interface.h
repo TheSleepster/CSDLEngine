@@ -51,6 +51,27 @@ typedef enum UI_layout_flags
     UILF_Closeable   = (1 << 2),
 }UI_layout_flags_t;
 
+typedef enum UI_slider_value_type
+{
+    UISV_Integer32,
+    UISV_Integer64,
+    UISV_Float32,
+    UISV_Float64,
+}UI_slider_value_type_t;
+
+typedef struct UI_slider_value
+{
+    u32     value_type;
+    void   *value_ptr;
+
+    float64 float_min;
+    float64 float_max;
+
+    s64     integer_min;
+    s64     integer_max;
+}UI_slider_value_t;
+
+// TODO(Sleepster): Allow the user to control the widget depth
 typedef struct UI_widget
 {
     u32        ID;
@@ -233,6 +254,7 @@ internal inline UI_widget_t*    ui_widget_pane(UI_state_t *state, string_t name)
 internal inline UI_widget_t*    ui_widget_text(UI_state_t *state, string_t display_text);
 internal inline UI_widget_t*    ui_widget_rect(UI_state_t *state, vec2_t size, vec4_t color);
 internal        UI_widget_t*    ui_widget_titled_window(UI_state_t *state, UI_layout_t *layout, string_t title, vec2_t *position, u32 layout_flags);
+internal        void            ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_ptr, float32 min, float32 max);
 
 internal        void            ui_widget_do_interactable(UI_state_t *state, UI_widget_t *widget, UI_interaction_data_t *interaction_info);
 
