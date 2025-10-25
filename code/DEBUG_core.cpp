@@ -761,6 +761,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
 internal void
 DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
 {
+    asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     if(DEBUG_global_state->overlay_active)
     {
 #if 0
@@ -807,8 +808,6 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
 
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
         ui_render_all_widgets(render_state, asset_manager, &DEBUG_global_state->UI_data);
-
-        asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
 
         mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
         mat4_t font_view_matrix       = mat4_identity();

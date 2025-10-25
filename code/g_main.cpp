@@ -158,7 +158,7 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
 #ifdef INTERNAL_DEBUG
     DEBUG_TIMED_BLOCK();
 #endif
+    //r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
 
 
-    r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
 }

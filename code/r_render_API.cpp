@@ -230,32 +230,36 @@ internal vec2_t
 r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, string_t output)
 {
     DEBUG_TIMED_BLOCK();
-    vec2_t result = {0, (float32)varient->line_spacing};
-    for(u8 *p_character = output.data;
-        p_character < output.data + output.count;
-        p_character = unicode_next_character(p_character))
+    vec2_t result = {};
+    if(varient != null)
     {
-        if(*p_character == '\n')
+        result = {0, (float32)varient->line_spacing};
+        for(u8 *p_character = output.data;
+            p_character < output.data + output.count;
+            p_character = unicode_next_character(p_character))
         {
-            result.y += varient->line_spacing;
-        }
-
-        font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
-        result.x += glyph->glyph_render_size.x + glyph->advance;
-
-        if(glyph->owner_page->bitmap_dirty)
-        {
-            texture2D_t *texture = &glyph->owner_page->font_atlas;
-            if(texture->view->GPU_textureID == 0)
+            if(*p_character == '\n')
             {
-                r_texture_make_gpu(texture, texture->has_AA, texture->filter_type);
-            }
-            else
-            {
-                r_texture_update_from_bitmap(asset_manager, texture);
+                result.y += varient->line_spacing;
             }
 
-            glyph->owner_page->bitmap_dirty = false;
+            font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
+            result.x += glyph->glyph_render_size.x + glyph->advance;
+
+            if(glyph->owner_page->bitmap_dirty)
+            {
+                texture2D_t *texture = &glyph->owner_page->font_atlas;
+                if(texture->view->GPU_textureID == 0)
+                {
+                    r_texture_make_gpu(texture, texture->has_AA, texture->filter_type);
+                }
+                else
+                {
+                    r_texture_update_from_bitmap(asset_manager, texture);
+                }
+
+                glyph->owner_page->bitmap_dirty = false;
+            }
         }
     }
 
