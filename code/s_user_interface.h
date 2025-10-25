@@ -248,11 +248,11 @@ internal true_inline void       ui_widget_set_default_active_color(UI_state_t *s
 internal true_inline void       ui_widget_set_default_text_color(UI_state_t *state, vec4_t color);
 
 // I.M WIDGETS
-internal        bool8           ui_widget_labeled_button(UI_state_t *state, string_t name);
+internal        bool8           ui_widget_button(UI_state_t *state, string_t name, bool8 has_label);
 internal        bool8           ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *condition);
 internal inline UI_widget_t*    ui_widget_pane(UI_state_t *state, string_t name);
 internal inline UI_widget_t*    ui_widget_text(UI_state_t *state, string_t display_text);
-internal inline UI_widget_t*    ui_widget_rect(UI_state_t *state, vec2_t size, vec4_t color);
+internal inline UI_widget_t*    ui_widget_rect(UI_state_t *state, string_t hash_name, vec2_t size, vec4_t color);
 internal        UI_widget_t*    ui_widget_titled_window(UI_state_t *state, UI_layout_t *layout, string_t title, vec2_t *position, u32 layout_flags);
 internal        void            ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_ptr, float32 min, float32 max);
 

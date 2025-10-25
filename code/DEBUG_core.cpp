@@ -793,11 +793,11 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
             ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
             {
                 ui_widget_push_parent(this_layout, this_layout->layout_pane);
-                ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"));
-                ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"));
-                ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("Test Display ot Tesdt thisngs"));
-                ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("OTHER DISPLAY TO MAKE THINGS WORK"));
-                ui_widget_labeled_button(&DEBUG_global_state->UI_data, STR("other other display for the sake of working"));
+                ui_widget_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"), true);
+                ui_widget_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"), true);
+                ui_widget_button(&DEBUG_global_state->UI_data, STR("Test Display ot Tesdt thisngs"), true);
+                ui_widget_button(&DEBUG_global_state->UI_data, STR("OTHER DISPLAY TO MAKE THINGS WORK"), true);
+                ui_widget_button(&DEBUG_global_state->UI_data, STR("other other display for the sake of working"), true);
 
                 ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
                 ui_widget_text(&DEBUG_global_state->UI_data, STR("Test Text..."));
@@ -805,13 +805,13 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                 ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
 
                 ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
+                ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("This is a test slidernnnnnn"), &test_slider_val, 0.0f, 100.0f);
+
                 ui_widget_toggle_box(&DEBUG_global_state->UI_data, STR("This is a test box"), {20, 20}, &test_var);
                 if(test_var)
                 {
                     log_info("TestBox Works...\n");
                 }
-
-                ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("This is a test slider"), &test_slider_val, 0.0f, 100.0f);
             }
         }
         ui_layout_end(&DEBUG_global_state->UI_data);
