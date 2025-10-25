@@ -542,14 +542,16 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.4f, 0.4f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f},
         {1.0f, 0.0f, 1.0f, 1.0f}, {0.4f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.1f, 0.1f, 1.0f}
     };
-    const vec4_t background_color        = {0.03f, 0.03f, 0.03f, 0.99f};
-    const vec4_t text_color              = {1.0f, 1.0f, 1.0f, 1.0f};
-    const float32 lane_height_per_depth  = 20.0f;
-    const float32 lane_width             = 1920.0f;
-    const float32 min_bar_width_for_text = 50.0f;
-    const float32 label_size             = 12.0f;
-    const float32 tooltip_size           = 14.0f;
-    const u32 max_depth_limit            = 10;
+
+    // TODO(Sleepster): Maybe the compiler treats these differently if they're const... 
+    vec4_t background_color        = {0.03f, 0.03f, 0.03f, 0.99f};
+    vec4_t text_color              = {1.0f, 1.0f, 1.0f, 1.0f};
+    float32 lane_height_per_depth  = 20.0f;
+    float32 lane_width             = 1920.0f;
+    float32 min_bar_width_for_text = 50.0f;
+    float32 label_size             = 12.0f;
+    float32 tooltip_size           = 14.0f;
+    u32 max_depth_limit            = 10;
 
     u64 min_t = DEBUG_global_state->frame_markers[DEBUG_global_state->last_frame_index];
     u64 max_t = DEBUG_global_state->frame_markers[DEBUG_global_state->current_frame_index];
@@ -727,7 +729,6 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                      (unsigned long long)snapshot_data->hit_count,
                      (unsigned long long)(snapshot_data->cycle_count / snapshot_data->hit_count));
             
-            #if 0
             r_draw_string(asset_manager,
                           render_state,
                           STR(buffer),
@@ -736,7 +737,6 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           starting_pos,
                           vec4_create(1.0f),
                           RQO_NONE);
-            #endif
 
             starting_pos = vec2_add(starting_pos, vec2(0, -32));
         }
@@ -782,35 +782,24 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
             ui_slider(&value, 1.0f, 0.0f);
         }
 #endif
-        local_persist bool8   test_var        = false;
-        local_persist vec2_t  panel_position  = {0, 0};
-        local_persist float32 test_slider_val = 0.0f;
-
         ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
-        UI_layout_t *this_layout = ui_layout_begin_titled(&DEBUG_global_state->UI_data, STR("Debug menu"), &panel_position, UILF_HasTitlebar|UILF_Movable|UILF_Closeable);
+        UI_layout_t *this_layout = ui_layout_begin_titled(&DEBUG_global_state->UI_data, 
+                                                           STR("Debug menu"), 
+                                                          &DEBUG_global_state->DEBUG_panel_position, 
+                                                           UILF_HasTitlebar|UILF_Movable|UILF_Closeable);
         if(this_layout->layout_toggle)
         {
             ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
             {
                 ui_widget_push_parent(this_layout, this_layout->layout_pane);
-                ui_widget_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"), true);
-                ui_widget_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"), true);
-                ui_widget_button(&DEBUG_global_state->UI_data, STR("Test Display ot Tesdt thisngs"), true);
-                ui_widget_button(&DEBUG_global_state->UI_data, STR("OTHER DISPLAY TO MAKE THINGS WORK"), true);
-                ui_widget_button(&DEBUG_global_state->UI_data, STR("other other display for the sake of working"), true);
-
-                ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_WHITE);
-                ui_widget_text(&DEBUG_global_state->UI_data, STR("Test Text..."));
-                ui_widget_text(&DEBUG_global_state->UI_data, STR("This is a label test..."));
-                ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
-
-                ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
-                ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("This is a test slidernnnnnn"), &test_slider_val, 0.0f, 100.0f);
-
-                ui_widget_toggle_box(&DEBUG_global_state->UI_data, STR("This is a test box"), {20, 20}, &test_var);
-                if(test_var)
+                if(ui_widget_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"), true))
                 {
-                    log_info("TestBox Works...\n");
+                    DEBUG_global_state->display_cycle_counters = !DEBUG_global_state->display_cycle_counters;
+                }
+
+                if(ui_widget_button(&DEBUG_global_state->UI_data, STR("Display Debug Performance Chart"), true))
+                {
+                    DEBUG_global_state->display_call_graph = !DEBUG_global_state->display_call_graph;
                 }
             }
         }
@@ -832,7 +821,11 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                                                                        RGP_PostBlitPass,
                                                                        RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc);
-        vec2_t ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
+        vec2_t ending_pos = {-900, -400};
+        if(DEBUG_global_state->display_cycle_counters)
+        {
+            ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
+        }
         r_end_renderpass(render_state);
 
         r_set_active_blending_state(render_state, true);
@@ -847,16 +840,25 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                                                                                    RGP_PostBlitPass,
                                                                                    RGPT_Quads);
         r_begin_renderpass(render_state, &DEBUG_group_desc_transparent);
-        // r_draw_rect(render_state,
-        //             vec2(-960, -600),
-        //             vec2(1500, 2000),
-        //             vec4_create_float4(0.003f, 0.003f, 0.003f, 0.99f),
-        //             0,
-        //             RQO_NONE);
-
+        if(DEBUG_global_state->display_cycle_counters || DEBUG_global_state->display_call_graph)
+        {
+            r_draw_rect(render_state,
+                        vec2(-960, -600),
+                        vec2(1500, 2000),
+                        vec4(0.003f, 0.003f, 0.003f, 0.99f),
+                        0,
+                        RQO_NONE);
+        }
         r_end_renderpass(render_state);
 
-        DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
+        if(DEBUG_global_state->display_call_graph)
+        {
+            DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
+        }
+
         r_reset_draw_frame_pipeline_state(render_state);
     }
 }
+
+
+

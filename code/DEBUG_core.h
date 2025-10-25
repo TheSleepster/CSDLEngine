@@ -126,9 +126,14 @@ typedef struct DEBUG_state_data
     volatile u32        current_frame_index;
     volatile u32        last_frame_index;
 
+    vec2_t              DEBUG_panel_position;
+
     bool8               should_reload_dll;
     bool8               is_collecting;
     bool8               overlay_active;
+
+    bool8               display_cycle_counters;
+    bool8               display_call_graph;
 
     u32                 thread_count;
     DEBUG_thread_data_t threads[MAX_DEBUG_THREADS]; 
