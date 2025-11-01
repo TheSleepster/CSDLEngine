@@ -94,8 +94,10 @@
   ../code/c_hash_table.cpp ../code/s_multithreading_work_queue.cpp \
   ../code/s_asset_manager.cpp ../code/asset_builder/ab_packer_info.h \
   ../code/asset_builder/../s_asset_manager.h ../code/s_audio_manager.cpp \
-  ../code/s_input_manager.cpp ../code/s_user_interface.cpp \
-  ../code/at_atlas_handler.cpp ../code/a_asset_loaded_sound.cpp \
-  ../code/r_asset_shader.cpp ../code/r_asset_texture.cpp \
-  ../code/r_asset_dynamic_render_font.cpp ../code/r_render_API.cpp \
-  ../code/r_opengl.cpp ../code/g_main.cpp
+  ../code/s_input_manager.cpp ../code/s_user_interface_core.cpp \
+  ../code/s_user_interface_layout.cpp \
+  ../code/s_user_interface_widget.cpp ../code/at_atlas_handler.cpp \
+  ../code/a_asset_loaded_sound.cpp ../code/r_asset_shader.cpp \
+  ../code/r_asset_texture.cpp ../code/r_asset_dynamic_render_font.cpp \
+  ../code/r_render_API.cpp ../code/r_opengl.cpp ../code/g_main.cpp \
+  ../code/g_test.cpp

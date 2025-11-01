@@ -290,13 +290,18 @@ os_file_read(file_t *file_data, void *memory, u32 file_offset, u32 bytes_to_read
     bool8 result = false;
 
     usize bytes_read = 0; 
-    if(lseek(file_data->handle, file_offset, SEEK_SET) != -1)
+    if(file_offset != 0)
     {
-        bytes_read = read(file_data->handle, memory, bytes_to_read);
-        if(bytes_read  == bytes_to_read)
+        if(lseek(file_data->handle, file_offset, SEEK_SET) == -1)
         {
-            result = true;
+            log_error("Failure to set the file pointer...\n");
         }
+    }
+
+    bytes_read = read(file_data->handle, memory, bytes_to_read);
+    if(bytes_read  == bytes_to_read)
+    {
+        result = true;
     }
 
     if(bytes_read == 0)

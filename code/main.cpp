@@ -8,13 +8,13 @@
 #include "r_opengl.cpp"
 
 #if DEVELOPER_BUILD
-    #define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) game_functions.update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
+    #define game_update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state) game_functions.update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state)
     GAME_UPDATE_AND_RENDER(g_update_and_render_stub)
     {
     }
 #else
     #include "g_main.cpp"
-    #define game_update_and_render(context, render_state, audio_manager, asset_manager, delta_time) g_update_and_render(context, render_state, audio_manager, asset_manager, DEBUG_global_state, delta_time)
+    #define game_update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state) g_update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state)
 #endif
 
 struct game_dll_data_t
@@ -260,7 +260,7 @@ main(int argc, char **argv)
             c_file_watcher_process_changes(&watcher);
 
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
-            game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, delta_time);
+            game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, &input_manager, delta_time, DEBUG_global_state);
             DEBUG_render_group_to_output(controller, &asset_manager, &render_state, frame_time_in_ms);
 
             r_render_single_frame(&asset_manager, &render_state);

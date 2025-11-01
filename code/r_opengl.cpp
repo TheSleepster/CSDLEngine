@@ -596,6 +596,8 @@ internal void
 r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 {
     render_state->draw_frame_arena = c_arena_create(MB(100));
+    render_state->renderer_arena   = c_arena_create(MB(100));
+
     Assert(render_state->draw_frame_arena.base != null);
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
@@ -623,7 +625,6 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
     u32 index_buffer[MAX_INDICES];
     u32 index_offset = 0;
-
     for(u32 index = 0;
         index < MAX_INDICES;
         index += 6)
@@ -980,7 +981,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     }
 
     // NOTE(Sleepster): PRE BLIT RENDERING
-    draw_frame_t *draw_frame = &render_state->draw_frame;
     {
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
         glViewport(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height);
@@ -993,24 +993,24 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         r_handle_renderpass_data(asset_manager, render_state);
         glBindVertexArray(render_state->primary_vao_id);
 
-        if(draw_frame->preblit_pass_data.opaque_render_group_counter > 0)
+        if(render_state->preblit_pass_data.opaque_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < draw_frame->preblit_pass_data.opaque_render_group_counter;
+                group_index < render_state->preblit_pass_data.opaque_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = draw_frame->preblit_pass_data.opaque_render_groups[group_index];
+                render_group_t *group = render_state->preblit_pass_data.opaque_render_groups[group_index];
                 r_issue_render_group_draw(render_state, group);
             }
         }
 
-        if(draw_frame->preblit_pass_data.transparent_render_group_counter > 0)
+        if(render_state->preblit_pass_data.transparent_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < draw_frame->preblit_pass_data.transparent_render_group_counter;
+                group_index < render_state->preblit_pass_data.transparent_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = draw_frame->preblit_pass_data.transparent_render_groups[group_index];
+                render_group_t *group = render_state->preblit_pass_data.transparent_render_groups[group_index];
                 r_issue_render_group_draw(render_state, group);
             }
         }
@@ -1030,24 +1030,24 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     // NOTE(Sleepster): POST BLIT RENDERING 
     {
         glViewport(0, 0, 1920, 1080);
-        if(draw_frame->postblit_pass_data.opaque_render_group_counter > 0)
+        if(render_state->postblit_pass_data.opaque_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < draw_frame->postblit_pass_data.opaque_render_group_counter;
+                group_index < render_state->postblit_pass_data.opaque_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = draw_frame->postblit_pass_data.opaque_render_groups[group_index];
+                render_group_t *group = render_state->postblit_pass_data.opaque_render_groups[group_index];
                 r_issue_render_group_draw(render_state, group);
             }
         }
 
-        if(draw_frame->postblit_pass_data.transparent_render_group_counter > 0)
+        if(render_state->postblit_pass_data.transparent_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < draw_frame->postblit_pass_data.transparent_render_group_counter;
+                group_index < render_state->postblit_pass_data.transparent_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = draw_frame->postblit_pass_data.transparent_render_groups[group_index];
+                render_group_t *group = render_state->postblit_pass_data.transparent_render_groups[group_index];
                 r_issue_render_group_draw(render_state, group);
             }
         }

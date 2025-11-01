@@ -527,7 +527,7 @@ internal inline float32
 vec2_length(vec2_t A)
 {
     float32 result = 0.0f;
-    result = sqrt(Square(A.x) * Square(A.y));
+    result = sqrtf(Square(A.x) + Square(A.y));
 
     return(result);
 }
@@ -536,7 +536,7 @@ internal inline float32
 vec2_length_squared(vec2_t A)
 {
     float32 result = 0.0f;
-    result = Square(A.x) * Square(A.y);
+    result = Square(A.x) + Square(A.y);
 
     return(result);
 }
@@ -544,11 +544,14 @@ vec2_length_squared(vec2_t A)
 internal inline vec2_t
 vec2_normalize(vec2_t A)
 {
-    vec2_t result;
-    float32 magnitude = vec2_length(A);
+    vec2_t result = {};
 
-    result.x = A.x / magnitude;
-    result.y = A.y / magnitude;
+    float32 magnitude = vec2_length(A);
+    if(magnitude > 0.0f)
+    {
+        result.x = A.x / magnitude;
+        result.y = A.y / magnitude;
+    }
 
     return(result);
 }

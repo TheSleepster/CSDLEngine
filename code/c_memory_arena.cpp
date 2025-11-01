@@ -125,7 +125,7 @@ c_end_scratch_arena(scratch_arena_t *scratch_arena)
         c_arena_free_last_block(parent);
     }
     Assert(parent->used >= scratch_arena->used);
-    
+
     parent->used = scratch_arena->used;
     parent->base = scratch_arena->base;
 
@@ -145,11 +145,11 @@ internal inline void
 c_arena_reset(memory_arena_t *arena)
 {
     DEBUG_TIMED_BLOCK();
-
     while(arena->block_counter > 1)
     {
         c_arena_free_last_block(arena);
     }
+    Assert(arena->base);
 
     memset(arena->base, 0, arena->used);
     arena->used = 0;

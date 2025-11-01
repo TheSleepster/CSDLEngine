@@ -563,17 +563,23 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
     return(result);
 }
 
+// TODO(Sleepster): I'm a lazy fuck. Fix this so that it is r_get_or_create_renderpass()
 internal render_group_t* 
 r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc)
 {
     DEBUG_TIMED_BLOCK();
     if(!render_state->draw_frame.is_initialized)
     {
-        render_state->draw_frame.preblit_pass_data.opaque_render_groups       = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
-        render_state->draw_frame.preblit_pass_data.transparent_render_groups  = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+        if(!render_state->render_phase_initialized)
+        {
+            render_state->preblit_pass_data.opaque_render_groups       = (render_group_t **)c_arena_push_size(&render_state->renderer_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+            render_state->preblit_pass_data.transparent_render_groups  = (render_group_t **)c_arena_push_size(&render_state->renderer_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
 
-        render_state->draw_frame.postblit_pass_data.opaque_render_groups      = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
-        render_state->draw_frame.postblit_pass_data.transparent_render_groups = (render_group_t **)c_arena_push_size(&render_state->draw_frame_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+            render_state->postblit_pass_data.opaque_render_groups      = (render_group_t **)c_arena_push_size(&render_state->renderer_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+            render_state->postblit_pass_data.transparent_render_groups = (render_group_t **)c_arena_push_size(&render_state->renderer_arena, sizeof(render_group_t*) * MAX_RENDER_GROUPS);
+
+            render_state->render_phase_initialized = true;
+        }
 
         render_state->draw_frame.is_initialized   = true;
     }
@@ -585,8 +591,8 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
     render_phase_data_t *render_phase_data = null;
     switch(render_pass_desc->desired_phase)
     {
-        case RGP_MainGamePass: render_phase_data = &render_state->draw_frame.preblit_pass_data;  break;
-        case RGP_PostBlitPass: render_phase_data = &render_state->draw_frame.postblit_pass_data; break;
+        case RGP_MainGamePass: render_phase_data = &render_state->preblit_pass_data;  break;
+        case RGP_PostBlitPass: render_phase_data = &render_state->postblit_pass_data; break;
         default: InvalidCodePath; break;
     }
     Assert(render_phase_data);
@@ -623,10 +629,10 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
 
     if(!active_group)
     {
-        active_group = c_arena_push_struct(&render_state->draw_frame_arena, render_group_t);
+        active_group = c_arena_push_struct(&render_state->renderer_arena, render_group_t);
         active_group->render_desc   = *render_pass_desc;
-        active_group->quad_buffer   = c_arena_push_array(&render_state->draw_frame_arena, render_quad_t, MAX_QUADS);
-        active_group->vertex_buffer = c_arena_push_array(&render_state->draw_frame_arena, vertex_t,      MAX_VERTICES);
+        active_group->quad_buffer   = c_arena_push_array(&render_state->renderer_arena, render_quad_t, MAX_QUADS);
+        active_group->vertex_buffer = c_arena_push_array(&render_state->renderer_arena, vertex_t,      MAX_VERTICES);
         Assert(active_group != null);
 
         render_group_array[render_group_count] = active_group;
@@ -638,6 +644,12 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
     Assert(render_state->draw_frame.active_render_group != null);
 
     return(render_state->draw_frame.active_render_group);
+}
+
+internal inline void
+r_begin_renderpass(render_state_t *render_state, render_group_t *group)
+{
+    render_state->draw_frame.active_render_group = group;
 }
 
 internal inline void
@@ -703,17 +715,16 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
     DEBUG_TIMED_BLOCK();
     // TODO(Sleepster): Is this really where we want this too live?
     at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
-    draw_frame_t *draw_frame = &render_state->draw_frame;
-    
+
     // NOTE(Sleepster): PREBLIT GROUP SETUP 
     {
-        if(draw_frame->preblit_pass_data.opaque_render_group_counter > 0)
+        if(render_state->preblit_pass_data.opaque_render_group_counter > 0)
         {
             for(u32 render_group_idx = 0;
-                render_group_idx < draw_frame->preblit_pass_data.opaque_render_group_counter;
+                render_group_idx < render_state->preblit_pass_data.opaque_render_group_counter;
                 ++render_group_idx)
             {
-                render_group_t *render_group = (render_group_t*)draw_frame->preblit_pass_data.opaque_render_groups[render_group_idx];
+                render_group_t *render_group = (render_group_t*)render_state->preblit_pass_data.opaque_render_groups[render_group_idx];
                 // s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                 //                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                 //                        (void*)render_group);
@@ -722,22 +733,22 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
             }
         }
 
-        if(draw_frame->preblit_pass_data.transparent_render_group_counter > 0)
+        if(render_state->preblit_pass_data.transparent_render_group_counter > 0)
         {
             render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
                                                                       render_group_t*,
-                                                                      draw_frame->preblit_pass_data.transparent_render_group_counter);
-            c_radix_sort(draw_frame->preblit_pass_data.transparent_render_groups,
+                                                                      render_state->preblit_pass_data.transparent_render_group_counter);
+            c_radix_sort(render_state->preblit_pass_data.transparent_render_groups,
                          sorted_layer_buffer,
-                         draw_frame->preblit_pass_data.transparent_render_group_counter,
+                         render_state->preblit_pass_data.transparent_render_group_counter,
                          sizeof(render_group_t*),
                          IntFromPtr(OffsetOf(render_group_t, render_desc.render_layer)),
                          8);
             for(u32 render_group_idx = 0;
-                render_group_idx < draw_frame->preblit_pass_data.transparent_render_group_counter;
+                render_group_idx < render_state->preblit_pass_data.transparent_render_group_counter;
                 ++render_group_idx)
             {
-                render_group_t  *render_group = (render_group_t*)draw_frame->preblit_pass_data.transparent_render_groups[render_group_idx];
+                render_group_t  *render_group = (render_group_t*)render_state->preblit_pass_data.transparent_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);
@@ -749,13 +760,13 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
 
     // NOTE(Sleepster): POSTBLIT GROUP SETUP 
     {
-        if(draw_frame->postblit_pass_data.opaque_render_group_counter > 0)
+        if(render_state->postblit_pass_data.opaque_render_group_counter > 0)
         {
             for(u32 render_group_idx = 0;
-                render_group_idx < draw_frame->postblit_pass_data.opaque_render_group_counter;
+                render_group_idx < render_state->postblit_pass_data.opaque_render_group_counter;
                 ++render_group_idx)
             {
-                render_group_t *render_group = (render_group_t*)draw_frame->postblit_pass_data.opaque_render_groups[render_group_idx];
+                render_group_t *render_group = (render_group_t*)render_state->postblit_pass_data.opaque_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);
@@ -764,22 +775,22 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
             }
         }
 
-        if(draw_frame->postblit_pass_data.transparent_render_group_counter > 0)
+        if(render_state->postblit_pass_data.transparent_render_group_counter > 0)
         {
             render_group_t **sorted_layer_buffer = c_arena_push_array(&render_state->draw_frame_arena,
                                                                       render_group_t*,
-                                                                      draw_frame->postblit_pass_data.transparent_render_group_counter);
-            c_radix_sort(draw_frame->postblit_pass_data.transparent_render_groups,
+                                                                      render_state->postblit_pass_data.transparent_render_group_counter);
+            c_radix_sort(render_state->postblit_pass_data.transparent_render_groups,
                          sorted_layer_buffer,
-                         draw_frame->postblit_pass_data.transparent_render_group_counter,
+                         render_state->postblit_pass_data.transparent_render_group_counter,
                          sizeof(render_group_t*),
                          IntFromPtr(OffsetOf(render_group_t, render_desc.render_layer)),
                          8);
             for(u32 render_group_idx = 0;
-                render_group_idx < draw_frame->postblit_pass_data.transparent_render_group_counter;
+                render_group_idx < render_state->postblit_pass_data.transparent_render_group_counter;
                 ++render_group_idx)
             {
-                render_group_t  *render_group = (render_group_t*)draw_frame->postblit_pass_data.transparent_render_groups[render_group_idx];
+                render_group_t  *render_group = (render_group_t*)render_state->postblit_pass_data.transparent_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
                                        (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
                                        (void*)render_group);

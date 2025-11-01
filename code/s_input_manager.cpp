@@ -83,7 +83,7 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
 
             action_button_t *action_key = controller->keyboard.input + key_index;
             action_key->is_pressed      = (event->key.down && !event->key.repeat);
-            action_key->is_down         = (event->key.down &&  event->key.repeat);
+            action_key->is_down         =  event->key.down;
             action_key->is_released     = (event->key.down == false);
 
             controller->keyboard.is_shift_key_down   = (event->key.mod & SDL_KMOD_SHIFT) != 0;
@@ -169,9 +169,9 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
                         ++key_index)
                     {
                         action_button_t *button = controller->keyboard.input + key_index;
-                        button->is_released             = false;
-                        button->is_pressed              = false;
                         button->half_transition_counter = 0;
+                        button->is_pressed  = false;
+                        button->is_released = false;
                     }
                 }break;
                 case IM_CONTROLLER_GAMEPAD:
@@ -181,9 +181,9 @@ s_input_manager_reset_controller_states(input_manager_t *input_manager)
                         ++button_index)
                     {
                         action_button *button = controller->gamepad.digital_buttons + button_index;
-                        button->is_released             = false;
-                        button->is_pressed              = false;
                         button->half_transition_counter = 0;
+                        button->is_pressed  = false;
+                        button->is_released = false;
                     }
 
                     for(u32 analog_button_index = 0;
@@ -391,7 +391,7 @@ s_input_manager_is_gamepad_button_down(input_controller_t *controller, s32 butto
 
     action_button_t *button = controller->gamepad.digital_buttons + button_index;
 
-    result = button->is_down;
+    result = (button->is_down || button->is_pressed);
     return(result);
 }
 
