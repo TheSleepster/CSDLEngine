@@ -948,6 +948,9 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
             }break;
             default: {InvalidCodePath;}break;
         }
+
+        group->vertex_count = 0;
+        group->quad_count   = 0;
     }
 }
 
