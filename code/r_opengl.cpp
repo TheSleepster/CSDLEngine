@@ -993,7 +993,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-        r_handle_renderpass_data(asset_manager, render_state);
+        r_renderpass_handle_data(asset_manager, render_state);
         glBindVertexArray(render_state->primary_vao_id);
 
         if(render_state->preblit_pass_data.opaque_render_group_counter > 0)

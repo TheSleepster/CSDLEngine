@@ -470,6 +470,8 @@ r_set_active_depth_state(render_state_t *render_state, bool32 depth_test, bool32
 internal void
 r_reset_draw_frame_pipeline_state(render_state_t *render_state)
 {
+    DEBUG_TIMED_BLOCK();
+
     draw_frame_t *draw_frame = &render_state->draw_frame;
     draw_frame->active_src_color_blend_mode = RGBM_One;
     draw_frame->active_dst_color_blend_mode = RGBM_Zero;
@@ -490,15 +492,15 @@ r_reset_draw_frame_pipeline_state(render_state_t *render_state)
 
 
 internal inline render_group_desc_t
-r_build_renderpass_desc(render_state_t                   *render_state,
-                        GPU_shader_t                     *desired_shader,
-                        u32                               render_layer,
-                        mat4_t                            view_matrix,
-                        mat4_t                            projection_matrix,
-                        render_group_effects_t            render_effects,
-                        render_group_desired_render_phase render_phase,
-                        render_group_primitive_type_t     primitive_type,
-                        render_group_pipeline_state_t    *pipeline_state_in)
+r_renderpass_build_pass_desc(render_state_t                   *render_state,
+                             GPU_shader_t                     *desired_shader,
+                             u32                               render_layer,
+                             mat4_t                            view_matrix,
+                             mat4_t                            projection_matrix,
+                             render_group_effects_t            render_effects,
+                             render_group_desired_render_phase render_phase,
+                             render_group_primitive_type_t     primitive_type,
+                             render_group_pipeline_state_t    *pipeline_state_in)
 {
     DEBUG_TIMED_BLOCK();
     Assert(render_layer <= MAX_RENDER_LAYERS);
@@ -563,11 +565,11 @@ r_get_renderpass_desc_id(render_group_desc_t *render_pass_desc)
     return(result);
 }
 
-// TODO(Sleepster): I'm a lazy fuck. Fix this so that it is r_get_or_create_renderpass()
 internal render_group_t* 
-r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pass_desc)
+r_renderpass_get_or_create(render_state_t *render_state, render_group_desc_t *render_pass_desc)
 {
     DEBUG_TIMED_BLOCK();
+
     if(!render_state->draw_frame.is_initialized)
     {
         if(!render_state->render_phase_initialized)
@@ -647,22 +649,27 @@ r_begin_renderpass(render_state_t *render_state, render_group_desc_t *render_pas
 }
 
 internal inline void
-r_begin_renderpass(render_state_t *render_state, render_group_t *group)
+r_renderpass_begin(render_state_t *render_state, render_group_t *group)
 {
+    DEBUG_TIMED_BLOCK();
+
     render_state->draw_frame.active_render_group = group;
 }
 
 internal inline void
-r_end_renderpass(render_state_t *render_state)
+r_renderpass_end(render_state_t *render_state)
 {
+    DEBUG_TIMED_BLOCK();
+
     Assert(render_state->draw_frame.active_render_group != null);
     render_state->draw_frame.active_render_group = null;
 }
 
 internal void
-r_fill_render_group_vertex_buffer(render_group_t *render_group)
+r_render_group_fill_vertex_buffer(render_group_t *render_group)
 {
     DEBUG_TIMED_BLOCK();
+
     switch(render_group->render_desc.primitive_type)
     {
         case RGPT_Quads:
@@ -710,9 +717,10 @@ r_fill_render_group_vertex_buffer(render_group_t *render_group)
 }
 
 internal void
-r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_state)
+r_renderpass_handle_data(asset_manager_t *asset_manager, render_state_t *render_state)
 {
     DEBUG_TIMED_BLOCK();
+
     // TODO(Sleepster): Is this really where we want this too live?
     at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
 
@@ -726,7 +734,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
             {
                 render_group_t *render_group = (render_group_t*)render_state->preblit_pass_data.opaque_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (work_queue_callback_t*)r_render_group_fill_vertex_buffer, 
                                        (void*)render_group);
 
                 //r_fill_render_group_vertex_buffer(render_group);
@@ -750,7 +758,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
             {
                 render_group_t  *render_group = (render_group_t*)render_state->preblit_pass_data.transparent_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (work_queue_callback_t*)r_render_group_fill_vertex_buffer, 
                                        (void*)render_group);
 
                 //r_fill_render_group_vertex_buffer(render_group);
@@ -768,7 +776,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
             {
                 render_group_t *render_group = (render_group_t*)render_state->postblit_pass_data.opaque_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (work_queue_callback_t*)r_render_group_fill_vertex_buffer, 
                                        (void*)render_group);
 
                 //r_fill_render_group_vertex_buffer(render_group);
@@ -792,7 +800,7 @@ r_handle_renderpass_data(asset_manager_t *asset_manager, render_state_t *render_
             {
                 render_group_t  *render_group = (render_group_t*)render_state->postblit_pass_data.transparent_render_groups[render_group_idx];
                 s_work_queue_add_entry(&asset_manager->queue_manager->high_priority_queue, 
-                                       (work_queue_callback_t*)r_fill_render_group_vertex_buffer, 
+                                       (work_queue_callback_t*)r_render_group_fill_vertex_buffer, 
                                        (void*)render_group);
 
                 //r_fill_render_group_vertex_buffer(render_group);

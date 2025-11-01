@@ -53,33 +53,37 @@ ui_init_state(render_state_t  *render_state,
 
     r_reset_draw_frame_pipeline_state(render_state);
     r_set_active_blending_state(render_state, false);
-    state->widget_desc = r_build_renderpass_desc(render_state,
-                                                &render_state->font_shader,
-                                                 1,
-                                                 font_view_matrix,
-                                                 font_projection_matrix,
-                                                 RGE_None,
-                                                 RGP_PostBlitPass,
-                                                 RGPT_Quads);
+    state->widget_desc = r_renderpass_build_pass_desc(render_state,
+                                                      &render_state->font_shader,
+                                                      1,
+                                                      font_view_matrix,
+                                                      font_projection_matrix,
+                                                      RGE_None,
+                                                      RGP_PostBlitPass,
+                                                      RGPT_Quads);
 
-    state->text_desc = r_build_renderpass_desc(render_state,
-                                               &render_state->font_shader,
-                                               0,
-                                               font_view_matrix,
-                                               font_projection_matrix,
-                                               RGE_None,
-                                               RGP_PostBlitPass,
-                                               RGPT_Quads);
-
-    state->background_desc = r_build_renderpass_desc(render_state,
+    state->text_desc = r_renderpass_build_pass_desc(render_state,
                                                     &render_state->font_shader,
-                                                     2,
-                                                     font_view_matrix,
-                                                     font_projection_matrix,
-                                                     RGE_None,
-                                                     RGP_PostBlitPass,
-                                                     RGPT_Quads);
+                                                    0,
+                                                    font_view_matrix,
+                                                    font_projection_matrix,
+                                                    RGE_None,
+                                                    RGP_PostBlitPass,
+                                                    RGPT_Quads);
+
+    state->background_desc = r_renderpass_build_pass_desc(render_state,
+                                                          &render_state->font_shader,
+                                                          2,
+                                                          font_view_matrix,
+                                                          font_projection_matrix,
+                                                          RGE_None,
+                                                          RGP_PostBlitPass,
+                                                          RGPT_Quads);
     r_reset_draw_frame_pipeline_state(render_state);
+
+    state->background_layer = r_renderpass_get_or_create(render_state, &state->background_desc);
+    state->widget_layer     = r_renderpass_get_or_create(render_state, &state->widget_desc);
+    state->text_layer       = r_renderpass_get_or_create(render_state, &state->text_desc);
 
     state->DEBUG_font = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     state->is_valid   = true;
@@ -142,9 +146,9 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     vec2_t render_pos = widget->widget_rect.min;
     if((widget->widget_flags & UIWF_DrawInBackground) != 0)
     {
-        r_begin_renderpass(render_state, &state->background_desc);
+        r_renderpass_begin(render_state, state->background_layer);
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
-        r_end_renderpass(render_state);
+        r_renderpass_end(render_state);
     }
 
     if((widget->widget_flags & UIWF_HotAnimation) != 0)
@@ -165,14 +169,14 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     {
     }
 
-    r_begin_renderpass(render_state, &state->widget_desc);
+    r_renderpass_begin(render_state, state->widget_layer);
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
     }
-    r_end_renderpass(render_state);
+    r_renderpass_end(render_state);
 
-    r_begin_renderpass(render_state, &state->text_desc);
+    r_renderpass_begin(render_state, state->text_layer);
     if((widget->widget_flags & UIWF_DrawText) != 0)
     {
         r_draw_string(asset_manager, 
@@ -184,7 +188,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
                       widget->font_color,
                       RQO_NONE);
     }
-    r_end_renderpass(render_state);
+    r_renderpass_end(render_state);
 
     // NOTE(Sleepster): recurse for children 
     for(UI_widget_t *child = widget->oldest_attached_widget;

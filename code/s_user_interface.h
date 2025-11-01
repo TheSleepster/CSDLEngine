@@ -201,6 +201,10 @@ typedef struct UI_state
     render_group_desc_t   background_desc;
     render_group_desc_t   widget_desc;
     render_group_desc_t   text_desc;
+
+    render_group_t       *background_layer;
+    render_group_t       *widget_layer;
+    render_group_t       *text_layer;
 }UI_state_t;
 
 /*===========================================

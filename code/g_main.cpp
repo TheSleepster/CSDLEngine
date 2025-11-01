@@ -37,14 +37,14 @@ initialize_gamestate(render_state_t *render_state, input_manager_t *input_manage
 
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();
-    render_group_desc_t test_group_desc = r_build_renderpass_desc(render_state,
-                                                                  &render_state->test_shader,
-                                                                  16,
-                                                                  view_matrix,
-                                                                  projection_matrix,
-                                                                  RGE_None);
-    global_game_state.entity_group = r_begin_renderpass(render_state, &test_group_desc);
-    r_end_renderpass(render_state);
+    render_group_desc_t test_group_desc = r_renderpass_build_pass_desc(render_state,
+                                                                      &render_state->test_shader,
+                                                                       16,
+                                                                       view_matrix,
+                                                                       projection_matrix,
+                                                                       RGE_None);
+    global_game_state.entity_group = r_renderpass_get_or_create(render_state, &test_group_desc);
+    r_renderpass_end(render_state);
     log_info("Input Manager is size: '%d'\n", sizeof(input_manager_t));
 }
 
@@ -62,6 +62,7 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
     DEBUG_TIMED_BLOCK();
 #endif
     //r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
+    
     if(!global_game_state.is_initialized) 
     {
         initialize_gamestate(render_state, input_manager);
@@ -90,7 +91,7 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
     float32 speed = 250.0f;
     global_game_state.player_pos = vec2_add(global_game_state.player_pos, vec2(input_axis.x * (speed * delta_time), input_axis.y * (speed * delta_time)));
 
-    r_begin_renderpass(render_state, global_game_state.entity_group);
+    r_renderpass_begin(render_state, global_game_state.entity_group);
     r_draw_rect(render_state, global_game_state.player_pos, {10, 10}, COLOR_WHITE, 0.0, RQO_NONE);
-    r_end_renderpass(render_state);
+    r_renderpass_end(render_state);
 }

@@ -26,6 +26,47 @@ DEBUG_create_debug_state(render_state_t  *render_state,
     DEBUG_global_state->next_debug_event_index = 0;
     DEBUG_global_state->UI_data                = {};
     //ui_init_state(render_state, input_manager, asset_manager, &DEBUG_global_state->UI_data);
+    
+    mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
+    mat4_t font_view_matrix = mat4_identity();
+
+    r_reset_draw_frame_pipeline_state(render_state);
+    render_group_desc_t DEBUG_background_desc = r_renderpass_build_pass_desc(render_state,
+                                                                            &render_state->font_shader,
+                                                                             1,
+                                                                             font_view_matrix,
+                                                                             font_projection_matrix,
+                                                                             RGE_None,
+                                                                             RGP_PostBlitPass,
+                                                                             RGPT_Quads);
+    DEBUG_global_state->background_render_group = r_renderpass_get_or_create(render_state, &DEBUG_background_desc);
+
+    DEBUG_global_state->label_render_group = DEBUG_global_state->background_render_group;
+    DEBUG_global_state->label_render_group->render_desc.render_layer = 4;
+
+    render_group_desc_t DEBUG_group_desc_opaque = r_renderpass_build_pass_desc(render_state,
+                                                                              &render_state->font_shader,
+                                                                               1,
+                                                                               font_view_matrix,
+                                                                               font_projection_matrix,
+                                                                               RGE_None,
+                                                                               RGP_PostBlitPass,
+                                                                               RGPT_Quads);
+    DEBUG_global_state->opaque_group = r_renderpass_get_or_create(render_state, &DEBUG_group_desc_opaque);
+
+    r_set_active_blending_state(render_state, true);
+    r_set_active_depth_state(render_state, true, false);
+    r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
+    render_group_desc_t DEBUG_group_desc_transparent = r_renderpass_build_pass_desc(render_state,
+                                                                                   &render_state->font_shader,
+                                                                                    6,
+                                                                                    font_view_matrix,
+                                                                                    font_projection_matrix,
+                                                                                    RGE_None,
+                                                                                    RGP_PostBlitPass,
+                                                                                    RGPT_Quads);
+    DEBUG_global_state->transparent_group = r_renderpass_get_or_create(render_state, &DEBUG_group_desc_transparent);
+    r_reset_draw_frame_pipeline_state(render_state);
 }
 
 internal true_inline void
@@ -523,19 +564,6 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                            vec2_t             starting_pos,
                            input_controller_t *controller)
 {
-    mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
-    mat4_t font_view_matrix = mat4_identity();
-    render_group_desc_t background_layer = r_build_renderpass_desc(render_state,
-                                                                   &render_state->font_shader,
-                                                                   1,
-                                                                   font_view_matrix,
-                                                                   font_projection_matrix,
-                                                                   RGE_None,
-                                                                   RGP_PostBlitPass,
-                                                                   RGPT_Quads);
-    render_group_desc_t label_layer = background_layer;
-    label_layer.render_layer = 4;
-
     const vec4_t colors[] =
     {
         {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
@@ -571,7 +599,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         float32 lane_height  = (float32)depth_to_advance * lane_height_per_depth; 
 
         // NOTE(Sleepster): Thread label
-        r_begin_renderpass(render_state, &background_layer);
+        r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
 
         char label[256];
         snprintf(label, 
@@ -582,7 +610,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                  (unsigned long long)thread_root->region_cycle_count);
         r_draw_string(asset_manager, render_state, STR(label), font_handle, 16, current_pos, text_color, RQO_NONE);
 
-        r_end_renderpass(render_state);
+        r_renderpass_end(render_state);
 
         current_pos.y += 20.0f;
 
@@ -607,7 +635,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 float32 height = lane_height_per_depth;
 
                 // NOTE(Sleepster): Draw scope bar
-                r_begin_renderpass(render_state, &background_layer);
+                r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
                 u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
                 r_draw_rect(render_state,
                             vec2(x, y),
@@ -638,14 +666,17 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                                       RQO_NONE);
                     }
                 }
-                r_end_renderpass(render_state);
+                r_renderpass_end(render_state);
+
+                mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
+                mat4_t font_view_matrix = mat4_identity();
 
                 // NOTE(Sleepster): Tooltip
                 vec2_t mouse = s_input_manager_transform_mouse_data(controller, font_view_matrix, font_projection_matrix);
                 rectangle2_t bar_rect = rect2_create(vec2(x, y), vec2(width, height));
                 if(rect2_vec2_test(bar_rect, mouse))
                 {
-                    r_begin_renderpass(render_state, &background_layer);
+                    r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
                     DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;
                     char buffer[4096];
                     snprintf(buffer,
@@ -659,9 +690,9 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                              region->region_thread_index);
                     vec2_t tooltip_pos = vec2_add(mouse, vec2(10.0f, -20.0f));
                     r_draw_rect(render_state, vec2_subtract(tooltip_pos, {0.0f, 50.0f}), vec2(500.0f, 100.0f), background_color, 0, RQO_NONE);
-                    r_end_renderpass(render_state);
+                    r_renderpass_end(render_state);
 
-                    r_begin_renderpass(render_state, &label_layer);
+                    r_renderpass_begin(render_state, DEBUG_global_state->label_render_group);
                     r_draw_string(asset_manager,
                                   render_state,
                                   STR(buffer),
@@ -670,7 +701,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                                   vec2_add(tooltip_pos, vec2(5.0f, 5.0f)),
                                   text_color,
                                   RQO_NONE);
-                    r_end_renderpass(render_state);
+                    r_renderpass_end(render_state);
                 }
             }
 
@@ -809,36 +840,15 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
         ui_render_all_widgets(render_state, asset_manager, &DEBUG_global_state->UI_data);
 
-        mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
-        mat4_t font_view_matrix       = mat4_identity();
-        render_group_desc_t DEBUG_group_desc = r_build_renderpass_desc(render_state,
-                                                                       &render_state->font_shader,
-                                                                       1,
-                                                                       font_view_matrix,
-                                                                       font_projection_matrix,
-                                                                       RGE_None,
-                                                                       RGP_PostBlitPass,
-                                                                       RGPT_Quads);
-        r_begin_renderpass(render_state, &DEBUG_group_desc);
+        r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
         vec2_t ending_pos = {-900, -400};
         if(DEBUG_global_state->display_cycle_counters)
         {
             ending_pos = DEBUG_display_record_data(asset_manager, render_state, font_handle, delta_time);
         }
-        r_end_renderpass(render_state);
+        r_renderpass_end(render_state);
 
-        r_set_active_blending_state(render_state, true);
-        r_set_active_depth_state(render_state, true, false);
-        r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
-        render_group_desc_t DEBUG_group_desc_transparent = r_build_renderpass_desc(render_state,
-                                                                                   &render_state->font_shader,
-                                                                                   6,
-                                                                                   font_view_matrix,
-                                                                                   font_projection_matrix,
-                                                                                   RGE_None,
-                                                                                   RGP_PostBlitPass,
-                                                                                   RGPT_Quads);
-        r_begin_renderpass(render_state, &DEBUG_group_desc_transparent);
+        r_renderpass_begin(render_state, DEBUG_global_state->transparent_group);
         if(DEBUG_global_state->display_cycle_counters || DEBUG_global_state->display_call_graph)
         {
             r_draw_rect(render_state,
@@ -848,7 +858,7 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
                         0,
                         RQO_NONE);
         }
-        r_end_renderpass(render_state);
+        r_renderpass_end(render_state);
 
         if(DEBUG_global_state->display_call_graph)
         {

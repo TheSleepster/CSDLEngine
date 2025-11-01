@@ -142,6 +142,11 @@ typedef struct DEBUG_state_data
 
     DEBUG_record_t      record_array[MAX_DEBUG_COUNTERS];
     DEBUG_event_t       event_array[2][MAX_DEBUG_EVENTS];
+
+    render_group_t     *background_render_group;
+    render_group_t     *label_render_group;
+    render_group_t     *opaque_group;
+    render_group_t     *transparent_group;
 }DEBUG_state_data_t;
 
 struct DEBUG_render_stack_data_t
