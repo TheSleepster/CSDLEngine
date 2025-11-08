@@ -13,8 +13,7 @@
 #include "c_log_assert.h"
 
 /* TODO:
- * 2.) Switch to OS allocation using Virtual Memory instead of malloc
- * 3.) For some reason pointers when added to arrays do not work properly
+ * 1.) For some reason pointers when added to arrays do not work properly
  */
 
 /*===========================================
@@ -61,7 +60,7 @@ typedef struct dynamic_array
 #define c_dynamic_array_create(type, count)  c_dynamic_array_create_(sizeof(type), count)
 #define c_dynamic_array_append(array, value) c_dynamic_array_append_value_(array, value, sizeof(value))
 #define c_dynamic_array_append_value(array, value)             \
-do{                                                            \
+do {                                                           \
     __typeof__(value) temp = value;                            \
     c_dynamic_array_append_value_(array, &temp, sizeof(temp)); \
 }while(0)

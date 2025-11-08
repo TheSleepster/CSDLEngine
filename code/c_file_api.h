@@ -12,6 +12,12 @@
 
 #include "c_zone_allocator.h"
 
+/* TODO:
+ * 1.) Seperate c_file_read_all() and c_file_read() with an offset
+ * 2.) Make ALL of the file operations work around the file_t type
+ * 3.) Make it more clear how the file operations affect the actual contents of the files
+ */
+
 // TODO(Sleepster): THREAD SAFE OVERLAPPING IO 
 
 // NOTE(Sleepster): This is stupid... but C doens't make this easier. 

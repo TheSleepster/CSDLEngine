@@ -86,15 +86,27 @@ typedef struct input_controller
     };
 }input_controller_t;
 
+typedef enum game_action_binding_type
+{
+    GAB_Invalid,
+    GAB_Button,
+    GAB_Axis,
+    GAB_Count
+}game_action_binding_type_t;
+
+typedef struct game_action_binding
+{
+    u32 type;
+    u32 binding_id;
+}game_action_binding_t;
+
 // TODO(Sleepster): AXIS ASSIGNMENT (things like controller left stick assignment) 
 typedef struct game_action
 {
-    input_controller_t *controller[2];
+    game_action_binding_t keyboard;
+    game_action_binding_t gamepad;
 
-    // NOTE(Sleepster): "action_key" is for keyboard controls,
-    //                  "action_button" is for controller
-    s32                 action_key;
-    s32                 action_button;
+    string_t              name;
 }game_action_t;
 
 // NOTE(Sleepster): Hey, the keyboard connected to the PC is ALWAYS the primary device 

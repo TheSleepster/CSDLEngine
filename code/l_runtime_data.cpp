@@ -67,7 +67,7 @@
 #include "r_render_API.cpp"
 
 // TODO(Sleepster): No debug state in release builds...
-#define GAME_UPDATE_AND_RENDER(name) void name(global_context_t *context, render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, input_manager_t *input_manager, float32 delta_time, DEBUG_state_data_t *DEBUG_global_state_in) 
+#define GAME_UPDATE_AND_RENDER(name) void name(global_context_t *context, render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, input_manager_t *input_manager, float32 frame_time, DEBUG_state_data_t *DEBUG_global_state_in) 
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_t);
 
 #endif

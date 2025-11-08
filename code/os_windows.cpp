@@ -57,7 +57,7 @@ os_reallocate_memory(void *offset, u64 allocation_size)
     {
         DWORD error = GetLastError();
         LPSTR message_buffer = 0;
-        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
                        null,           
                        error,          
                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),

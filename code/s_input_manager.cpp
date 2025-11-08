@@ -447,3 +447,20 @@ s_input_manager_get_button_state(input_controller_t *controller, s32 button_inde
 /*===============================================
   =============== GAME ACTION API ===============
   ===============================================*/
+
+internal void
+s_game_action_create(input_manager_t *input_manager, 
+                     string_t         name, 
+                     u32              first_binding, 
+                     u32              first_binding_type, 
+                     u32              second_binding, 
+                     u32              second_binding_type)
+{
+    game_action_t new_action       = {};
+    new_action.keyboard.type       = first_binding_type;
+    new_action.keyboard.binding_id = first_binding;
+    new_action.gamepad.type        = second_binding;
+    new_action.gamepad.binding_id  = second_binding_type;
+
+    c_dynamic_array_append_value(&input_manager->game_actions, new_action); 
+}

@@ -37,7 +37,7 @@ typedef struct bitmap
     s32             height;
     s32             stride;
     
-    // NOTE(Sleepster): byte array essentially. 
+    // NOTE(Sleepster): byte arrays essentially. 
     string_t        data;
     string_t        decompressed_data;
 }bitmap_t;
@@ -58,6 +58,9 @@ typedef struct texture_view
     u32           viewID;
     u32           GPU_textureID;
 
+    // NOTE(Sleepster): Pointers so that if the uv-location of the texture ever 
+    // changes, the changes are immediately reflected for each view created for this
+    // texture.
     vec2_t       *uv_min;
     vec2_t       *uv_max;
 }texture_view_t;

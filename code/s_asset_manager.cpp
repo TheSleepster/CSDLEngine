@@ -222,6 +222,7 @@ s_asset_load_data_from_asset_file_or_path(asset_manager_t    *asset_manager,
     work_data->tag           =  tag;
     work_data->out_string    =  out_data;
     work_data->is_reloading  =  is_reloading;
+
     s_work_queue_add_entry(high_priority_queue, &s_asset_load_data_async, work_data);
 }
 

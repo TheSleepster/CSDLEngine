@@ -95,6 +95,8 @@ typedef struct asset_handle
     asset_slot_t *asset_slot;
     union
     {
+        // TODO(Sleepster): Isn't this REALLLLLLY redudant if we just have a 
+        // pointer to the asset_slot??? 
         texture_view_t        *texture;
         dynamic_render_font_t *font;
         loaded_sound_t        *sound;

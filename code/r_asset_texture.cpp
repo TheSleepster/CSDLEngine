@@ -111,6 +111,9 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
         at_atlas_handler_update_entry(asset_manager, &asset_manager->texture_catalog.primary_handler, *handle);
     }
 
+    // TODO(Sleepster): As of right now, this condition will never be met if you 
+    // call this function a single time. It will just stop here, never actually loading the data
+    // and adding it to the atlas handler's array. Fix this IMMEDIATELY.
     if(c_string_is_valid(slot_data->texture.bitmap.data) &&
        slot_data->slot_state == ASS_LOADED)
     {
@@ -127,7 +130,6 @@ s_asset_texture_load_data(asset_manager_t *asset_manager, asset_handle_t *handle
         slot_data->texture.bitmap.decompressed_data.count = data_length;
         slot_data->texture.bitmap.format = BMF_RGBA32;
         slot_data->texture.bitmap.stride = 32;
-
         if(!handle->texture->is_in_atlas)
         {
             at_atlas_handler_add_texture(asset_manager, &asset_manager->texture_catalog.primary_handler, *handle);
@@ -165,7 +167,6 @@ s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
             texture_view_t *new_view = s_asset_texture_view_generate(asset_manager, valid_slot, texture_data);
             texture_data->view = new_view;
             result.texture     = new_view;
-
         }
 
         s_asset_texture_load_data(asset_manager, &result);

@@ -79,11 +79,12 @@
 #define DegToRad(x) (x * (float32)(PI32 / 180.0f))
 #define RadToDeg(x) (x * (float32)(180.0f / PI32))
 
-#define Abs(a) ((a) > 0 ? (a) : -(a))
+#define Abs(A)  ((A) > 0 ? (A) : -(A))
+#define Sign(A) ((A) > 0 ? 1 : -1) 
 
-#define Clamp(a, x, b) (((x) < (a)) ? (a) : ((b) < (x)) ? (b) : (x))
-#define ClampTop(a, b) (Min(a, b))
-#define ClampBot(a, b) (Max(a, b))
+#define Clamp(A, X, B) (((X) < (A)) ? (A) : ((B) < (X)) ? (B) : (X))
+#define ClampTop(A, B) (Min(A, B))
+#define ClampBot(A, B) (Max(A, B))
 
 #define Square(x) ((x) * (x))
 
@@ -643,6 +644,110 @@ vec2_unlerp(vec2_t A, vec2_t B, vec2_t X)
     return(result);
 }
 
+internal inline vec2_t 
+vec2_negate(vec2_t A)
+{
+    vec2_t result;
+
+    result.x = -A.x;
+    result.y = -A.y;
+
+    return(result);
+}
+
+
+#ifdef __cplusplus
+
+inline vec2_t 
+operator+(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x + B.x;
+    result.y = A.y + B.y;
+
+    return(result);
+}
+
+inline vec2_t 
+operator-(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x - B.x;
+    result.y = A.y - B.y;
+
+    return(result);
+}
+
+inline vec2_t
+operator*(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x * B.x;
+    result.y = A.y * B.y;
+
+    return(result);
+}
+
+inline vec2_t
+operator/(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x / B.x;
+    result.y = A.y / B.y;
+
+    return(result);
+}
+
+inline vec2_t
+operator+=(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x + B.x;
+    result.y = A.y + B.y;
+
+    return(result);
+}
+
+inline vec2_t
+operator-=(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x - B.x;
+    result.y = A.y - B.y;
+
+    return(result);
+}
+
+inline vec2_t 
+operator*=(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x * B.x;
+    result.y = A.y * B.y;
+
+    return(result);
+}
+
+inline vec2_t 
+operator/=(vec2_t A, vec2_t B)
+{
+    vec2_t result;
+
+    result.x = A.x / B.x;
+    result.y = A.y / B.y;
+
+    return(result);
+}
+
+#endif
+
 
 /*===========================================
   ================= VECTOR 3 ================
@@ -863,6 +968,107 @@ vec3_unlerp(vec3_t A, vec3_t B, vec3_t X)
 
     return(result);
 }
+
+
+#ifdef __cplusplus
+
+inline vec3_t 
+operator+(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x + B.x;
+    result.y = A.y + B.y;
+    result.z = A.z + B.z;
+
+    return(result);
+}
+
+inline vec3_t 
+operator-(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x - B.x;
+    result.y = A.y - B.y;
+    result.z = A.z - B.z;
+
+    return(result);
+}
+
+inline vec3_t
+operator*(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x * B.x;
+    result.y = A.y * B.y;
+    result.z = A.z * B.z;
+
+    return(result);
+}
+
+inline vec3_t
+operator/(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x / B.x;
+    result.y = A.y / B.y;
+    result.z = A.z / B.z;
+
+    return(result);
+}
+
+inline vec3_t
+operator+=(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x + B.x;
+    result.y = A.y + B.y;
+    result.z = A.z + B.z;
+
+    return(result);
+}
+
+inline vec3_t
+operator-=(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x - B.x;
+    result.y = A.y - B.y;
+    result.z = A.z - B.z;
+
+    return(result);
+}
+
+inline vec3_t 
+operator*=(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x * B.x;
+    result.y = A.y * B.y;
+    result.z = A.z * B.z;
+
+    return(result);
+}
+
+inline vec3_t 
+operator/=(vec3_t A, vec3_t B)
+{
+    vec3_t result;
+
+    result.x = A.x / B.x;
+    result.y = A.y / B.y;
+    result.z = A.z / B.z;
+
+    return(result);
+}
+
+#endif
 
 
 /*===========================================
