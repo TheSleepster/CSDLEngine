@@ -402,7 +402,7 @@ r_create_shader_program(string_t shader_source, gpu_shader_type_t shader_type)
     return(result);
 }
 
-internal void 
+void 
 r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type)
 {
     DEBUG_TIMED_BLOCK();
@@ -450,19 +450,19 @@ r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_typ
                                 texture->bitmap.height);
 }
 
-internal void 
+void 
 r_texture_create_from_bitmap_(bitmap_t *bitmap)
 {
     Assert(false);
 }
 
-internal inline void
+inline void
 r_texture_delete_(texture_view_t *view)
 {
     glDeleteTextures(1, &view->GPU_textureID);
 }
 
-internal void
+void
 r_texture_update_from_bitmap_(asset_manager_t *asset_manager, texture2D_t *texture)
 {
     DEBUG_TIMED_BLOCK();
@@ -617,7 +617,8 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
     glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_LINE_SMOOTH);
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(1);
+    //SDL_GL_SetSwapInterval(0);
 
     glDebugMessageCallback(&r_gl_debug_callback, null);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);

@@ -6,10 +6,6 @@
    ======================================================================== */
 #include "s_input_manager.h"
 
-/*===========================================
-  =============== GENERAL API ===============
-  ===========================================*/
-
 internal void
 s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_manager)
 {
@@ -35,6 +31,7 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
                     log_info("Controller '%s' connected...\n", SDL_GetGamepadName(new_controller.gamepad.gamepad_data));
 
                     input_manager->controllers[input_manager->connected_controller_count] = new_controller;
+                    input_manager->primary_controller_index    = input_manager->connected_controller_count;
                     input_manager->connected_controller_count += 1;
                 }
                 else
@@ -94,21 +91,22 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
         }break;
         case SDL_EVENT_MOUSE_MOTION:
         {
-            input_controller_t *controller = input_manager->controllers;
-            Assert(controller->type == IM_CONTROLLER_KEYBOARD);
+            input_controller_t *controller = s_input_manager_get_primary_controller(input_manager);
+            if(controller->type == IM_CONTROLLER_KEYBOARD)
+            {
+                float32 old_mouse_pos_x = controller->keyboard.current_mouse_pos.x; 
+                float32 old_mouse_pos_y = controller->keyboard.current_mouse_pos.y;
 
-            float32 old_mouse_pos_x = controller->keyboard.current_mouse_pos.x; 
-            float32 old_mouse_pos_y = controller->keyboard.current_mouse_pos.y;
+                controller->keyboard.current_mouse_pos.x = event->motion.x;
+                controller->keyboard.current_mouse_pos.y = event->motion.y;
 
-            controller->keyboard.current_mouse_pos.x = event->motion.x;
-            controller->keyboard.current_mouse_pos.y = event->motion.y;
-                
-            controller->keyboard.mouse_delta = vec2_subtract(controller->keyboard.current_mouse_pos, vec2(old_mouse_pos_x, old_mouse_pos_y));
+                controller->keyboard.mouse_delta = vec2_subtract(controller->keyboard.current_mouse_pos, vec2(old_mouse_pos_x, old_mouse_pos_y));
+            }
         }break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         {
-            input_controller_t *controller = input_manager->controllers;
+            input_controller_t *controller = s_input_manager_get_primary_controller(input_manager);
             Assert(controller->type == IM_CONTROLLER_KEYBOARD);
 
             u32 key_index = event->button.button + SDL_SCANCODE_COUNT;
@@ -128,7 +126,7 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
         case SDL_EVENT_GAMEPAD_BUTTON_UP:
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
         {
-            input_controller_t *controller = input_manager->controllers + input_manager->active_controller_index;
+            input_controller_t *controller = s_input_manager_get_primary_controller(input_manager);
             action_button_t *button = controller->gamepad.digital_buttons + event->gbutton.button;
                 
             SDL_GamepadButtonEvent button_data = event->gbutton; 
@@ -140,7 +138,7 @@ s_input_manager_handle_window_inputs(SDL_Event *event, input_manager_t *input_ma
         }break;
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
         {
-            input_controller_t *controller    = input_manager->controllers + input_manager->active_controller_index;
+            input_controller_t *controller = s_input_manager_get_primary_controller(input_manager);
             analog_button_t    *analog_button = controller->gamepad.analog_buttons + event->gaxis.axis;
 
             analog_button->value = event->gaxis.value;

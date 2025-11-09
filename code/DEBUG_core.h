@@ -8,6 +8,7 @@
 #include "r_render_API.h"
 
 #define DEBUG_CORE_H
+
 #define MAX_DEBUG_FRAME_HISTORY  (1024)
 #define MAX_DEBUG_SNAPSHOTS      (MAX_DEBUG_FRAME_HISTORY)
 #define MAX_DEBUG_FRAME_SECTIONS (4096 * 4)

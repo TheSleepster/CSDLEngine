@@ -10,6 +10,7 @@
 
 #include "DEBUG_core.h"
 
+#if INTERNAL_DEBUG
 internal void 
 DEBUG_create_debug_state(render_state_t  *render_state, 
                          input_manager_t *input_manager, 
@@ -868,6 +869,4 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         r_reset_draw_frame_pipeline_state(render_state);
     }
 }
-
-
-
+#endif

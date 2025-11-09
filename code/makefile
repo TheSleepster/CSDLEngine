@@ -7,6 +7,7 @@ CC     = clang
 
 SILENT          ?=
 DEBUG           ?=            # set DEBUG=1 to get debug compile flags (-g -O0)
+ASSERT_ENABLED  ?=            # set ASSERT_ENABLED=1 for runtime asserts
 DEVELOPER_BUILD ?=            # set DEVELOPER_BUILD=1 to produce exe + libGameRuntime.lib + dll
 
 # -------------------------------------------------------------------------
@@ -59,9 +60,9 @@ COMMON_C_FLAGS       = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter 
 # Build type 
 BUILD_TYPE ?= debug
 ifeq ($(DEBUG),1)
-    CFLAGS = -g -O0 -fno-inline-functions $(COMMON_C_FLAGS) -DINTERNAL_DEBUG=1 -DASSERT_ENABLED=1 -DDEVELOPER_BUILD=$(DEVELOPER_BUILD)
+    CFLAGS = -g -O0 -fno-inline-functions $(COMMON_C_FLAGS) -DINTERNAL_DEBUG=1 -DASSERT_ENABLED=$(ASSERT_ENABLED) -DDEVELOPER_BUILD=$(DEVELOPER_BUILD)
 else
-    CFLAGS = -O3 $(COMMON_C_FLAGS)
+    CFLAGS = -O3 $(COMMON_C_FLAGS) -DINTERNAL_DEBUG=0 -DASSERT_ENABLED=$(ASSERT_ENABLED)
 endif
 
 # -------------------------------------------------------------------------

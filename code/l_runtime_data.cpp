@@ -46,7 +46,10 @@
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
+#if INTERNAL_DEBUG
 #include "DEBUG_core.cpp"
+#endif
+
 #include "c_memory_arena.cpp"
 #include "c_zone_allocator.cpp"
 #include "c_string.cpp"
