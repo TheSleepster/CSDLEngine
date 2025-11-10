@@ -38,9 +38,9 @@
       "../build/Thor_debug",
       "../code/main.cpp"
     ],
-    "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
-    "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/main.cpp",
-    "output": "/home/justin/personal/projects/c++stuff/CSDLEngine/build/Thor_debug"
+    "directory": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code",
+    "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/main.cpp",
+    "output": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/build/Thor_debug"
   },
   {
     "arguments": [
@@ -150,11 +150,11 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/main-545ab5.o",
+      "/tmp/main-7bdeff.o",
       "main.cpp"
     ],
-    "directory": "/home/justin/personal/projects/c++stuff/CSDLEngine/code",
-    "file": "/home/justin/personal/projects/c++stuff/CSDLEngine/code/main.cpp",
-    "output": "/tmp/main-545ab5.o"
+    "directory": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code",
+    "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/main.cpp",
+    "output": "/tmp/main-7bdeff.o"
   }
 ]

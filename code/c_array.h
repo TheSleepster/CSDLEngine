@@ -48,7 +48,7 @@ internal inline void    c_array_clear_value(array_t *array, s32 index);
 
 typedef struct dynamic_array
 {
-    usize indices_used;
+    volatile usize indices_used;
     
     usize element_size;
     usize total_size;

@@ -40,6 +40,7 @@ typedef struct atlas_handler
     bitmap_t         *bitmap;
 
     hash_table_t      contents;
+
     dynamic_array_t   textures_to_pack;
     dynamic_array_t   textures_to_update;
 

@@ -82,7 +82,7 @@
 #define Abs(A)  ((A) > 0 ? (A) : -(A))
 #define Sign(A) ((A) > 0 ? 1 : -1) 
 
-#define Clamp(A, X, B) (((X) < (A)) ? (A) : ((B) < (X)) ? (B) : (X))
+#define Clamp(X, A, B) (((X) < (A)) ? (A) : ((B) < (X)) ? (B) : (X))
 #define ClampTop(A, B) (Min(A, B))
 #define ClampBot(A, B) (Max(A, B))
 

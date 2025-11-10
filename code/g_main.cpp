@@ -17,6 +17,8 @@ constexpr float32 GRAVITY_A      = 1.5f;
 constexpr float32 UPDATE_RATE    = 1.0f / 60.0f; 
 constexpr u32     MAX_ENTITIES   = 10000;
 
+constexpr u32 TILE_SIZE = 8;
+
 global float32 dt_accumulator = 0.0f;
 
 struct tick_clock_t
@@ -41,9 +43,9 @@ struct sprite_t
 
 enum e_collision_masking
 {
-    ECM_Player      = 1 << 0,
-    ECM_Map         = 1 << 1,
-    ECM_AllEntities = 1 << 2,
+    ECM_Player      = 1ul << 0,
+    ECM_Map         = 1ul << 1,
+    ECM_AllEntities = 1ul << 2,
 };
 
 struct collision_box
@@ -56,20 +58,17 @@ struct collision_box
 enum entity_type
 {
     ET_Player,
+    ET_Tile,
     ET_Count
 };
 
 enum entity_flags
 {
-    EF_Valid    = 1 << 0,
-    EF_Jumping  = 1 << 1,
-    EF_Falling  = 1 << 2,
-    EF_Running  = 1 << 3,
-    EF_Alive    = 1 << 4,
-    EF_Gravitic = 1 << 5,
-    EF_Actor    = 1 << 6,
-    EF_Static   = 1 << 7,
-    EF_Count
+    EF_Valid    = 1ul << 0,
+    EF_Alive    = 1ul << 1,
+    EF_Gravitic = 1ul << 2,
+    EF_Actor    = 1ul << 3,
+    EF_Static   = 1ul << 4,
 };
 
 struct entity_t
@@ -141,7 +140,8 @@ internal entity_t*
 entity_create(entity_manager_t *entity_manager)
 {
     entity_t *new_entity = null;
-    for(u32 entity_index = 1;
+
+    for(u32 entity_index = 0;
         entity_index < MAX_ENTITIES;
         ++entity_index)
     {
@@ -149,15 +149,16 @@ entity_create(entity_manager_t *entity_manager)
         if(!(entity->e_flags & EF_Valid))
         {
             new_entity = entity;
-            new_entity->e_ID = entity_manager->active_entity_count;
+            new_entity->e_ID = entity_index;
             break;
         }
     }
     Assert(new_entity);
 
-    entity_manager->active_entity_count++;
+    ZeroStruct(*new_entity);
     new_entity->e_flags = EF_Valid;
 
+    ++entity_manager->active_entity_count;
     return(new_entity);
 }
 
@@ -183,10 +184,9 @@ entity_init_sprite_data(asset_manager_t *asset_manager, string_t sprite_name)
 }
 
 internal entity_t*
-entity_player_create(entity_manager_t *entity_manager, asset_manager_t *asset_manager, vec2_t position)
+entity_create_player(entity_manager_t *entity_manager, asset_manager_t *asset_manager, vec2_t position)
 {
     entity_t *player = entity_create(entity_manager);
-    ZeroStruct(*player);
 
     player->e_type                = ET_Player;
     player->e_flags              |= (EF_Alive|EF_Gravitic|EF_Actor);
@@ -195,8 +195,8 @@ entity_player_create(entity_manager_t *entity_manager, asset_manager_t *asset_ma
     player->render_color          = COLOR_WHITE;
     player->position              = position;
 
-    player->hit_box               = rect2_create(player->position, player->render_size);
-    player->hitbox.collision_mask = ECM_AllEntities;
+    player->hit_box.rect           = rect2_create(player->position, player->render_size);
+    player->hit_box.collision_mask = ECM_AllEntities;
 
     player->x_accel               =  20.0f;
     player->movement_speed        =  2.0f;
@@ -216,21 +216,45 @@ entity_player_create(entity_manager_t *entity_manager, asset_manager_t *asset_ma
     return(player);
 }
 
+internal entity_t*
+entity_create_test_tile(entity_manager_t *entity_manager, asset_manager_t *asset_manager, vec2_t position)
+{
+    entity_t *tile = entity_create(entity_manager);
+
+    tile->e_type                 = ET_Tile;
+    tile->e_flags               |= EF_Static;
+    tile->sprite                 = entity_init_sprite_data(asset_manager, STR("textureless_sprite"));
+    tile->render_size            = vec2(TILE_SIZE, TILE_SIZE);
+    tile->render_color           = COLOR_RED;
+    tile->position               = position;
+
+    tile->hit_box.rect           = rect2_create(tile->position, tile->render_size);
+    tile->hit_box.collision_mask = ECM_Player;
+
+    return(tile);
+}
+
 internal void
 entity_render(render_state_t *render_state, asset_manager_t *asset_manager, entity_t *entity, float32 alpha)
 {
-    if(alpha < 0.0f) alpha = 0.0f;
-    if(alpha > 1.0f) alpha = 1.0f;
-    entity->sprite = entity_init_sprite_data(asset_manager, entity->sprite.name);
+    if(entity->e_flags & EF_Valid)
+    {
+        vec2_t render_pos = entity->position;
+        if((entity->e_flags & EF_Actor) != 0)
+        {
+            alpha = Clamp(alpha, 0.0f, 1.0f);
+            render_pos = vec2_lerp(entity->prev_position, entity->position, alpha);
+        }
 
-    vec2_t render_pos = vec2_lerp(entity->prev_position, entity->position, alpha);
-    r_draw_texture(render_state, 
-                   render_pos, 
-                   entity->render_size, 
-                   entity->render_color, 
-                   entity->rotation, 
-                   entity->sprite.texture, 
-                   (render_quad_options_t)entity->render_options);
+        entity->sprite = entity_init_sprite_data(asset_manager, entity->sprite.name);
+        r_draw_texture(render_state, 
+                       render_pos, 
+                       entity->render_size, 
+                       entity->render_color, 
+                       entity->rotation, 
+                       entity->sprite.texture, 
+                       (render_quad_options_t)entity->render_options);
+    }
 }
 
 internal void
@@ -354,7 +378,9 @@ initialize_gamestate(render_state_t *render_state, input_manager_t *input_manage
     log_info("Input Manager is size: '%d'\n", sizeof(input_manager_t));
 
     global_game_state.entity_manager.active_entity_count = 0;
-    global_game_state.player = entity_player_create(&global_game_state.entity_manager, asset_manager, vec2_zero());
+    global_game_state.player = entity_create_player(&global_game_state.entity_manager, asset_manager, vec2_zero());
+
+    entity_create_test_tile(&global_game_state.entity_manager, asset_manager, vec2(-16, 0));
 }
 
 GAME_API external
@@ -430,7 +456,7 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
     {
         r_renderpass_begin(render_state, global_game_state.entity_render_group);
         for(u32 entity_index = 0;
-            entity_index <= global_game_state.entity_manager.active_entity_count;
+            entity_index < global_game_state.entity_manager.active_entity_count;
             ++entity_index)
         {
             entity_t *entity = global_game_state.entity_manager.entities + entity_index;
