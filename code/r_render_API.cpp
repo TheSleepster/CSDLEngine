@@ -192,7 +192,6 @@ r_draw_texture(render_state_t       *render_state,
         uv_max     = *texture_handle.texture->uv_max;
         texture_id =  texture_handle.texture->GPU_textureID;
     }
-
     result = r_draw_texture_ex(render_state,
                                   position,
                                   render_size,

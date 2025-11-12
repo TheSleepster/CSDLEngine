@@ -150,11 +150,11 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/main-7bdeff.o",
+      "/tmp/main-132eb8.o",
       "main.cpp"
     ],
     "directory": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code",
     "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/main.cpp",
-    "output": "/tmp/main-7bdeff.o"
+    "output": "/tmp/main-132eb8.o"
   }
 ]

@@ -584,6 +584,7 @@ os_thread_create(thread_proc_t *proc, void *user_data, bool8 close_handle)
     return(result);
 }
 
+// NOTE(Sleepster): There is no "close handle" like there is on Windows to my knowledge.
 internal inline bool8
 os_thread_close_handle(os_thread_t *thread_data)
 {
@@ -617,9 +618,18 @@ os_mutex_free(os_mutex_t *mutex)
 }
 
 internal inline bool8
-os_mutex_lock(os_mutex_t *mutex)
+os_mutex_lock(os_mutex_t *mutex, bool8 should_block)
 {
-    bool8 result = SDL_TryLockMutex(mutex->handle);
+    bool8 result = false;
+    if(should_block)
+    {
+        SDL_LockMutex(mutex->handle);
+        result = true;
+    }
+    else
+    {
+        result = SDL_TryLockMutex(mutex->handle);
+    }
     return(result);
 }
 

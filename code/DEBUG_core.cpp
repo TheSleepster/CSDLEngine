@@ -675,7 +675,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 // NOTE(Sleepster): Tooltip
                 vec2_t mouse = s_input_manager_transform_mouse_data(controller, font_view_matrix, font_projection_matrix);
                 rectangle2_t bar_rect = rect2_create(vec2(x, y), vec2(width, height));
-                if(rect2_vec2_test(bar_rect, mouse))
+                if(rect2_vec2_SAT(bar_rect, mouse))
                 {
                     r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
                     DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;

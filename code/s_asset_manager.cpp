@@ -165,8 +165,10 @@ s_asset_load_data_async(void *user_data)
     string_t result = {};
     // TODO(Sleepster): This mutex is not in the right spot... Why is it here and not actually in c_za_alloc and c_za_free????? 
     // Like I guess this is fine if this is the only path of allocation on multiple threads... but still.
-    if(os_mutex_lock(&work_data->zone->mutex))
+    if(os_mutex_lock(&work_data->zone->mutex, true))
     {
+        log_info("Locked mutex for texture: '%s'\n", C_STR(work_data->slot_data->filename));
+
         if(work_data->slot_data->asset_file_data_offset > 0 &&
            !work_data->is_reloading)
         {
@@ -198,6 +200,10 @@ s_asset_load_data_async(void *user_data)
 
         c_za_free(work_data->zone, work_data);
         os_mutex_unlock(&work_data->zone->mutex);
+    }
+    else
+    {
+        log_error("Failed to lock the Mutex for texture: '%s'...\n", C_STR(work_data->slot_data->filename));
     }
 }
 

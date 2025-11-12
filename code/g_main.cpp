@@ -121,6 +121,8 @@ struct game_state_t
     render_group_t     *entity_render_group;
     entity_manager_t    entity_manager;
 
+    u32                 physics_iterations;
+
     entity_t           *player;
     vec2_t              input_axis;
     bool8               should_jump;
@@ -141,6 +143,7 @@ entity_create(entity_manager_t *entity_manager)
 {
     entity_t *new_entity = null;
 
+    u32 entity_id = 0;
     for(u32 entity_index = 0;
         entity_index < MAX_ENTITIES;
         ++entity_index)
@@ -149,13 +152,14 @@ entity_create(entity_manager_t *entity_manager)
         if(!(entity->e_flags & EF_Valid))
         {
             new_entity = entity;
-            new_entity->e_ID = entity_index;
+            entity_id  = entity_index;
             break;
         }
     }
     Assert(new_entity);
 
     ZeroStruct(*new_entity);
+    new_entity->e_ID    = entity_id;
     new_entity->e_flags = EF_Valid;
 
     ++entity_manager->active_entity_count;
@@ -197,6 +201,7 @@ entity_create_player(entity_manager_t *entity_manager, asset_manager_t *asset_ma
 
     player->hit_box.rect           = rect2_create(player->position, player->render_size);
     player->hit_box.collision_mask = ECM_AllEntities;
+    player->hit_box.is_active      = true;
 
     player->x_accel               =  20.0f;
     player->movement_speed        =  2.0f;
@@ -230,6 +235,7 @@ entity_create_test_tile(entity_manager_t *entity_manager, asset_manager_t *asset
 
     tile->hit_box.rect           = rect2_create(tile->position, tile->render_size);
     tile->hit_box.collision_mask = ECM_Player;
+    tile->hit_box.is_active      = true;
 
     return(tile);
 }
@@ -258,101 +264,192 @@ entity_render(render_state_t *render_state, asset_manager_t *asset_manager, enti
 }
 
 internal void
+entity_update_player(entity_t *entity, vec2_t input_axis, float32 delta_time)
+{
+    if(entity->is_on_ground)
+    {
+        global_game_state.should_dash = false;
+        entity->dash_clock.begun      = false;
+        if(input_axis.x != 0.0f)
+        {
+            entity->velocity.x += (input_axis.x * (entity->x_accel * delta_time));
+
+            if(entity->velocity.x >  entity->movement_speed) entity->velocity.x =  entity->movement_speed;
+            if(entity->velocity.x < -entity->movement_speed) entity->velocity.x = -entity->movement_speed;
+        }
+
+        if(global_game_state.should_jump && entity->jump_counter > 0)
+        {
+            entity->is_on_ground = false;
+            entity->velocity.y   = entity->jump_speed * delta_time; 
+
+            --entity->jump_counter;
+            global_game_state.should_jump = false;
+        }
+
+        if(input_axis.x == 0.0f)
+        {
+            vec2_t scaled_vel  = vec2_scale(entity->velocity, entity->friction_scale);
+            entity->velocity.x = scaled_vel.x;
+        }
+    }
+    else
+    {
+        if(global_game_state.should_dash && entity->dash_counter > 0)
+        {
+            if(!entity->dash_clock.begun)
+            {
+                entity->dash_clock.start_tick = global_game_state.simulation_tick;
+                entity->dash_clock.elapsed    = 0;
+                entity->dash_clock.begun      = true;
+            }
+
+            if(entity->dash_clock.elapsed < entity->dash_clock.duration)
+            {
+                entity->velocity.x = entity->facing_dir * (entity->dash_speed * delta_time);
+                entity->velocity.y = input_axis.y * (entity->dash_speed * delta_time);
+
+                entity->dash_clock.elapsed += 1;
+            }
+            else
+            {
+                global_game_state.should_dash = false;
+                entity->dash_clock.begun      = false;
+
+                --entity->dash_counter;
+            }
+        }
+
+        if(input_axis.x != 0.0f)
+        {
+            entity->velocity.x += (input_axis.x * ((entity->x_accel * 0.25) * delta_time));
+        }
+
+
+        if(input_axis.x == 0.0f)
+        {
+            vec2_t scaled_vel  = vec2_scale(entity->velocity, entity->friction_scale * 2.0f);
+            entity->velocity.x = scaled_vel.x;
+        }
+    }
+}
+
+internal void
+col_stationary_response(entity_t *entity)
+{
+}
+
+internal void
+col_sweep_response(entity_t *entity)
+{
+}
+
+internal void
 game_simulate(vec2_t input_axis, float32 delta_time)
 {
+    DEBUG_TIMED_BLOCK(); 
     ++global_game_state.simulation_tick;
 
-    // NOTE(Sleepster): entity simulate loop
+    // NOTE(Sleepster): Entity Interaction Loop 
     for(u32 entity_index = 0;
-        entity_index <= global_game_state.entity_manager.active_entity_count;
+        entity_index < global_game_state.entity_manager.active_entity_count;
         ++entity_index)
     {
         entity_t *entity = global_game_state.entity_manager.entities + entity_index;
         if((entity->e_flags & EF_Actor) != 0)
         {
+            entity->prev_position = entity->position;
+            if(entity->velocity.x != 0.0f)
+            {
+                entity->facing_dir = entity->velocity.x > 0.0f ? 1 : -1;
+            }
+
+            // TODO(Sleepster): switch(entity->e_type) 
             if(entity->e_type == ET_Player)
             {
-                entity->prev_position = entity->position;
-                if(entity->velocity.x != 0.0f)
+                entity_update_player(entity, input_axis, delta_time);
+            }
+
+            if(((entity->e_flags & EF_Gravitic) != 0) && !entity->is_on_ground)
+            {
+                entity->velocity.y += (entity->gravity_intensity * delta_time);
+            }
+        }
+    }
+
+    // NOTE(Sleepster): Discrete Entity Collision Detection loop
+    for(u32 entity_index = 0;
+        entity_index < global_game_state.entity_manager.active_entity_count;
+        ++entity_index)
+    {
+        entity_t *entity = global_game_state.entity_manager.entities + entity_index;
+        if(!(entity->e_flags & EF_Actor) || !entity->hit_box.is_active) 
+        {
+            continue;
+        }
+
+        vec2_t desired_movement = entity->velocity;
+
+        for(u32 test_index = 0;
+            test_index < global_game_state.entity_manager.active_entity_count;
+            ++test_index)
+        {
+            entity_t *test_entity = global_game_state.entity_manager.entities + test_index;
+            if(test_entity->e_ID == entity->e_ID || !test_entity->hit_box.is_active) 
+            {
+                continue;
+            }
+
+            // NOTE(Sleepster): Sweep Response
+            {
+                raytest_t sweep = rect2_sweep_test(entity->hit_box.rect, desired_movement, test_entity->hit_box.rect);
+                if(sweep.hit)
                 {
-                    entity->facing_dir = entity->velocity.x > 0.0f ? 1 : -1;
-                }
+                    desired_movement = vec2_scale(desired_movement, sweep.time);
 
-                if(entity->is_on_ground)
+                    if(sweep.normal.x != 0.0f) entity->velocity.x = 0.0f;
+                    if(sweep.normal.y != 0.0f) entity->velocity.y = 0.0f;
+                }
+            }
+
+            // NOTE(Sleepster): Stationary Response
+            {
+                rectangle2_t predicted_hitbox = entity->hit_box.rect;
+                rect2_shift_by(&predicted_hitbox, desired_movement);
+
+                rectangle2_t minkowski = rect2_minkowski_difference(predicted_hitbox, test_entity->hit_box.rect);
+                if(minkowski.min.x <= 0 && minkowski.max.x >= 0 && 
+                   minkowski.min.y <= 0 && minkowski.max.y >= 0)
                 {
-                    global_game_state.should_dash = false;
-                    entity->dash_clock.begun      = false;
-                    if(input_axis.x != 0.0f)
-                    {
-                        entity->velocity.x += (input_axis.x * (entity->x_accel * delta_time));
+                    vec2_t overlap_vector = rect2_get_vector_depth(minkowski);
+                    desired_movement      = vec2_add(desired_movement, overlap_vector);
 
-                        if(entity->velocity.x >  entity->movement_speed) entity->velocity.x =  entity->movement_speed;
-                        if(entity->velocity.x < -entity->movement_speed) entity->velocity.x = -entity->movement_speed;
-                    }
-
-                    if(global_game_state.should_jump && entity->jump_counter > 0)
-                    {
-                        entity->is_on_ground = false;
-                        entity->velocity.y   = entity->jump_speed * delta_time; 
-
-                        --entity->jump_counter;
-                        global_game_state.should_jump = false;
-                    }
+                    if(overlap_vector.x != 0) entity->velocity.x = 0.0f;
+                    if(overlap_vector.y != 0) entity->velocity.y = 0.0f;
                 }
-                else
-                {
-                    if(global_game_state.should_dash && entity->dash_counter > 0)
-                    {
-                        if(!entity->dash_clock.begun)
-                        {
-                            entity->dash_clock.start_tick = global_game_state.simulation_tick;
-                            entity->dash_clock.elapsed    = 0;
-                            entity->dash_clock.begun      = true;
-                        }
+            }
+        }
 
-                        if(entity->dash_clock.elapsed < entity->dash_clock.duration)
-                        {
-                            entity->velocity.x = entity->facing_dir * (entity->dash_speed * delta_time);
-                            entity->velocity.y = input_axis.y * (entity->dash_speed * delta_time);
+        entity->position     = vec2_add(entity->position, desired_movement);
+        entity->hit_box.rect = rect2_create(entity->position, entity->render_size);
+    }
 
-                            entity->dash_clock.elapsed += 1;
-                        }
-                        else
-                        {
-                            global_game_state.should_dash = false;
-                            entity->dash_clock.begun      = false;
+    // NOTE(Sleepster): Update actor positions after Discrete/Broad phase collision checks. 
+    for(u32 entity_index = 0;
+        entity_index < global_game_state.entity_manager.active_entity_count;
+        ++entity_index)
+    {
+        entity_t *entity = global_game_state.entity_manager.entities + entity_index;
+        if(entity->e_flags & EF_Actor)
+        {
+            if(entity->position.y <= 0.0f)
+            {
+                entity->is_on_ground = true;
+                entity->position.y   = 0.0f;
+                entity->velocity.y   = 0.0f;
 
-                            --entity->dash_counter;
-                        }
-                    }
-
-                    if(input_axis.x != 0.0f)
-                    {
-                        entity->velocity.x += (input_axis.x * ((entity->x_accel * 0.25) * delta_time));
-                    }
-                }
-
-                if(((entity->e_flags & EF_Gravitic) != 0) && (!entity->dash_clock.begun))
-                {
-                    entity->velocity.y += (entity->gravity_intensity * delta_time);
-                }
-
-                entity->position = vec2_add(entity->position, entity->velocity);
-                if(input_axis.x == 0.0f)
-                {
-                    vec2_t scaled_vel  = vec2_scale(entity->velocity, entity->friction_scale);
-                    entity->velocity.x = scaled_vel.x;
-                }
-
-                if(entity->position.y <= 0.0f)
-                {
-                    entity->is_on_ground = true;
-                    entity->position.y   = 0.0f;
-
-                    entity->jump_counter = entity->max_jumps;
-                    entity->dash_counter = entity->max_dashes;
-                }
-
+                entity->jump_counter = entity->max_jumps;
+                entity->dash_counter = entity->max_dashes;
             }
         }
     }
@@ -380,7 +477,12 @@ initialize_gamestate(render_state_t *render_state, input_manager_t *input_manage
     global_game_state.entity_manager.active_entity_count = 0;
     global_game_state.player = entity_create_player(&global_game_state.entity_manager, asset_manager, vec2_zero());
 
-    entity_create_test_tile(&global_game_state.entity_manager, asset_manager, vec2(-16, 0));
+    for(u32 index = 0;
+        index < 100;
+        ++index)
+    {
+        entity_create_test_tile(&global_game_state.entity_manager, asset_manager, vec2(-16, 0));
+    }
 }
 
 GAME_API external
@@ -461,6 +563,8 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
         {
             entity_t *entity = global_game_state.entity_manager.entities + entity_index;
             entity_render(render_state, asset_manager, entity, alpha);
+
+            r_draw_rect(render_state, entity->hit_box.rect.min, entity->render_size, COLOR_BLUE, 0, RQO_NONE);
         }
         r_renderpass_end(render_state);
     }

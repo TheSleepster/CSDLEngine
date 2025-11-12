@@ -34,7 +34,7 @@ ui_widget_get_interaction_data(UI_state_t *state, UI_widget_t *widget)
     action_button_t    *right_mouse_state = s_input_manager_get_key_state(controller, SDL_RIGHT_MOUSE);
 
     result->widget   = widget;
-    result->hovering = rect2_vec2_test(widget->widget_rect, state->mouse_pos);
+    result->hovering = rect2_vec2_SAT(widget->widget_rect, state->mouse_pos);
     if(result->hovering)
     {
         result->clicked        = left_mouse_state->is_down;

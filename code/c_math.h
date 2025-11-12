@@ -2122,55 +2122,34 @@ typedef struct rectangle2
 {
     vec2_t min;
     vec2_t max;
+    vec2_t center;
+    vec2_t half_size;
 }rectangle2_t;
 
 internal rectangle2_t
 rect2_create(vec2_t position, vec2_t size)
 {
     rectangle2_t result;
-    result.min = position;
-    result.max = vec2_add(position, size);
+    result.min       = position;
+    result.max       = vec2_add(position, size);
+    result.half_size = vec2_scale(size, 0.5f);
+    result.center    = vec2_add(position, result.half_size);
 
     return(result);
 }
 
-internal rectangle2_t
-rect2_shift_by(rectangle2_t rect, vec2_t shift)
+internal void 
+rect2_shift_by(rectangle2_t *rect, vec2_t shift)
 {
-    rectangle2_t result = rect;
-    rect.min = vec2_add(rect.min, shift);
-    rect.max = vec2_add(rect.max, shift);
-
-    return(result);
-}
-
-internal vec2_t 
-rect2_get_center(rectangle2_t rect)
-{
-    vec2_t result;
-    result.x = rect.min.x + (rect.max.x * 0.5f);
-    result.y = rect.min.y + (rect.max.y * 0.5f);
-
-    return(result);
-}
-
-internal rectangle2_t
-rect2_make_centered(rectangle2_t rect)
-{
-    rectangle2_t result;
-    result.min = vec2_add(rect.min, vec2_multiply(rect.max, vec2(0.5f, 0.5f)));
-    result.max = vec2_add(rect.max, vec2_multiply(rect.max, vec2(0.5f, 0.5f)));
-
-    return(result);
+    rect->min    = vec2_add(rect->min, shift);
+    rect->max    = vec2_add(rect->max, shift);
+    rect->center = vec2_add(rect->center, shift);
 }
 
 internal vec2_t
 rect2_get_size(rectangle2_t rect)
 {
-    vec2_t result;
-    vec2_t size = vec2_subtract(rect.max, rect.min);
-    result.x    = fabsf(size.x);
-    result.y    = fabsf(size.y);
+    vec2_t result = vec2_scale(rect.half_size, 2.0f);
 
     return(result);
 }
@@ -2182,17 +2161,149 @@ rect2_get_position(rectangle2_t rect)
 }
 
 internal bool8
-rect2_vec2_test(rectangle2_t rect, vec2_t point)
+rect2_vec2_SAT(rectangle2_t rect, vec2_t point)
 {
     return (point.x >= rect.min.x && point.x <= rect.max.x && 
             point.y >= rect.min.y && point.y <= rect.max.y);
 }
 
 internal bool8
-rect2_AABB_test(rectangle2_t A, rectangle2_t B)
+rect2_AABB_SAT(rectangle2_t A, rectangle2_t B)
 {
     return (A.min.x <= B.max.x && A.max.x >= B.min.x &&
             A.min.y <= B.max.y && A.max.y >= B.min.y);
 }
 
+internal rectangle2_t 
+rect2_minkowski_sum(rectangle2_t A, rectangle2_t B)
+{
+    rectangle2_t result;
+
+    result.min       = vec2_add(A.min, B.min);
+    result.max       = vec2_add(A.max, B.max);
+    result.half_size = vec2_scale(vec2_subtract(result.max, result.min), 0.5f);
+    result.center    = vec2_add(result.min, result.half_size);
+
+    return(result);
+}
+
+internal rectangle2_t
+rect2_minkowski_difference(rectangle2_t A, rectangle2_t B)
+{
+    rectangle2_t result;
+
+    result.min       = vec2_subtract(A.min, B.max);
+    result.max       = vec2_subtract(A.max, B.min);
+    result.half_size = vec2_scale(vec2_subtract(result.max, result.min), 0.5f);
+    result.center    = vec2_add(result.min, result.half_size);
+
+    return(result);
+}
+
+typedef struct raytest 
+{
+    bool32  hit;
+    float32 time;
+    vec2_t  position;
+    vec2_t  normal;
+}raytest_t;
+
+internal raytest_t 
+rect2_ray_test(vec2_t position, vec2_t magnitude, rectangle2_t bounding_box) 
+{
+    raytest_t result = {};
+
+    float32 last_entry = -INFINITY;
+    float32 first_exit =  INFINITY;
+
+    for(u32 axis = 0;
+        axis < 2;
+        ++axis)
+    {
+        if(magnitude.elements[axis] != 0.0f)
+        {
+            float32 time0 = (bounding_box.min.elements[axis] - position.elements[axis]) / magnitude.elements[axis];
+            float32 time1 = (bounding_box.max.elements[axis] - position.elements[axis]) / magnitude.elements[axis];
+
+            last_entry = Max(last_entry, Min(time0, time1));
+            first_exit = Min(first_exit, Max(time0, time1));
+        }
+        else if(position.elements[axis] <= bounding_box.min.elements[axis] || 
+                position.elements[axis] >= bounding_box.max.elements[axis])
+        {
+            return(result);
+        }
+    }
+
+    if(first_exit > last_entry && first_exit > 0.0f && last_entry < 1.0f)
+    {
+        result.hit      = true;
+        result.time     = last_entry;
+        result.position = vec2(position.x + (magnitude.x * last_entry),
+                               position.y + (magnitude.y * last_entry));
+
+        float32 dcenter_x = result.position.x - bounding_box.center.x;
+        float32 dcenter_y = result.position.y - bounding_box.center.y;
+
+        float32 overlap_x = bounding_box.half_size.x - Abs(dcenter_x);
+        float32 overlap_y = bounding_box.half_size.y - Abs(dcenter_y);
+        if(overlap_x < overlap_y)
+        {
+            result.normal.x = (dcenter_x > 0) - (dcenter_x < 0);
+        }
+        else
+        {
+            result.normal.y = (dcenter_y > 0) - (dcenter_y < 0);
+        }
+    }
+
+    return(result);
+}
+
+internal raytest_t 
+rect2_sweep_test(rectangle2_t moving_rect, vec2_t velocity, rectangle2_t static_rect)
+{
+    raytest_t result;
+    rectangle2_t expanded_box;
+    expanded_box.min       = vec2_subtract(static_rect.min, moving_rect.half_size);
+    expanded_box.max       = vec2_add(static_rect.max, moving_rect.half_size);
+    expanded_box.center    = vec2_scale(vec2_add(expanded_box.min, expanded_box.max), 0.5f);
+    expanded_box.half_size = vec2_scale(vec2_subtract(expanded_box.max, expanded_box.min), 0.5f);
+
+    result = rect2_ray_test(moving_rect.center, velocity, expanded_box);
+
+    return(result);
+}
+
+internal vec2_t
+rect2_get_vector_depth(rectangle2_t rect)
+{
+    vec2_t result;
+
+    float32 min_distance = Abs(rect.min.x);
+    result.x = rect.min.x;
+    result.y = 0.0f;
+
+    if (Abs(rect.max.x) < min_distance)
+    {
+        min_distance = Abs(rect.max.x);
+        result.x = rect.max.x;
+        result.y = 0.0f;
+    }
+
+    if (Abs(rect.min.y) < min_distance)
+    {
+        min_distance = Abs(rect.min.y);
+        result.x = 0.0f;
+        result.y = rect.min.y;
+    }
+
+    if (Abs(rect.max.y) < min_distance)
+    {
+        result.x = 0.0f;
+        result.y = rect.max.y;
+    }
+
+    return result;
+}
 #endif
