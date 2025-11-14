@@ -1,2 +1,2 @@
 #!/bin/bash
-bear --output "../misc/compile_commands.json" -- make -k SILENT=@ DEBUG=1 ASSERT_ENABLED=1 DEVELOPER_BUILD=0
+bear --output "../misc/compile_commands.json" -- make -k SILENT_OUTPUT=@ DEBUG=1 PROFILER_ENABLED=0 ASSERT_ENABLED=1 INTERNAL_BUILD=1 DLL_RELOADING=1 RENDERER_BACKEND=OPENGL

@@ -5,7 +5,6 @@
    $Creator: Justin Lewis $
    ======================================================================== */
 #include "l_runtime_data.cpp"
-#include "g_test.cpp"
 
 #define COLOR_WHITE  ((vec4_t){1.0, 1.0, 1.0, 1.0})
 #define COLOR_RED    ((vec4_t){1.0, 0.0, 0.0, 1.0})
@@ -69,6 +68,7 @@ enum entity_flags
     EF_Gravitic = 1ul << 2,
     EF_Actor    = 1ul << 3,
     EF_Static   = 1ul << 4,
+    EF_IsGround = 1ul << 5,
 };
 
 struct entity_t
@@ -113,13 +113,17 @@ struct entity_manager_t
     u32      active_entity_count;
 };
 
+#include "g_test.cpp"
+#include "g_editor.cpp"
 
 struct game_state_t 
 {
     bool8               is_initialized;
     input_controller_t *controller;
     render_group_t     *entity_render_group;
+
     entity_manager_t    entity_manager;
+    game_map_editor_t   map_editor;
 
     u32                 physics_iterations;
 
@@ -135,7 +139,6 @@ struct game_state_t
 
     bool8               in_editor;
 };
-
 global game_state_t global_game_state;
 
 internal entity_t* 
@@ -335,14 +338,30 @@ entity_update_player(entity_t *entity, vec2_t input_axis, float32 delta_time)
 }
 
 internal void
-col_stationary_response(entity_t *entity)
+initialize_gamestate(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager)
 {
+    r_reset_draw_frame_pipeline_state(render_state);
+    global_game_state.controller = s_input_manager_get_primary_controller(input_manager);
+    global_game_state.input_data_file = c_file_open(STR("InputData.idf"), true);
+
+    mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
+    mat4_t view_matrix       = mat4_identity();
+    render_group_desc_t test_group_desc = r_renderpass_build_pass_desc(render_state,
+                                                                      &render_state->test_shader,
+                                                                       16,
+                                                                       view_matrix,
+                                                                       projection_matrix,
+                                                                       RGE_None);
+    global_game_state.entity_render_group = r_renderpass_get_or_create(render_state, &test_group_desc);
+    r_renderpass_end(render_state);
+    log_info("Input Manager is size: '%d'\n", sizeof(input_manager_t));
+
+    global_game_state.entity_manager.active_entity_count = 0;
+    global_game_state.player = entity_create_player(&global_game_state.entity_manager, asset_manager, vec2_zero());
+
+    entity_create_test_tile(&global_game_state.entity_manager, asset_manager, vec2(-16, 0));
 }
 
-internal void
-col_sweep_response(entity_t *entity)
-{
-}
 
 internal void
 game_simulate(vec2_t input_axis, float32 delta_time)
@@ -375,6 +394,14 @@ game_simulate(vec2_t input_axis, float32 delta_time)
                 entity->velocity.y += (entity->gravity_intensity * delta_time);
             }
         }
+    }
+
+    // NOTE(Sleepster): Broad Phase Collision Detection 
+    for(u32 entity_index = 0;
+        entity_index < global_game_state.entity_manager.active_entity_count;
+        ++entity_index)
+    {
+         // TODO(Sleepster): this 
     }
 
     // NOTE(Sleepster): Discrete Entity Collision Detection loop
@@ -455,44 +482,12 @@ game_simulate(vec2_t input_axis, float32 delta_time)
     }
 }
 
-internal void
-initialize_gamestate(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager)
-{
-    r_reset_draw_frame_pipeline_state(render_state);
-    global_game_state.controller = s_input_manager_get_primary_controller(input_manager);
-    global_game_state.input_data_file = c_file_open(STR("InputData.idf"), true);
-
-    mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
-    mat4_t view_matrix       = mat4_identity();
-    render_group_desc_t test_group_desc = r_renderpass_build_pass_desc(render_state,
-                                                                      &render_state->test_shader,
-                                                                       16,
-                                                                       view_matrix,
-                                                                       projection_matrix,
-                                                                       RGE_None);
-    global_game_state.entity_render_group = r_renderpass_get_or_create(render_state, &test_group_desc);
-    r_renderpass_end(render_state);
-    log_info("Input Manager is size: '%d'\n", sizeof(input_manager_t));
-
-    global_game_state.entity_manager.active_entity_count = 0;
-    global_game_state.player = entity_create_player(&global_game_state.entity_manager, asset_manager, vec2_zero());
-
-    for(u32 index = 0;
-        index < 100;
-        ++index)
-    {
-        entity_create_test_tile(&global_game_state.entity_manager, asset_manager, vec2(-16, 0));
-    }
-}
-
 GAME_API external
-GAME_UPDATE_AND_RENDER(g_update_and_render)
+GAME_UPDATE_AND_RENDER(game_update_and_render)
 {
-#ifdef INTERNAL_DEBUG
     DEBUG_TIMED_BLOCK();
-#endif
 
-#if DEVELOPER_BUILD
+#if PROFILER_ENABLED 
     if(global_context == null)
     {
         global_context = context;
@@ -506,7 +501,7 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
         initialize_gamestate(render_state, input_manager, asset_manager);
         global_game_state.is_initialized = true;
     }
-    //r_DEBUG_test_render(render_state, audio_manager, asset_manager, delta_time);
+    //r_DEBUG_test_render(render_state, audio_manager, asset_manager, UPDATE_RATE);
 
     // NOTE(Sleepster): Input Processing
     global_game_state.input_axis = {};
@@ -535,21 +530,35 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
         {
             global_game_state.should_dash = true;
         }
+
+        if(s_input_manager_is_keyboard_key_pressed(global_game_state.controller, SDL_SCANCODE_E) &&
+           s_input_manager_is_control_key_down(global_game_state.controller))
+        {
+            global_game_state.in_editor = !global_game_state.in_editor;
+        }
+
         global_game_state.input_axis = vec2_normalize(global_game_state.input_axis);
     }
 
     // NOTE(Sleepster): Simulate Loop 
     {
-        dt_accumulator += frame_time;
-        if(frame_time >= (UPDATE_RATE * 2.0f))
+        if(!global_game_state.in_editor)
         {
-            frame_time = UPDATE_RATE * 2.0f;
-        }
+            dt_accumulator += frame_time;
+            if(frame_time >= (UPDATE_RATE * 2.0f))
+            {
+                frame_time = UPDATE_RATE * 2.0f;
+            }
 
-        while(dt_accumulator >= UPDATE_RATE)
+            while(dt_accumulator >= UPDATE_RATE)
+            {
+                game_simulate(global_game_state.input_axis, UPDATE_RATE);
+                dt_accumulator -= UPDATE_RATE;
+            }
+        }
+        else
         {
-            game_simulate(global_game_state.input_axis, UPDATE_RATE);
-            dt_accumulator -= UPDATE_RATE;
+            game_editor_update(render_state, &global_game_state.map_editor);
         }
     }
     float32 alpha = (dt_accumulator / UPDATE_RATE);
@@ -564,9 +573,11 @@ GAME_UPDATE_AND_RENDER(g_update_and_render)
             entity_t *entity = global_game_state.entity_manager.entities + entity_index;
             entity_render(render_state, asset_manager, entity, alpha);
 
-            r_draw_rect(render_state, entity->hit_box.rect.min, entity->render_size, COLOR_BLUE, 0, RQO_NONE);
+            // NOTE(Sleepster): Draws colliders 
+            //r_draw_rect(render_state, entity->hit_box.rect.min, entity->render_size, COLOR_BLUE, 0, RQO_NONE);
         }
         r_renderpass_end(render_state);
     }
+
 }
 

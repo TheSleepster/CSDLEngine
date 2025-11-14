@@ -10,7 +10,6 @@
 
 #include "DEBUG_core.h"
 
-#if INTERNAL_DEBUG
 internal void 
 DEBUG_create_debug_state(render_state_t  *render_state, 
                          input_manager_t *input_manager, 
@@ -73,6 +72,7 @@ DEBUG_create_debug_state(render_state_t  *render_state,
 internal true_inline void
 DEBUG_record_event(u32 record_index, u8 type)
 {
+    Assert(DEBUG_global_state != null);
     if(DEBUG_global_state->is_collecting)
     {
         Assert(DEBUG_global_state->next_debug_event_index < MAX_DEBUG_EVENTS);
@@ -92,6 +92,8 @@ DEBUG_record_event(u32 record_index, u8 type)
 internal inline void
 DEBUG_set_event_marker(u8 type)
 {
+    Assert(DEBUG_global_state != null);
+
     if(DEBUG_global_state->is_collecting)
     {
         u32 event_index = AtomicIncrement(&DEBUG_global_state->next_debug_event_index);
@@ -104,6 +106,8 @@ DEBUG_set_event_marker(u8 type)
 internal u32 
 DEBUG_register_performance_counter(char *filename, char *block_name, u32 line_number)
 {
+    Assert(DEBUG_global_state != null);
+
     u32 result = (u32)-1;
     for(u32 counter_index = 0;
         counter_index < DEBUG_global_state->next_debug_record_entry_index;
@@ -334,8 +338,10 @@ DEBUG_append_thread_event(DEBUG_event_t *event)
 }
 
 internal void
-DEBUG_handle_events(input_controller_t *DEBUG_controller)
+DEBUG_handle_events(input_manager_t *input_manager)
 {
+    input_controller_t *DEBUG_controller = s_input_manager_get_primary_controller(input_manager);
+
     DEBUG_handle_ui_input(DEBUG_controller);
     if(DEBUG_global_state->is_collecting)
     {
@@ -636,7 +642,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 float32 height = lane_height_per_depth;
 
                 // NOTE(Sleepster): Draw scope bar
-                r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
+                r_renderpass_begin(render_state, DEBUG_global_state->transparent_group);
                 u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
                 r_draw_rect(render_state,
                             vec2(x, y),
@@ -677,7 +683,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 rectangle2_t bar_rect = rect2_create(vec2(x, y), vec2(width, height));
                 if(rect2_vec2_SAT(bar_rect, mouse))
                 {
-                    r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
+                    r_renderpass_begin(render_state, DEBUG_global_state->transparent_group);
                     DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;
                     char buffer[4096];
                     snprintf(buffer,
@@ -791,8 +797,9 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
 }
 
 internal void
-DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
+DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
 {
+    input_controller_t *controller = s_input_manager_get_primary_controller(input_manager);
     asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     if(DEBUG_global_state->overlay_active)
     {
@@ -869,4 +876,3 @@ DEBUG_render_group_to_output(input_controller_t *controller, asset_manager_t *as
         r_reset_draw_frame_pipeline_state(render_state);
     }
 }
-#endif

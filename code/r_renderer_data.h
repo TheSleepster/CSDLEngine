@@ -190,6 +190,8 @@ typedef struct render_group_pipeline_state
     bool8                            wants_depth_testing;
     bool8                            wants_depth_writing;
     bool8                            wants_blending;
+
+    float32                          line_width;
 }render_group_pipeline_state_t;
 
 typedef struct render_group_desc
@@ -266,6 +268,8 @@ typedef struct draw_frame
     bool8                            depth_testing_active;
     bool8                            depth_mask_active;
     bool8                            blending_active;
+
+    float32                          line_width;
 }draw_frame_t;
 
 typedef struct render_state

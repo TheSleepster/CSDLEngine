@@ -3,6 +3,11 @@
     "arguments": [
       "/usr/bin/clang++",
       "-c",
+      "-DASSERT_ENABLED=1",
+      "-DINTERNAL_BUILD=1",
+      "-DPROFILER_ENABLED=0",
+      "-DRENDERER_BACKEND=RENDERER_BACKEND_OPENGL",
+      "-DDLL_RELOADING=1",
       "-g",
       "-O0",
       "-fno-inline-functions",
@@ -23,9 +28,6 @@
       "-Wno-pointer-integer-compare",
       "-Wno-writable-strings",
       "-Wno-deprecated",
-      "-DINTERNAL_DEBUG=1",
-      "-DASSERT_ENABLED=1",
-      "-DDEVELOPER_BUILD=0",
       "-I../code/",
       "-I../run_tree/deps/",
       "-I../run_tree/deps/stb/",
@@ -34,13 +36,15 @@
       "-I../run_tree/deps/SDL3/include/",
       "-I../run_tree/deps/Freetype/include/",
       "-DOS_LINUX=1",
+      "-DEVELOPER_BUILD=1",
+      "-fPIC",
       "-o",
-      "../build/Thor_debug",
-      "../code/main.cpp"
+      "../run_tree/res/game_debug.so",
+      "../code/g_main.cpp"
     ],
     "directory": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code",
-    "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/main.cpp",
-    "output": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/build/Thor_debug"
+    "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/g_main.cpp",
+    "output": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/run_tree/res/game_debug.so"
   },
   {
     "arguments": [
@@ -51,7 +55,7 @@
       "-O0",
       "-emit-obj",
       "-dumpdir",
-      "../build/Thor_debug-",
+      "../run_tree/res/game_debug.so-",
       "-disable-free",
       "-clear-ast-before-backend",
       "-disable-llvm-verifier",
@@ -61,7 +65,7 @@
       "pic",
       "-pic-level",
       "2",
-      "-pic-is-pie",
+      "-fhalf-no-semantic-interposition",
       "-mframe-pointer=all",
       "-fmath-errno",
       "-ffp-contract=on",
@@ -79,14 +83,16 @@
       "-fcoverage-compilation-dir=/home/justin/personal/projects/c++stuff/CSDLEngine/code",
       "-resource-dir",
       "/usr/lib/clang/21",
-      "-dependency-file",
-      "../build/engine.d",
-      "-D",
-      "INTERNAL_DEBUG=1",
       "-D",
       "ASSERT_ENABLED=1",
       "-D",
-      "DEVELOPER_BUILD=0",
+      "INTERNAL_BUILD=1",
+      "-D",
+      "PROFILER_ENABLED=0",
+      "-D",
+      "RENDERER_BACKEND=RENDERER_BACKEND_OPENGL",
+      "-D",
+      "DLL_RELOADING=1",
       "-I",
       "../code/",
       "-I",
@@ -103,6 +109,8 @@
       "../run_tree/deps/Freetype/include/",
       "-D",
       "OS_LINUX=1",
+      "-D",
+      "EVELOPER_BUILD=1",
       "-internal-isystem",
       "/usr/bin/../lib64/gcc/x86_64-pc-linux-gnu/15.2.1/../../../../include/c++/15.2.1",
       "-internal-isystem",
@@ -150,11 +158,11 @@
       "-x",
       "c++",
       "-o",
-      "/tmp/main-132eb8.o",
-      "main.cpp"
+      "/tmp/g_main-69c45a.o",
+      "g_main.cpp"
     ],
     "directory": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code",
-    "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/main.cpp",
-    "output": "/tmp/main-132eb8.o"
+    "file": "/mnt/windows_drive/Users/ibjal/Documents/C++Stuff/CSDLEngine/code/g_main.cpp",
+    "output": "/tmp/g_main-69c45a.o"
   }
 ]

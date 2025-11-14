@@ -5,9 +5,9 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
-#include "r_render_API.h"
-
 #define DEBUG_CORE_H
+
+#include "r_render_API.h"
 
 #define MAX_DEBUG_FRAME_HISTORY  (1024)
 #define MAX_DEBUG_SNAPSHOTS      (MAX_DEBUG_FRAME_HISTORY)
@@ -16,11 +16,15 @@
 #define MAX_DEBUG_EVENTS         (100000)
 #define MAX_DEBUG_THREADS        (32)
 
+#if PROFILER_ENABLED
 #define DEBUG_TIMED_BLOCK()                                             \
     local_persist u32 DEBUG_record_index = (u32)-1;                     \
     if(DEBUG_record_index == (u32)-1)                                   \
         DEBUG_record_index = DEBUG_register_performance_counter((char *)__FILE__, (char *)__FUNCTION__, __LINE__); \
     new_timed_block_t block_timer_##__LINE__(DEBUG_record_index);        
+#else
+#define DEBUG_TIMED_BLOCK()
+#endif
 
 typedef struct render_group render_group_t;
 typedef struct asset_manager asset_manager_t;
@@ -163,6 +167,7 @@ struct DEBUG_flame_stack_t
     u32             depth;
 };
 
+#if defined(PROFILER_ENABLED) || defined(DLL_RELOADING)
 internal void                DEBUG_create_debug_state(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager);
 internal void                DEBUG_handle_ui_input(input_controller_t *DEBUG_controller);
 internal true_inline void    DEBUG_record_event(u32 record_index, u8 type);
@@ -173,7 +178,9 @@ internal void                DEBUG_handle_events();
 internal vec2_t              DEBUG_display_record_data(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font, float32 delta_time);
 internal void                DEBUG_render_section_graph(asset_manager_t *asset_manager, render_state_t *render_state, asset_handle_t font_handle, vec2_t starting_pos, input_controller_t *controller);
 internal void                DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index);
+#endif 
 
+#ifdef PROFILER_ENABLED
 struct new_timed_block_t
 {
     u32 m_record_index;
@@ -188,6 +195,7 @@ struct new_timed_block_t
         DEBUG_record_event(m_record_index, DEBUG_EVENT_TIMER_END);
     }
 };
+#endif
 
 global DEBUG_state_data_t *DEBUG_global_state;
 #endif

@@ -5,16 +5,14 @@
    $Creator: Justin Lewis $
    ======================================================================== */
 #include "l_runtime_data.cpp"
-#include "r_opengl.cpp"
 
-#if DEVELOPER_BUILD
-    #define game_update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state) game_functions.update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state)
+#if DLL_RELOADING
+    #define game_update_and_render(...) game_functions.update_and_render(__VA_ARGS__) 
     GAME_UPDATE_AND_RENDER(g_update_and_render_stub)
     {
     }
 #else
     #include "g_main.cpp"
-    #define game_update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state) g_update_and_render(context, render_state, audio_manager, asset_manager, input_manager, delta_time, DEBUG_global_state)
 #endif
 
 struct game_dll_data_t
@@ -29,10 +27,11 @@ DEBUG_game_load_library(game_dll_data_t *game_data)
 #if OS_WINDOWS
     string_t game_dll      = STR("game_debug.dll");
     string_t game_copy_dll = STR("game_debug_COPY.dll");
-    c_file_copy(game_dll, game_copy_dll);
 #else
-    string_t game_copy_dll = STR("./game_debug.so");
+    string_t game_dll      = STR("./game_debug.so");
+    string_t game_copy_dll = STR("./game_debug_COPY.so");
 #endif
+    c_file_copy(game_dll, game_copy_dll);
 
     game_data->game_lib = os_load_library(game_copy_dll);
 }
@@ -40,11 +39,11 @@ DEBUG_game_load_library(game_dll_data_t *game_data)
 internal void
 DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functions)
 {
-#if DEVELOPER_BUILD
+#if DLL_RELOADING
     DEBUG_game_load_library(game_data);
     if(game_data->game_lib)
     {
-        game_data->update_and_render = (game_update_and_render_t *)os_get_proc_address(game_data->game_lib, STR("g_update_and_render"));
+        game_data->update_and_render = (game_update_and_render_t *)os_get_proc_address(game_data->game_lib, STR("game_update_and_render"));
         if(!game_data->update_and_render)
         {
             log_fatal("Failure to acquire the game function 'g_update_and_render'...\n");
@@ -56,7 +55,7 @@ DEBUG_get_game_functions(game_dll_data_t *game_data, GPU_functions_t *gpu_functi
         game_data->update_and_render = g_update_and_render_stub;
     }
 #else
-    game_data->update_and_render = g_update_and_render;
+    game_data->update_and_render = game_update_and_render;
 #endif
 
     if(gpu_functions)
@@ -121,7 +120,7 @@ FILE_WATCHER_CALLBACK(test_callback)
         }break;
         case FILE_EXT_OS_DLL:
         {
-#if DEVELOPER_BUILD
+#if DLL_RELOADING
 #if OS_WINDOWS
             string_t game_dll_name = STR("game_debug.dll");
             filename.count += 4;
@@ -211,7 +210,7 @@ main(int argc, char **argv)
         global_context->window_size = vec2(1920.0f, 1080.0f);
 
         asset_manager_t asset_manager = {};
-#if DEVELOPER_BUILD
+#if DLL_RELOADING
         GPU_functions_t GPU_functions  = {};
         game_dll_data_t game_functions = {};
         DEBUG_get_game_functions(&game_functions, &GPU_functions);
@@ -224,12 +223,12 @@ main(int argc, char **argv)
         input_manager_t input_manager = {};
         s_input_manager_initialize_keyboard_controller(&input_manager, 0);
 
-#if INTERNAL_DEBUG
-        DEBUG_create_debug_state(&render_state, &input_manager, &asset_manager);
-#endif
-
         multithreading_work_queue_manager_t work_manager = {};
         s_work_queue_manager_init(&work_manager);
+
+#if defined(PROFILER_ENABLED) || defined(DLL_RELOADING)
+        DEBUG_create_debug_state(&render_state, &input_manager, &asset_manager);
+#endif
 
         s_asset_manager_init(&asset_manager, STR("asset_file.wad"));
         asset_manager.queue_manager = &work_manager;
@@ -237,7 +236,9 @@ main(int argc, char **argv)
         audio_manager_t audio_manager = {};
         s_audio_manager_init(&audio_manager);
 
+#if PROFILER_ENABLED 
         ui_init_state(&render_state, &input_manager, &asset_manager, &DEBUG_global_state->UI_data);
+#endif
 
         u64 performance_counter_frequency = SDL_GetPerformanceFrequency();
         u64 last_tsc                      = SDL_GetPerformanceCounter();
@@ -249,7 +250,6 @@ main(int argc, char **argv)
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../res/"));
         c_file_watcher_issue_check_over_all_paths(&watcher);
-        input_controller_t *controller = s_input_manager_get_primary_controller(&input_manager);
 
         global_context->running = true;
         while(global_context->running)
@@ -260,8 +260,12 @@ main(int argc, char **argv)
             c_file_watcher_process_changes(&watcher);
 
             s_audio_manager_fill_sound_buffer(&asset_manager, &audio_manager, delta_time);
+#if PROFILER_ENABLED
             game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, &input_manager, delta_time, DEBUG_global_state);
-            DEBUG_render_group_to_output(controller, &asset_manager, &render_state, frame_time_in_ms);
+            DEBUG_render_group_to_output(&input_manager, &asset_manager, &render_state, frame_time_in_ms);
+#else
+            game_update_and_render(global_context, &render_state, &audio_manager, &asset_manager, &input_manager, delta_time);
+#endif
 
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);
@@ -278,10 +282,10 @@ main(int argc, char **argv)
             frame_time_in_ms = delta_time * 1000; 
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
 
-#if INTERNAL_DEBUG
+#if PROFILER_ENABLED 
             DEBUG_set_event_marker(DEBUG_EVENT_FRAME_END);
-            DEBUG_handle_events(controller);
-    #if DEVELOPER_BUILD
+            DEBUG_handle_events(&input_manager);
+    #if DLL_RELOADING
             if(DEBUG_global_state->should_reload_dll)
             {
                 DEBUG_reload_game_functions(&game_functions);

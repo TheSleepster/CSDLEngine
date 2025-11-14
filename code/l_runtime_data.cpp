@@ -45,10 +45,9 @@
 #include "r_asset_texture.h"
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
+#include "DEBUG_core.h"
 
-#if INTERNAL_DEBUG
 #include "DEBUG_core.cpp"
-#endif
 
 #include "c_memory_arena.cpp"
 #include "c_zone_allocator.cpp"
@@ -69,8 +68,27 @@
 #include "r_asset_dynamic_render_font.cpp"
 #include "r_render_API.cpp"
 
+#if RENDERER_BACKEND == RENDERER_BACKEND_OPENGL
+#include "r_opengl.cpp"
+#elif RENDERER_BACKEND == RENDERER_BACKEND_VULKAN
+#include "r_vulkan.cpp"
+#elif RENDERER_BACKEND == RENDERER_BACKEND_SDL_GPU
+#include "r_sdl_gpu.cpp"
+#elif RENDERER_BACKEND == RENDERER_BACKEND_HEADLESS
+#include "r_headless_renderer.cpp"
+#else
+#error Invalid backend...
+#endif
+
+
 // TODO(Sleepster): No debug state in release builds...
+
+#if PROFILER_ENABLED
 #define GAME_UPDATE_AND_RENDER(name) void name(global_context_t *context, render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, input_manager_t *input_manager, float32 frame_time, DEBUG_state_data_t *DEBUG_global_state_in) 
+#else
+#define GAME_UPDATE_AND_RENDER(name) void name(global_context_t *context, render_state_t *render_state, audio_manager_t *audio_manager, asset_manager_t *asset_manager, input_manager_t *input_manager, float32 frame_time) 
+#endif
+
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_t);
 
 #endif
