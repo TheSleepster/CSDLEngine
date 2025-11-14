@@ -320,7 +320,7 @@ typedef struct render_state
 ////////////////////////////
 // RENDER API FUNCTIONS
 ////////////////////////////
-#if DEVELOPER_BUILD
+#if DLL_RELOADING 
 // TODO(Sleepster): rename to r_texture_upload()
     void r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_type);
     void r_texture_delete_(texture_view_t *view);
