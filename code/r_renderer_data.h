@@ -210,18 +210,24 @@ typedef struct render_group_desc
     bool32                              supports_transparency;
 }render_group_desc_t;
 
+typedef struct geometry_buffer
+{
+    geometry_buffer   *next_buffer;
+
+    vertex_t          *vertex_list;
+    render_quad_t     *quad_list;
+    render_line_t     *line_list;
+
+    u32                quad_count;
+    u32                line_count;
+}geometry_buffer_t;
+
 typedef struct render_group
 {
     render_group_desc_t render_desc;
-
-    render_quad_t      *quad_buffer;
-    u32                 quad_count;
-
-    render_line_t      *line_buffer;
-    u32                 line_count;
-
-    vertex_t           *vertex_buffer;
-    u32                 vertex_count;
+    geometry_buffer_t  *first_buffer;
+    u32                 next_filled_quad_buffer;
+    u32                 next_filled_line_buffer;
 
     u32 textureIDs[MAX_TEXTURES];
     u32 desired_texture_count;
@@ -240,6 +246,25 @@ typedef struct render_phase_data
 ///////////////////////
 // RENDER DATA
 ///////////////////////
+
+typedef struct pipeline_state 
+{
+    render_group_blending_mode_t     active_src_color_blend_mode;
+    render_group_blending_mode_t     active_dst_color_blend_mode;
+    render_group_blending_equation_t active_color_blend_eq;
+
+    render_group_blending_mode_t     active_src_alpha_blend_mode;
+    render_group_blending_mode_t     active_dst_alpha_blend_mode;
+    render_group_blending_equation_t active_alpha_blend_eq;
+
+    render_group_depth_function_t    active_depth_func;
+
+    bool8                            depth_testing_active;
+    bool8                            depth_mask_active;
+    bool8                            blending_active;
+
+    u8                               render_line_width;
+}pipeline_state_t;
 
 typedef struct draw_frame
 {

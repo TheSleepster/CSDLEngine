@@ -26,6 +26,18 @@
 
 typedef struct asset_file_table_of_contents asset_file_table_of_contents_t;
 
+#if 0
+typedef struct render_material
+{
+    u32           material_ID;
+    u32           texture_ID;
+    u32           effect_mask;
+    float32       emmisive_strength;
+
+    GPU_shader_t *shader;
+}render_material_t;
+#endif
+
 typedef enum asset_type
 {
     AT_NONE,
