@@ -27,6 +27,7 @@ DEBUG_create_debug_state(render_state_t  *render_state,
     DEBUG_global_state->UI_data                = {};
     //ui_init_state(render_state, input_manager, asset_manager, &DEBUG_global_state->UI_data);
     
+#if 0
     mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
     mat4_t font_view_matrix = mat4_identity();
 
@@ -67,6 +68,7 @@ DEBUG_create_debug_state(render_state_t  *render_state,
                                                                                     RGPT_Quads);
     DEBUG_global_state->transparent_group = r_renderpass_get_or_create(render_state, &DEBUG_group_desc_transparent);
     r_reset_draw_frame_pipeline_state(render_state);
+#endif
 }
 
 internal true_inline void
@@ -571,6 +573,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                            vec2_t             starting_pos,
                            input_controller_t *controller)
 {
+#if 0
     const vec4_t colors[] =
     {
         {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
@@ -739,6 +742,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         current_pos.y += lane_height + 10.0f;
         thread->region_count = 1;
     }
+#endif
 }
 
 internal vec2_t  
@@ -747,6 +751,7 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           asset_handle_t   font,
                           float32          delta_time)
 {
+#if 0
     vec2_t starting_pos  = vec2(-960, 500);
     for(u32 record_index = 0;
         record_index < DEBUG_global_state->next_debug_record_entry_index;
@@ -794,6 +799,8 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                   RQO_NONE);
 
     return(starting_pos);
+#endif
+    return(vec2(0, 0));
 }
 
 internal void
@@ -848,7 +855,7 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
         ui_render_all_widgets(render_state, asset_manager, &DEBUG_global_state->UI_data);
 
-        r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
+        r_renderpass_begin(render_state);
         vec2_t ending_pos = {-900, -400};
         if(DEBUG_global_state->display_cycle_counters)
         {
@@ -856,7 +863,7 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
         }
         r_renderpass_end(render_state);
 
-        r_renderpass_begin(render_state, DEBUG_global_state->transparent_group);
+        r_renderpass_begin(render_state);
         if(DEBUG_global_state->display_cycle_counters || DEBUG_global_state->display_call_graph)
         {
             r_draw_rect(render_state,
@@ -873,6 +880,6 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
             DEBUG_render_section_graph(asset_manager, render_state, font_handle, ending_pos, controller);
         }
 
-        r_reset_draw_frame_pipeline_state(render_state);
+        r_pipeline_state_reset(render_state);
     }
 }

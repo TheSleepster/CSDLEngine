@@ -9,6 +9,7 @@ struct game_map_editor_t
     render_group_t *editor_grid;
 };
 
+#if 0
 internal void
 game_editor_init(render_state_t *render_state, game_map_editor_t *editor)
 {
@@ -29,3 +30,4 @@ internal void
 game_editor_update(render_state_t *render_state, game_map_editor_t *editor)
 {
 }
+#endif

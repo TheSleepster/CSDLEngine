@@ -137,7 +137,7 @@ engine: $(ENGINE_OUT)
 
 $(ENGINE_OUT): $(ENGINE_SRC) |  ../run_tree/res
 	@echo Building Engine EXE: $@ ...
-	$(SILENT_OUTPUT)$(CXX) $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/engine.d
+	$(SILENT_OUTPUT)$(CXX) -Wno-undefined-internal $(CFLAGS) $(COMMON_INCLUDE_PATHS) $(OS_DEFINE) $< $(ENGINE_LIBS) $(LDFLAGS) -o $@ -MMD -MF ../build/engine.d
 
 # -------------------------------------------------------------------------
 # Game DLL
@@ -167,8 +167,6 @@ clean:
 # -------------------------------------------------------------------------
 # Auto deps
 # -------------------------------------------------------------------------
--include ../build/engine.d
--include ../build/asset_file_builder.d
 
 ifeq ($(BUILD_TESTS),1)
 -include $(patsubst ../code/tests/%.c,../build/test_%.d,$(TESTS_SRC))

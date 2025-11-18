@@ -141,6 +141,7 @@ struct game_state_t
 };
 global game_state_t global_game_state;
 
+#if 0
 internal entity_t* 
 entity_create(entity_manager_t *entity_manager)
 {
@@ -482,6 +483,8 @@ game_simulate(vec2_t input_axis, float32 delta_time)
     }
 }
 
+#endif
+
 GAME_API external
 GAME_UPDATE_AND_RENDER(game_update_and_render)
 {
@@ -498,10 +501,14 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
     // NOTE(Sleepster): Initialize Gamestate
     if(!global_game_state.is_initialized) 
     {
+#if 0
         initialize_gamestate(render_state, input_manager, asset_manager);
+#endif
         global_game_state.is_initialized = true;
     }
-    //r_DEBUG_test_render(render_state, audio_manager, asset_manager, UPDATE_RATE);
+    r_DEBUG_test_render(render_state, audio_manager, asset_manager, UPDATE_RATE);
+    
+#if 0
 
     // NOTE(Sleepster): Input Processing
     global_game_state.input_axis = {};
@@ -578,5 +585,5 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
         }
         r_renderpass_end(render_state);
     }
-
+#endif
 }

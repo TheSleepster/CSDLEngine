@@ -7,7 +7,7 @@
    ======================================================================== */
 #define DEBUG_CORE_H
 
-#include "r_render_API.h"
+#include "r_render_data.h"
 
 #define MAX_DEBUG_FRAME_HISTORY  (1024)
 #define MAX_DEBUG_SNAPSHOTS      (MAX_DEBUG_FRAME_HISTORY)

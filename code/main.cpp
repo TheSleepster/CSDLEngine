@@ -245,7 +245,7 @@ main(int argc, char **argv)
         u64 current_tsc                   = 0;
         u64 delta_tsc                     = 0;
         float64 delta_time                = 0.0;
-        float64 frame_time_in_ms          = 0.0;
+        //float64 frame_time_in_ms          = 0.0;
 
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../res/"));
@@ -254,7 +254,7 @@ main(int argc, char **argv)
         global_context->running = true;
         while(global_context->running)
         {
-            r_reset_draw_frame_pipeline_state(&render_state);
+            //r_reset_draw_frame_pipeline_state(&render_state);
             s_input_manager_reset_controller_states(&input_manager);
             c_process_window_events(window, &input_manager);
             c_file_watcher_process_changes(&watcher);
@@ -270,7 +270,7 @@ main(int argc, char **argv)
             r_render_single_frame(&asset_manager, &render_state);
             SDL_GL_SwapWindow(window);
 
-            c_arena_reset(&render_state.draw_frame_arena);
+            c_arena_reset(&render_state.frame_arena);
             ZeroStruct(render_state.draw_frame);
             gc_reset_temporary_data();
 
@@ -279,7 +279,7 @@ main(int argc, char **argv)
             last_tsc    = current_tsc;
 
             delta_time       = (float32)(((float64)delta_tsc) / (float64)performance_counter_frequency);
-            frame_time_in_ms = delta_time * 1000; 
+            //frame_time_in_ms = delta_time * 1000; 
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
 
 #if PROFILER_ENABLED 

@@ -4,7 +4,7 @@
    $Revision: $
    $Creator: Justin Lewis $
    ======================================================================== */
-#include "r_renderer_data.h"
+#include "r_render_data.h"
 
 UPDATE_GPU_SHADER_STORAGE_BUFFER_OBJECT(gl_update_ssbo)
 {
@@ -520,6 +520,7 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
         }
         else
         {
+#if 0
             if(working_group != null && uniform_data->type == SUT_TEXTURE_BINDING && update_texture_bindings)
             {
                 for(u32 texture_index = 0;
@@ -547,6 +548,7 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
                 log_error("We do not currently suppor texture arrays...");
                 Assert(uniform_data->type == SUT_TEXTURE_ARRAY);
             }
+#endif
         }
     }
 
@@ -595,14 +597,19 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
 internal void
 r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 {
-    render_state->draw_frame_arena = c_arena_create(MB(100));
-    render_state->renderer_arena   = c_arena_create(MB(100));
+    render_state->frame_arena      = c_arena_create(MB(100));
+    render_state->persistant_arena = c_arena_create(MB(100));
 
-    Assert(render_state->draw_frame_arena.base != null);
+    Assert(render_state->frame_arena.base != null);
+    Assert(render_state->persistant_arena.base != null);
+
+    render_state->backend = c_arena_push_struct(&render_state->persistant_arena, render_backend_data_t);
+    Assert(render_state->backend);
+
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
-    render_state->backend_framebuffer_width  = 320;
-    render_state->backend_framebuffer_height = 180;
+    render_state->framebuffer_width  = 320;
+    render_state->framebuffer_height = 180;
 
     bool8 success = SDL_GL_MakeCurrent(window, context);
     if(success)
@@ -640,15 +647,15 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         index_offset += 4;
     }
 
-    glGenVertexArrays(1, &render_state->primary_vao_id);
-    glBindVertexArray(render_state->primary_vao_id);
+    glGenVertexArrays(1, &render_state->backend->primary_vao_id);
+    glBindVertexArray(render_state->backend->primary_vao_id);
 
-    glGenBuffers(1, &render_state->primary_vbo_id);
-    glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
+    glGenBuffers(1, &render_state->backend->primary_vbo_id);
+    glBindBuffer(GL_ARRAY_BUFFER, render_state->backend->primary_vbo_id);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_t) * MAX_VERTICES, null, GL_STREAM_DRAW);
 
-    glGenBuffers(1, &render_state->primary_ebo_id);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
+    glGenBuffers(1, &render_state->backend->primary_ebo_id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->backend->primary_ebo_id);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * MAX_INDICES, index_buffer, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)OffsetOf(vertex_t, vPosition));
@@ -670,27 +677,29 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     string_t font_shader      = c_file_read(STR("../../code/shaders/font_shader.glsl"), READ_ENTIRE_FILE, 0);
     render_state->font_shader = r_create_shader_program(font_shader, ST_PIXEL_SHADER);
 
+#if 0
     string_t lighting_shader  = c_file_read(STR("../../code/shaders/lighting.glsl"), READ_ENTIRE_FILE, 0);
     render_state->lighting_data.lighting_shader = r_create_shader_program(lighting_shader, ST_PIXEL_SHADER);
+#endif
 
     string_t shader_source    = c_file_read(STR("../../code/shaders/basic.glsl"), READ_ENTIRE_FILE, 0);
     render_state->test_shader = r_create_shader_program(shader_source, ST_PIXEL_SHADER);
 
     // PRIMARY FRAMEBUFFER SETUP
     {
-        u32 render_engine_width  = render_state->backend_framebuffer_width;
-        u32 render_engine_height = render_state->backend_framebuffer_height;
+        u32 render_engine_width  = render_state->framebuffer_width;
+        u32 render_engine_height = render_state->framebuffer_height;
 
-        glGenFramebuffers(1, &render_state->primary_framebuffer.ID);
-        glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
+        glGenFramebuffers(1, &render_state->backend->primary_framebuffer.ID);
+        glBindFramebuffer(GL_FRAMEBUFFER, render_state->backend->primary_framebuffer.ID);
 
-        glGenTextures(1, &render_state->primary_framebuffer.color_attachment0);
-        glGenTextures(1, &render_state->primary_framebuffer.color_attachment1);
-        glGenTextures(1, &render_state->primary_framebuffer.depth_buffer);
+        glGenTextures(1, &render_state->backend->primary_framebuffer.color_attachment0);
+        glGenTextures(1, &render_state->backend->primary_framebuffer.color_attachment1);
+        glGenTextures(1, &render_state->backend->primary_framebuffer.depth_buffer);
 
         // NOTE(Sleepster): PRIMARY RGBA32 TEXTURE 
         {
-            glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0);
+            glBindTexture(GL_TEXTURE_2D, render_state->backend->primary_framebuffer.color_attachment0);
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -704,7 +713,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
         // NOTE(Sleepster): MRT R8 TEXTURE 
         {
-            glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment1);
+            glBindTexture(GL_TEXTURE_2D, render_state->backend->primary_framebuffer.color_attachment1);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -717,7 +726,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
         // NOTE(Sleepster): 24 BIT DEPTH TEXTURE 
         {
-            glBindTexture(GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer);
+            glBindTexture(GL_TEXTURE_2D, render_state->backend->primary_framebuffer.depth_buffer);
 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -731,9 +740,9 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment0, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, render_state->primary_framebuffer.color_attachment1, 0);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, render_state->primary_framebuffer.depth_buffer,      0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_state->backend->primary_framebuffer.color_attachment0, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, render_state->backend->primary_framebuffer.color_attachment1, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, render_state->backend->primary_framebuffer.depth_buffer,      0);
 
         GLenum draw_buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
         glDrawBuffers(ArrayCount(draw_buffers), (const GLenum *)&draw_buffers);
@@ -745,6 +754,7 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     }
     
     // LIGHTING FRAMEBUFFER SETUP
+#if 0
     {
         glGenFramebuffers(1, &render_state->lighting_data.framebuffer_id);
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->lighting_data.framebuffer_id);
@@ -770,6 +780,12 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
                                0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+#endif
+    render_state->preblit_phase.opaque.group_hash       = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
+    render_state->preblit_phase.transparent.group_hash  = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
+
+    render_state->postblit_phase.opaque.group_hash      = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
+    render_state->postblit_phase.transparent.group_hash = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
 } 
 
 internal void
@@ -778,180 +794,186 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
     DEBUG_TIMED_BLOCK();
     Assert(group);
 
-    if(group->vertex_count > 0)
+    glUseProgram(group->render_desc.render_material.shader->program_id);
+    r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uProjectionMatrix"), &group->render_desc.camera.projection_matrix.values);
+    r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uViewMatrix"),       &group->render_desc.camera.view_matrix.values);
+    //r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
+    
+    r_update_shader_gpu_data(group, group->render_desc.render_material.shader, true);
+
+    GLenum src_color_blend_mode = 0;
+    GLenum dst_color_blend_mode = 0;
+
+    GLenum src_alpha_blend_mode = 0;
+    GLenum dst_alpha_blend_mode = 0;
+
+    GLenum color_blend_equation = 0;
+    GLenum alpha_blend_equation = 0;
+    GLenum depth_function       = GL_GREATER;
+    if(group->render_desc.pipeline_state.blending)
     {
-        glUseProgram(group->render_desc.shader->program_id);
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uProjectionMatrix"), &group->render_desc.projection_matrix.values);
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uViewMatrix"),       &group->render_desc.view_matrix.values);
-        r_update_shader_uniform_data(group->render_desc.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
-
-        r_update_shader_gpu_data(group, group->render_desc.shader, true);
-        glBindBuffer(GL_ARRAY_BUFFER, render_state->primary_vbo_id);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * group->vertex_count, group->vertex_buffer);
-
-        GLenum src_color_blend_mode = 0;
-        GLenum dst_color_blend_mode = 0;
-
-        GLenum src_alpha_blend_mode = 0;
-        GLenum dst_alpha_blend_mode = 0;
-
-        GLenum color_blend_equation = 0;
-        GLenum alpha_blend_equation = 0;
-        GLenum depth_function       = GL_GREATER;
-        if(group->render_desc.desired_pipeline_state.wants_blending)
+        // set blend modes
         {
-            // set blend modes
+            switch(group->render_desc.pipeline_state.src_color_blend_mode)
             {
-                switch(group->render_desc.desired_pipeline_state.src_color_blend_mode)
-                {
-                    case RGBM_Zero:             {src_color_blend_mode = GL_ZERO;               }break;
-                    case RGBM_One:              {src_color_blend_mode = GL_ONE;                }break;
-                    case RGBM_Constant:         {src_color_blend_mode = GL_CONSTANT_COLOR;     }break;
-                    case RGBM_SrcColor:         {src_color_blend_mode = GL_SRC_COLOR;          }break;
-                    case RGBM_OneMinusSrcColor: {src_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                    case RGBM_DstColor:         {src_color_blend_mode = GL_DST_COLOR;          }break;
-                    case RGBM_OneMinusDstColor: {src_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                case RGBM_Zero:             {src_color_blend_mode = GL_ZERO;               }break;
+                case RGBM_One:              {src_color_blend_mode = GL_ONE;                }break;
+                case RGBM_Constant:         {src_color_blend_mode = GL_CONSTANT_COLOR;     }break;
+                case RGBM_SrcColor:         {src_color_blend_mode = GL_SRC_COLOR;          }break;
+                case RGBM_OneMinusSrcColor: {src_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                case RGBM_DstColor:         {src_color_blend_mode = GL_DST_COLOR;          }break;
+                case RGBM_OneMinusDstColor: {src_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
 
-                    case RGBM_SrcAlpha:         {src_color_blend_mode = GL_SRC_ALPHA;          }break;
-                    case RGBM_OneMinusSrcAlpha: {src_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                    case RGBM_DstAlpha:         {src_color_blend_mode = GL_DST_ALPHA;          }break;
-                    case RGBM_OneMinusDstAlpha: {src_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-                    default: {InvalidCodePath;}break;
-                }
-
-                switch(group->render_desc.desired_pipeline_state.dst_color_blend_mode)
-                {
-                    case RGBM_Zero:             {dst_color_blend_mode = GL_ZERO;               }break;
-                    case RGBM_One:              {dst_color_blend_mode = GL_ONE;                }break;
-                    case RGBM_Constant:         {dst_color_blend_mode = GL_CONSTANT_COLOR;     }break;
-                    case RGBM_SrcColor:         {dst_color_blend_mode = GL_SRC_COLOR;          }break;
-                    case RGBM_OneMinusSrcColor: {dst_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                    case RGBM_DstColor:         {dst_color_blend_mode = GL_DST_COLOR;          }break;
-                    case RGBM_OneMinusDstColor: {dst_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
-
-                    case RGBM_SrcAlpha:         {dst_color_blend_mode = GL_SRC_ALPHA;          }break;
-                    case RGBM_OneMinusSrcAlpha: {dst_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                    case RGBM_DstAlpha:         {dst_color_blend_mode = GL_DST_ALPHA;          }break;
-                    case RGBM_OneMinusDstAlpha: {dst_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-                    default: {InvalidCodePath;}break;
-                }
-
-                switch(group->render_desc.desired_pipeline_state.src_alpha_blend_mode)
-                {
-                    case RGBM_Zero:             {src_alpha_blend_mode = GL_ZERO;               }break;
-                    case RGBM_One:              {src_alpha_blend_mode = GL_ONE;                }break;
-                    case RGBM_Constant:         {src_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
-                    case RGBM_SrcAlpha:         {src_alpha_blend_mode = GL_SRC_ALPHA;          }break;
-                    case RGBM_OneMinusSrcAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                    case RGBM_DstAlpha:         {src_alpha_blend_mode = GL_DST_ALPHA;          }break;
-                    case RGBM_OneMinusDstAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-
-                    case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
-                    case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                    case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
-                    case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
-                    default: {InvalidCodePath;}break;
-                }
-
-                switch(group->render_desc.desired_pipeline_state.dst_alpha_blend_mode)
-                {
-                    case RGBM_Zero:             {dst_alpha_blend_mode = GL_ZERO;               }break;
-                    case RGBM_One:              {dst_alpha_blend_mode = GL_ONE;                }break;
-                    case RGBM_Constant:         {dst_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
-                    case RGBM_SrcAlpha:         {dst_alpha_blend_mode = GL_SRC_ALPHA;          }break;
-                    case RGBM_OneMinusSrcAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
-                    case RGBM_DstAlpha:         {dst_alpha_blend_mode = GL_DST_ALPHA;          }break;
-                    case RGBM_OneMinusDstAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
-
-                    case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
-                    case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
-                    case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
-                    case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
-                    default: {InvalidCodePath;}break;
-                }
+                case RGBM_SrcAlpha:         {src_color_blend_mode = GL_SRC_ALPHA;          }break;
+                case RGBM_OneMinusSrcAlpha: {src_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                case RGBM_DstAlpha:         {src_color_blend_mode = GL_DST_ALPHA;          }break;
+                case RGBM_OneMinusDstAlpha: {src_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+                default: {InvalidCodePath;}break;
             }
 
-            // set blend eqs
+            switch(group->render_desc.pipeline_state.dst_color_blend_mode)
             {
-                switch(group->render_desc.desired_pipeline_state.color_blend_eq)
-                {
-                    case RGBE_Add:             {color_blend_equation = GL_FUNC_ADD;             }break;
-                    case RGBE_Subtract:        {color_blend_equation = GL_FUNC_SUBTRACT;        }break;
-                    case RGBE_ReverseSubtract: {color_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
-                    case RGBE_Min:             {color_blend_equation = GL_MIN;                  }break;
-                    case RGBE_Max:             {color_blend_equation = GL_MAX;                  }break;
-                    default: {InvalidCodePath;}break;
-                }
+                case RGBM_Zero:             {dst_color_blend_mode = GL_ZERO;               }break;
+                case RGBM_One:              {dst_color_blend_mode = GL_ONE;                }break;
+                case RGBM_Constant:         {dst_color_blend_mode = GL_CONSTANT_COLOR;     }break;
+                case RGBM_SrcColor:         {dst_color_blend_mode = GL_SRC_COLOR;          }break;
+                case RGBM_OneMinusSrcColor: {dst_color_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                case RGBM_DstColor:         {dst_color_blend_mode = GL_DST_COLOR;          }break;
+                case RGBM_OneMinusDstColor: {dst_color_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
 
-                switch(group->render_desc.desired_pipeline_state.alpha_blend_eq)
-                {
-                    case RGBE_Add:             {alpha_blend_equation = GL_FUNC_ADD;             }break;
-                    case RGBE_Subtract:        {alpha_blend_equation = GL_FUNC_SUBTRACT;        }break;
-                    case RGBE_ReverseSubtract: {alpha_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
-                    case RGBE_Min:             {alpha_blend_equation = GL_MIN;                  }break;
-                    case RGBE_Max:             {alpha_blend_equation = GL_MAX;                  }break;
-                    default: {InvalidCodePath;}break;
-                }
+                case RGBM_SrcAlpha:         {dst_color_blend_mode = GL_SRC_ALPHA;          }break;
+                case RGBM_OneMinusSrcAlpha: {dst_color_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                case RGBM_DstAlpha:         {dst_color_blend_mode = GL_DST_ALPHA;          }break;
+                case RGBM_OneMinusDstAlpha: {dst_color_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+                default: {InvalidCodePath;}break;
             }
 
-            glEnable(GL_BLEND);
-            glBlendEquationSeparate(color_blend_equation, alpha_blend_equation);
-            glBlendFuncSeparate(src_color_blend_mode, dst_color_blend_mode, 
-                                src_alpha_blend_mode, dst_alpha_blend_mode);
+            switch(group->render_desc.pipeline_state.src_alpha_blend_mode)
+            {
+                case RGBM_Zero:             {src_alpha_blend_mode = GL_ZERO;               }break;
+                case RGBM_One:              {src_alpha_blend_mode = GL_ONE;                }break;
+                case RGBM_Constant:         {src_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
+                case RGBM_SrcAlpha:         {src_alpha_blend_mode = GL_SRC_ALPHA;          }break;
+                case RGBM_OneMinusSrcAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                case RGBM_DstAlpha:         {src_alpha_blend_mode = GL_DST_ALPHA;          }break;
+                case RGBM_OneMinusDstAlpha: {src_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+
+                case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
+                case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
+                case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                default: {InvalidCodePath;}break;
+            }
+
+            switch(group->render_desc.pipeline_state.dst_alpha_blend_mode)
+            {
+                case RGBM_Zero:             {dst_alpha_blend_mode = GL_ZERO;               }break;
+                case RGBM_One:              {dst_alpha_blend_mode = GL_ONE;                }break;
+                case RGBM_Constant:         {dst_alpha_blend_mode = GL_CONSTANT_ALPHA;     }break;
+                case RGBM_SrcAlpha:         {dst_alpha_blend_mode = GL_SRC_ALPHA;          }break;
+                case RGBM_OneMinusSrcAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_ALPHA;}break;
+                case RGBM_DstAlpha:         {dst_alpha_blend_mode = GL_DST_ALPHA;          }break;
+                case RGBM_OneMinusDstAlpha: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_ALPHA;}break;
+
+                case RGBM_SrcColor:         {dst_alpha_blend_mode = GL_SRC_COLOR;          }break;
+                case RGBM_OneMinusSrcColor: {dst_alpha_blend_mode = GL_ONE_MINUS_SRC_COLOR;}break;
+                case RGBM_DstColor:         {dst_alpha_blend_mode = GL_DST_COLOR;          }break;
+                case RGBM_OneMinusDstColor: {dst_alpha_blend_mode = GL_ONE_MINUS_DST_COLOR;}break;
+                default: {InvalidCodePath;}break;
+            }
+        }
+
+        // set blend eqs
+        {
+            switch(group->render_desc.pipeline_state.color_blend_eq)
+            {
+                case RGBE_Add:             {color_blend_equation = GL_FUNC_ADD;             }break;
+                case RGBE_Subtract:        {color_blend_equation = GL_FUNC_SUBTRACT;        }break;
+                case RGBE_ReverseSubtract: {color_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
+                case RGBE_Min:             {color_blend_equation = GL_MIN;                  }break;
+                case RGBE_Max:             {color_blend_equation = GL_MAX;                  }break;
+                default: {InvalidCodePath;}break;
+            }
+
+            switch(group->render_desc.pipeline_state.alpha_blend_eq)
+            {
+                case RGBE_Add:             {alpha_blend_equation = GL_FUNC_ADD;             }break;
+                case RGBE_Subtract:        {alpha_blend_equation = GL_FUNC_SUBTRACT;        }break;
+                case RGBE_ReverseSubtract: {alpha_blend_equation = GL_FUNC_REVERSE_SUBTRACT;}break;
+                case RGBE_Min:             {alpha_blend_equation = GL_MIN;                  }break;
+                case RGBE_Max:             {alpha_blend_equation = GL_MAX;                  }break;
+                default: {InvalidCodePath;}break;
+            }
+        }
+
+        glEnable(GL_BLEND);
+        glBlendEquationSeparate(color_blend_equation, alpha_blend_equation);
+        glBlendFuncSeparate(src_color_blend_mode, dst_color_blend_mode, 
+                            src_alpha_blend_mode, dst_alpha_blend_mode);
+    }
+    else
+    {
+        glDisable(GL_BLEND);
+    }
+
+    // set depth functions
+    {
+        bool32 depth_testing_enabled = group->render_desc.pipeline_state.depth_testing;
+        bool32 depth_write_enabled   = group->render_desc.pipeline_state.depth_writing;
+
+        switch(group->render_desc.pipeline_state.depth_func)
+        {
+            case RGDF_Greater:        {depth_function = GL_GREATER; }break;
+            case RGDF_Less:           {depth_function = GL_LESS;    }break;
+            case RGDF_Equal:          {depth_function = GL_EQUAL;   }break;
+            case RGDF_NotEqual:       {depth_function = GL_NOTEQUAL;}break;
+            case RGDF_LessOrEqual:    {depth_function = GL_LEQUAL;  }break;
+            case RGDF_GreaterOrEqual: {depth_function = GL_GEQUAL;  }break;
+            case RGDF_Never:          {depth_function = GL_NEVER;   }break;
+            case RGDF_Always:         {depth_function = GL_ALWAYS;  }break;
+            default:                  {depth_function = GL_GREATER; }break;
+        }
+        if(depth_testing_enabled) 
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(depth_function);
         }
         else
         {
-            glDisable(GL_BLEND);
+            glDisable(GL_DEPTH_TEST);
         }
 
-        // set depth functions
+        if(depth_write_enabled) glDepthMask(GL_TRUE);
+        else                    glDepthMask(GL_FALSE);
+    }
+
+    for(geometry_buffer_t *buffer = &group->first_buffer;
+        buffer;
+        buffer = buffer->next_buffer)
+    {
+        if(buffer->quad_count > 0)
         {
-            bool32 depth_testing_enabled = group->render_desc.desired_pipeline_state.wants_depth_testing;
-            bool32 depth_write_enabled   = group->render_desc.desired_pipeline_state.wants_depth_writing;
+            glBindBuffer(GL_ARRAY_BUFFER, render_state->backend->primary_vbo_id);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * buffer->quad_vertex_count, buffer->quad_vertex_buffer);
 
-            switch(group->render_desc.desired_pipeline_state.depth_func)
-            {
-                case RGDF_Greater:        {depth_function = GL_GREATER; }break;
-                case RGDF_Less:           {depth_function = GL_LESS;    }break;
-                case RGDF_Equal:          {depth_function = GL_EQUAL;   }break;
-                case RGDF_NotEqual:       {depth_function = GL_NOTEQUAL;}break;
-                case RGDF_LessOrEqual:    {depth_function = GL_LEQUAL;  }break;
-                case RGDF_GreaterOrEqual: {depth_function = GL_GEQUAL;  }break;
-                case RGDF_Never:          {depth_function = GL_NEVER;   }break;
-                case RGDF_Always:         {depth_function = GL_ALWAYS;  }break;
-                default:                  {depth_function = GL_GREATER; }break;
-            }
-            if(depth_testing_enabled) 
-            {
-                glEnable(GL_DEPTH_TEST);
-                glDepthFunc(depth_function);
-            }
-            else
-            {
-                glDisable(GL_DEPTH_TEST);
-            }
-
-            if(depth_write_enabled) glDepthMask(GL_TRUE);
-            else                    glDepthMask(GL_FALSE);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->backend->primary_ebo_id);
+            glDrawElements(GL_TRIANGLES, buffer->quad_count * 6, GL_UNSIGNED_INT, null);
         }
 
-        switch(group->render_desc.primitive_type)
+        if(buffer->line_count > 0)
         {
-            case RGPT_Quads:
-            {
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->primary_ebo_id);
-                glDrawElements(GL_TRIANGLES, group->quad_count * 6, GL_UNSIGNED_INT, null);
-            }break;
-            case RGPT_Lines:
-            {
-                glLineWidth(1.0f);
-                glDrawArrays(GL_LINES, 0, group->line_count * 2);
-            }break;
-            default: {InvalidCodePath;}break;
+            glBindBuffer(GL_ARRAY_BUFFER, render_state->backend->primary_vbo_id);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * buffer->line_vertex_count, buffer->line_vertex_buffer);
+
+            glLineWidth(1.0f);
+            glDrawArrays(GL_LINES, 0, buffer->line_count * 2);
         }
 
-        group->vertex_count = 0;
-        group->quad_count   = 0;
+        buffer->quad_count = 0;
+        buffer->line_count = 0;
+
+        buffer->quad_vertex_count = 0;
+        buffer->line_vertex_count = 0;
     }
 }
 
@@ -962,6 +984,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
     glEnable(GL_BLEND);
 
+#if 0
     r_handle_lighting_data(render_state);
     // LIGHTING
     {
@@ -983,39 +1006,48 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBlendFunc(GL_ONE, GL_ONE);
         glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
     }
+#endif
 
     // NOTE(Sleepster): PRE BLIT RENDERING
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, render_state->primary_framebuffer.ID);
-        glViewport(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height);
+        glBindFramebuffer(GL_FRAMEBUFFER, render_state->backend->primary_framebuffer.ID);
+        glViewport(0, 0, render_state->framebuffer_width, render_state->framebuffer_height);
 
         glEnable(GL_DEPTH_TEST);
         glClearDepth(0.0f);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-        r_renderpass_handle_data(asset_manager, render_state);
-        glBindVertexArray(render_state->primary_vao_id);
+        r_renderpass_handle_data(render_state, asset_manager);
+        glBindVertexArray(render_state->backend->primary_vao_id);
 
-        if(render_state->preblit_pass_data.opaque_render_group_counter > 0)
+        if(render_state->preblit_phase.opaque.used_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->preblit_pass_data.opaque_render_group_counter;
+                group_index < render_state->preblit_phase.opaque.used_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = render_state->preblit_pass_data.opaque_render_groups[group_index];
-                r_issue_render_group_draw(render_state, group);
+                u32 hash_index = render_state->preblit_phase.opaque.render_group_ids[group_index];
+
+                render_group_t *render_group = (render_group_t*)render_state->preblit_phase.opaque.group_hash.entries[hash_index].value; 
+                r_issue_render_group_draw(render_state, render_group);
+
+                render_state->preblit_phase.opaque.used_render_group_counter = 0;
             }
         }
 
-        if(render_state->preblit_pass_data.transparent_render_group_counter > 0)
+        if(render_state->preblit_phase.transparent.used_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->preblit_pass_data.transparent_render_group_counter;
+                group_index < render_state->preblit_phase.transparent.used_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = render_state->preblit_pass_data.transparent_render_groups[group_index];
-                r_issue_render_group_draw(render_state, group);
+                u32 hash_index = render_state->preblit_phase.transparent.render_group_ids[group_index];
+
+                render_group_t *render_group = (render_group_t*)render_state->preblit_phase.transparent.group_hash.entries[hash_index].value; 
+                r_issue_render_group_draw(render_state, render_group);
+
+                render_state->preblit_phase.transparent.used_render_group_counter = 0;
             }
         }
 
@@ -1024,9 +1056,9 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         }
 
         // TODO(Sleepster): Check if there needs to be a blit. If there doesn't need to be a blit, don't blit...  
-        glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->primary_framebuffer.ID);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->backend->primary_framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, render_state->backend_framebuffer_width, render_state->backend_framebuffer_height, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 0, render_state->framebuffer_width, render_state->framebuffer_height, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -1034,25 +1066,33 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     // NOTE(Sleepster): POST BLIT RENDERING 
     {
         glViewport(0, 0, 1920, 1080);
-        if(render_state->postblit_pass_data.opaque_render_group_counter > 0)
+        if(render_state->postblit_phase.opaque.used_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->postblit_pass_data.opaque_render_group_counter;
+                group_index < render_state->postblit_phase.opaque.used_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = render_state->postblit_pass_data.opaque_render_groups[group_index];
-                r_issue_render_group_draw(render_state, group);
+                u32 hash_index = render_state->postblit_phase.opaque.render_group_ids[group_index];
+
+                render_group_t *render_group = (render_group_t*)render_state->postblit_phase.opaque.group_hash.entries[hash_index].value; 
+                r_issue_render_group_draw(render_state, render_group);
+
+                render_state->postblit_phase.opaque.used_render_group_counter = 0;
             }
         }
 
-        if(render_state->postblit_pass_data.transparent_render_group_counter > 0)
+        if(render_state->postblit_phase.transparent.used_render_group_counter > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->postblit_pass_data.transparent_render_group_counter;
+                group_index < render_state->postblit_phase.transparent.used_render_group_counter;
                 ++group_index)
             {
-                render_group_t *group = render_state->postblit_pass_data.transparent_render_groups[group_index];
-                r_issue_render_group_draw(render_state, group);
+                u32 hash_index = render_state->postblit_phase.transparent.render_group_ids[group_index];
+
+                render_group_t *render_group = (render_group_t*)render_state->postblit_phase.transparent.group_hash.entries[hash_index].value; 
+                r_issue_render_group_draw(render_state, render_group);
+
+                render_state->postblit_phase.transparent.used_render_group_counter = 0;
             }
         }
     }
