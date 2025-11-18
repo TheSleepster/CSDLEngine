@@ -33,6 +33,7 @@ r_render_group_init_geometry_buffer(render_state_t *render_state, geometry_buffe
     buffer->quad_vertex_count = 0;
     buffer->line_vertex_count = 0;
     buffer->next_buffer       = null;
+    buffer->render_camera     = render_state->draw_frame.active_camera;
 
     buffer->is_valid = true;
 }
@@ -53,31 +54,34 @@ r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_g
             r_render_group_init_geometry_buffer(render_state, buffer);
         }
 
-        switch(primitive_type)
+        if(buffer->render_camera == render_state->draw_frame.active_camera)
         {
-            case RGPT_Quads:
+            switch(primitive_type)
             {
-                if(buffer->quad_count < MAX_QUADS)
+                case RGPT_Quads:
                 {
-                    buffer->quad_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
-                    buffer->quad_buffer        = c_arena_push_array(&render_state->persistant_arena, render_quad_t, MAX_QUADS);
+                    if(buffer->quad_count < MAX_QUADS)
+                    {
+                        buffer->quad_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
+                        buffer->quad_buffer        = c_arena_push_array(&render_state->persistant_arena, render_quad_t, MAX_QUADS);
 
-                    result = buffer;
-                    goto r_geometry_buffer_found;
-                }
-            }break;
-            case RGPT_Lines:
-            {
-                if(buffer->line_count < MAX_LINES)
+                        result = buffer;
+                        goto r_geometry_buffer_found;
+                    }
+                }break;
+                case RGPT_Lines:
                 {
-                    buffer->line_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t, MAX_VERTICES);
-                    buffer->line_buffer        = c_arena_push_array(&render_state->persistant_arena, render_line_t,   MAX_LINES);
+                    if(buffer->line_count < MAX_LINES)
+                    {
+                        buffer->line_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
+                        buffer->line_buffer        = c_arena_push_array(&render_state->persistant_arena, render_line_t, MAX_LINES);
 
-                    result = buffer;
-                    goto r_geometry_buffer_found;
-                }
-            }break;
-            default: {InvalidCodePath;}break;
+                        result = buffer;
+                        goto r_geometry_buffer_found;
+                    }
+                }break;
+                default: {InvalidCodePath;}break;
+            }
         }
 
         last_buffer = buffer;
@@ -171,7 +175,6 @@ r_render_group_create_new(render_state_t *render_state, hash_table_t *hash_table
     result->render_desc = (render_group_desc_t){
         .render_material = render_state->draw_frame.active_material,
         .render_phase    = render_state->draw_frame.active_render_phase,
-        .camera          = render_state->draw_frame.active_camera,
         .pipeline_state  = render_state->pipeline_state,
     };
 
@@ -229,6 +232,9 @@ internal void
 r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_manager)
 {
     DEBUG_TIMED_BLOCK();
+
+    // TODO(Sleepster): Is this really where we want this too live?
+    at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
 
     for(u32 group_index = 0;
         group_index < render_state->preblit_phase.opaque.used_render_group_counter;

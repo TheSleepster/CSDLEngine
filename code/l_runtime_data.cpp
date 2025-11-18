@@ -44,6 +44,7 @@
 
 #include "at_atlas_handler.h"
 #include "r_render_data.h"
+#include "r_draw_API.h"
 #include "r_render_group.h"
 #include "r_asset_shader.h"
 #include "r_asset_texture.h"
@@ -71,7 +72,7 @@
 #include "r_asset_dynamic_render_font.cpp"
 
 #include "r_render_group.cpp"
-#include "r_draw.cpp"
+#include "r_draw_API.cpp"
 
 #if 0
 #include "r_render_API.cpp"

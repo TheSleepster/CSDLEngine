@@ -520,35 +520,17 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
         }
         else
         {
-#if 0
             if(working_group != null && uniform_data->type == SUT_TEXTURE_BINDING && update_texture_bindings)
             {
-                for(u32 texture_index = 0;
-                    texture_index < working_group->desired_texture_count;
-                    ++texture_index)
-                {
-                    u32 texture_id = working_group->textureIDs[texture_index];
-                    glActiveTexture(GL_TEXTURE0 + texture_id);
-                    glBindTexture(GL_TEXTURE_2D, texture_id);
-                    working_group->GPU_bound_texture_counter++;
-                }
-
-                // TODO(Sleepster): This is redundant... please don't do it every time 
-                u32 sampler_data[MAX_TEXTURES];
-                for(u32 sampler_index = 0;
-                    sampler_index < MAX_TEXTURES;
-                    ++sampler_index)
-                {
-                    sampler_data[sampler_index] = sampler_index;
-                }
-                glUniform1iv(uniform_data->location_id, MAX_TEXTURES, (const GLint *)sampler_data);
+                u32 texture_id = working_group->render_desc.render_material.texture->GPU_textureID;
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture_id);
             }
             else
             {
                 log_error("We do not currently suppor texture arrays...");
                 Assert(uniform_data->type == SUT_TEXTURE_ARRAY);
             }
-#endif
         }
     }
 
@@ -795,11 +777,7 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
     Assert(group);
 
     glUseProgram(group->render_desc.render_material.shader->program_id);
-    r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uProjectionMatrix"), &group->render_desc.camera.projection_matrix.values);
-    r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uViewMatrix"),       &group->render_desc.camera.view_matrix.values);
     //r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
-    
-    r_update_shader_gpu_data(group, group->render_desc.render_material.shader, true);
 
     GLenum src_color_blend_mode = 0;
     GLenum dst_color_blend_mode = 0;
@@ -951,6 +929,15 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
         buffer;
         buffer = buffer->next_buffer)
     {
+        r_update_shader_uniform_data(group->render_desc.render_material.shader, 
+                                     STR("uProjectionMatrix"), 
+                                     &buffer->render_camera->projection_matrix.values);
+
+        r_update_shader_uniform_data(group->render_desc.render_material.shader, 
+                                     STR("uViewMatrix"),       
+                                     &buffer->render_camera->view_matrix.values);
+
+        r_update_shader_gpu_data(group, group->render_desc.render_material.shader, true);
         if(buffer->quad_count > 0)
         {
             glBindBuffer(GL_ARRAY_BUFFER, render_state->backend->primary_vbo_id);

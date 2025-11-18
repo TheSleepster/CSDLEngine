@@ -8,6 +8,10 @@
 #include "r_render_group.h"
 #include "r_render_data.h"
 
+///////////////////////////////
+// RENDER STATE MODIFICATION
+///////////////////////////////
+
 internal inline void
 r_set_active_render_material(render_state_t *render_state, render_material_t render_material)
 {
@@ -15,7 +19,7 @@ r_set_active_render_material(render_state_t *render_state, render_material_t ren
 }
 
 internal inline void
-r_set_active_render_camera(render_state_t *render_state, render_camera_t render_camera)
+r_set_active_render_camera(render_state_t *render_state, render_camera_t *render_camera)
 {
     render_state->draw_frame.active_camera = render_camera;
 }
@@ -117,7 +121,6 @@ r_create_render_quad(render_state_t       *render_state,
                      float32               rotation,
                      vec2_t                texture_offset,
                      vec2_t                texture_size,
-                     u32                   gpu_texture_id,
                      render_quad_options_t render_options)
 {
     DEBUG_TIMED_BLOCK();
@@ -148,8 +151,8 @@ r_create_render_quad(render_state_t       *render_state,
     vec4_t min_clip_pos = vec3_expand_vec4(result.top_left.vPosition, 1);
     vec4_t max_clip_pos = vec3_expand_vec4(result.bottom_right.vPosition, 1);
 
-    mat4_t clip_mat = mat4_multiply(render_state->draw_frame.active_camera.view_matrix, 
-                                    render_state->draw_frame.active_camera.projection_matrix);
+    mat4_t clip_mat = mat4_multiply(render_state->draw_frame.active_camera->view_matrix, 
+                                    render_state->draw_frame.active_camera->projection_matrix);
     
     vec4_t quad_min = vec4_transform(clip_mat, min_clip_pos);
     vec4_t quad_max = vec4_transform(clip_mat, max_clip_pos);
@@ -165,16 +168,8 @@ r_create_render_quad(render_state_t       *render_state,
             result.bottom_right.vPosition = vec2_expand_vec3(vec2_rotate(result.bottom_right.vPosition.xy, DegToRad(rotation)), layer_depth_value);
         }
 
-        // TODO(Sleepster): if(render_state->draw_frame.active_material != null) 
-        if(gpu_texture_id != MAX_U32)
+        if(render_state->draw_frame.active_material.texture != null)
         {
-            for(u32 index = 0;
-                index < 4;
-                ++index)
-            {
-                result.elements[index].vTextureIndex = gpu_texture_id;
-            }
-
             vec2_t uv_min =  texture_offset;
             vec2_t uv_max =  vec2_add(texture_offset, texture_size);
 
@@ -182,8 +177,6 @@ r_create_render_quad(render_state_t       *render_state,
             result.top_right.vUVData    = vec2(uv_max.x, uv_min.y);
             result.bottom_left.vUVData  = vec2(uv_min.x, uv_max.y);
             result.bottom_right.vUVData = uv_max;
-
-            //r_add_texture_to_texture_buffer(render_state->draw_frame.active_render_group, gpu_texture_id);
         }
         else
         {
@@ -214,7 +207,6 @@ r_draw_texture_ex(render_state_t       *render_state,
                   float32               rotation,
                   vec2_t                texture_offset,
                   vec2_t                texture_size,
-                  u32                   gpu_texture_id,
                   render_quad_options_t render_options)
 {
     DEBUG_TIMED_BLOCK();
@@ -228,7 +220,6 @@ r_draw_texture_ex(render_state_t       *render_state,
                                                    rotation,
                                                    texture_offset,
                                                    texture_size,
-                                                   gpu_texture_id,
                                                    render_options);
     if(!quad_init.culled)
     {
@@ -259,7 +250,7 @@ r_draw_texture_ex(render_state_t       *render_state,
     return(result);
 }
 
-internal inline render_quad_t*
+internal render_quad_t*
 r_draw_texture(render_state_t       *render_state,
                vec2_t                position,
                vec2_t                render_size,
@@ -273,12 +264,10 @@ r_draw_texture(render_state_t       *render_state,
     
     vec2_t uv_min     = vec2_zero();
     vec2_t uv_max     = vec2_zero();
-    u32    texture_id = MAX_U32;
     if(texture_handle.is_valid)
     {
         uv_min     = *texture_handle.texture->uv_min;
         uv_max     = *texture_handle.texture->uv_max;
-        texture_id =  texture_handle.texture->GPU_textureID;
     }
     result = r_draw_texture_ex(render_state,
                                   position,
@@ -287,7 +276,6 @@ r_draw_texture(render_state_t       *render_state,
                                   rotation,
                                   uv_min,
                                   uv_max,
-                                  texture_id,
                                   render_options);
     return(result);
 }
@@ -313,3 +301,141 @@ r_draw_rect(render_state_t       *render_state,
     return(result);
 }
 
+internal render_line_t* 
+r_create_render_line(render_state_t *render_state, 
+                     vec2_t          start_point,
+                     vec2_t          end_point,
+                     float32         thickness,
+                     vec4_t          color)
+{
+    DEBUG_TIMED_BLOCK();
+    render_line_t *result = null;
+
+    geometry_buffer_t *g_buffer = r_render_group_get_buffer(render_state, render_state->draw_frame.active_render_group, RGPT_Lines);
+
+    float32 near_value = -1;
+    float32 far_value  =  1;
+
+    float32 depth_step        = (far_value - near_value) / MAX_RENDER_LAYERS;
+    float32 layer_depth_value = near_value  + (render_state->draw_frame.active_render_layer * depth_step);
+
+    render_line_t new_line = {};
+    new_line.layer_depth           = layer_depth_value;
+    new_line.start_point.vPosition = vec2_expand_vec3(start_point, layer_depth_value);
+    new_line.end_point.vPosition   = vec2_expand_vec3(end_point, layer_depth_value);
+    new_line.start_point.vColor    = color;
+    new_line.end_point.vColor      = color;
+
+     result = g_buffer->line_buffer + g_buffer->line_count++;
+    *result = new_line;
+
+    return(result);
+}
+
+//////////////////////////
+// STRING RENDERING
+//////////////////////////
+
+internal vec2_t 
+r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, string_t output)
+{
+    DEBUG_TIMED_BLOCK();
+
+    vec2_t result = {};
+    if(varient != null)
+    {
+        result = {0, (float32)varient->line_spacing};
+        for(u8 *p_character = output.data;
+            p_character < output.data + output.count;
+            p_character = unicode_next_character(p_character))
+        {
+            if(*p_character == '\n')
+            {
+                result.y += varient->line_spacing;
+            }
+
+            font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
+            result.x += glyph->glyph_render_size.x + glyph->advance;
+
+            if(glyph->owner_page->bitmap_dirty)
+            {
+                texture2D_t *texture = &glyph->owner_page->font_atlas;
+                if(texture->view->GPU_textureID == 0)
+                {
+                    r_texture_make_gpu(texture, texture->has_AA, texture->filter_type);
+                }
+                else
+                {
+                    r_texture_update_from_bitmap(asset_manager, texture);
+                }
+
+                glyph->owner_page->bitmap_dirty = false;
+            }
+        }
+    }
+
+    return(result);
+}
+
+internal vec2_t 
+r_draw_string(asset_manager_t       *asset_manager,
+              render_state_t        *render_state,
+              string_t               output,
+              asset_handle_t         font,
+              u32                    pixel_size,
+              vec2_t                 position,
+              vec4_t                 color,
+              render_quad_options_t  render_options)
+{
+    DEBUG_TIMED_BLOCK();
+    vec2_t result = {};
+
+    dynamic_render_font_varient_t *varient = s_asset_font_get_at_size(asset_manager, font, pixel_size);
+    if(varient)
+    {
+        result = r_prepare_string_for_rendering(asset_manager, varient, output);
+        
+        vec2_t draw_position = position;
+        for(u8 *p_character = output.data;
+            p_character < output.data + output.count;
+            p_character = unicode_next_character(p_character))
+        {
+            u8  character   = *p_character;
+            if(character == '\0') break;
+            
+            if(character == '\n' || character == '\r')
+            {
+                draw_position.x  = position.x;
+                draw_position.y -= varient->line_spacing;
+
+                continue;
+            }
+
+            font_glyph_t *glyph = s_asset_font_get_utf8_glyph(asset_manager, varient, p_character);
+            if(character == '\t' || character == ' ')
+            {
+                draw_position.x += glyph->advance;
+            }
+            else
+            {
+                r_draw_texture_ex(render_state,
+                                  vec2(floorf(draw_position.x + glyph->offset_x),
+                                       floorf(draw_position.y - glyph->offset_y)),
+                                  glyph->glyph_render_size,
+                                  color,
+                                  0.0f,
+                                  glyph->atlas_offset,
+                                  glyph->glyph_size,
+                                  render_options);
+
+                draw_position.x += glyph->advance;
+            }
+        }
+    }
+    else
+    {
+        log_error("Could not get a varient of your font: '%s' at the size of: '%d'...\n", font.font->filename.data, pixel_size);
+    }
+
+    return(result);
+}

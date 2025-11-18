@@ -37,7 +37,7 @@ in  flat uint vOutEffectMask;
 layout(location = 0) out vec4 vFragColor;
 layout(location = 1) out vec4 vTestColor;
 
-uniform sampler2D uTest[32];
+uniform sampler2D uTest;
 
 void
 main()
@@ -45,7 +45,7 @@ main()
     vec4 TextureColor = vec4(1.0);
     if(vOutTextureIndex != U32_MAX)
     {
-        TextureColor = texelFetch(uTest[vOutTextureIndex], ivec2(vOutUVData), 0);
+        TextureColor = texelFetch(uTest, ivec2(vOutUVData), 0);
         if(TextureColor.a == 0.0)
         {
             discard;

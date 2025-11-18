@@ -14,20 +14,22 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
     mat4_t view_matrix       = mat4_identity();
 
-    render_camera_t camera;
-    camera.view_matrix = view_matrix;
-    camera.projection_matrix = projection_matrix;
+    global_game_state.game_camera.view_matrix       = view_matrix;
+    global_game_state.game_camera.projection_matrix = projection_matrix;
+
+    asset_handle_t player_texture = s_asset_texture_get(asset_manager, STR("player"));
 
     render_material_t material = {};
-    material.shader = &render_state->test_shader;
+    material.shader  = &render_state->test_shader;
+    material.texture =  player_texture.texture;
 
     r_pipeline_state_reset(render_state);
-    r_set_active_render_camera(render_state, camera);
+    r_set_active_render_camera(render_state, &global_game_state.game_camera);
     r_set_active_render_material(render_state, material);
     r_set_active_render_layer(render_state, 16);
     r_set_active_render_phase(render_state, RGP_Preblit);
 
     r_renderpass_begin(render_state);
-    r_draw_rect(render_state, {0, 0}, {20, 20}, COLOR_RED, 0, RQO_NONE);
+    r_draw_texture(render_state, {0, 0}, {10, 10}, COLOR_WHITE, 0, player_texture, RQO_NONE);
     r_renderpass_end(render_state);
 }

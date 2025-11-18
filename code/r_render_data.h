@@ -99,13 +99,12 @@ typedef struct texture2D texture2D_t;
 typedef struct render_material
 {
     // NOTE(Sleepster): name is optional 
-    string_t       name;
+    string_t        name;
+    u32             material_ID;
+    u32             render_effect_mask;
 
-    u32            material_ID;
-    u32            render_effect_mask;
-
-    texture2D_t   *texture;
-    GPU_shader_t  *shader;
+    texture_view_t *texture;
+    GPU_shader_t   *shader;
 }render_material_t;
 
 typedef enum render_group_primitive_type
@@ -220,7 +219,7 @@ typedef struct draw_frame_data
     u32               light_count;
 
     GPU_shader_t     *active_shader;
-    render_camera_t   active_camera;
+    render_camera_t  *active_camera;
     render_material_t active_material;
     render_phase_t    active_render_phase;
     u32               active_render_layer;
@@ -283,15 +282,6 @@ typedef struct GPU_functions
     r_texture_delete_t             *r_texture_delete;
     r_texture_update_from_bitmap_t *r_texture_update_from_bitmap;
 }GPU_functions_t;
-
-internal render_quad_t*
-r_draw_rect(render_state_t       *render_state,
-            vec2_t                position,
-            vec2_t                render_size,
-            vec4_t                color,
-            float32               rotation,
-            render_quad_options_t render_options);
-
 
 #endif // RENDER_DATA_H
 

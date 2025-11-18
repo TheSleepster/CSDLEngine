@@ -113,9 +113,6 @@ struct entity_manager_t
     u32      active_entity_count;
 };
 
-#include "g_test.cpp"
-#include "g_editor.cpp"
-
 struct game_state_t 
 {
     bool8               is_initialized;
@@ -123,7 +120,10 @@ struct game_state_t
     render_group_t     *entity_render_group;
 
     entity_manager_t    entity_manager;
-    game_map_editor_t   map_editor;
+    //game_map_editor_t   map_editor;
+
+    render_camera_t     game_camera;
+    render_camera_t     ui_camera;
 
     u32                 physics_iterations;
 
@@ -140,6 +140,9 @@ struct game_state_t
     bool8               in_editor;
 };
 global game_state_t global_game_state;
+
+#include "g_test.cpp"
+#include "g_editor.cpp"
 
 #if 0
 internal entity_t* 
@@ -180,7 +183,8 @@ entity_init_sprite_data(asset_manager_t *asset_manager, string_t sprite_name)
     result.name = sprite_name;
     if(result.texture.is_valid)
     {
-        result.size = vec2(result.texture.asset_slot->texture.bitmap.width, result.texture.asset_slot->texture.bitmap.height);
+        result.size = vec2(result.texture.asset_slot->texture.bitmap.width,
+                           result.texture.asset_slot->texture.bitmap.height);
     }
     else
     {

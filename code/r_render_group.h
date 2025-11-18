@@ -26,6 +26,7 @@ typedef struct geometry_buffer
     u32                quad_vertex_count;
     u32                line_vertex_count;
 
+    render_camera_t   *render_camera;
     geometry_buffer   *next_buffer;
 }geometry_buffer_t;
 
@@ -33,7 +34,6 @@ typedef struct render_group_desc
 {
     render_material_t       render_material;
     render_phase_t          render_phase;
-    render_camera_t         camera;
     render_pipeline_state_t pipeline_state;
 }render_group_desc_t;
 
@@ -46,9 +46,15 @@ typedef struct render_group
     geometry_buffer_t   first_buffer;
 }render_group_t;
 
-internal inline void r_renderpass_begin(render_state_t *render_state);
-internal inline void r_renderpass_end(render_state_t *render_state);
-internal void r_pipeline_state_reset(render_state_t *render_state);
+internal        void               r_render_group_init_geometry_buffer(render_state_t *render_state, geometry_buffer_t *buffer);
+internal        geometry_buffer_t* r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_group, u32 primitive_type);
+internal        void               r_render_group_process_quad_geometry(geometry_buffer_t *buffer);
+internal        void               r_render_group_process_line_geometry(geometry_buffer_t *buffer);
+internal        void               r_render_group_handle_geometry_buffers(multithreading_work_queue_t *queue, render_group_t *render_group);
+internal        render_group_t*    r_render_group_create_new(render_state_t *render_state, hash_table_t *hash_table, u64 combo_id);
+internal        void               r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_manager);
+internal inline void               r_renderpass_begin(render_state_t *render_state);
+internal inline void               r_renderpass_end(render_state_t *render_state);
 
 #endif // RENDER_GROUP_H
 
