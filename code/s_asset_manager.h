@@ -191,11 +191,6 @@ typedef struct asset_manager
 
         texture_view_t    null_sound;
     }sound_catalog;
-
-    struct
-    {
-        render_material_t *materials;
-    }render_material_catalog;
 }asset_manager_t;
 
 internal void     s_asset_manager_read_asset_file_entries(asset_manager_t *asset_manager, string_t entry_data, asset_file_table_of_contents_t *table_of_contents);

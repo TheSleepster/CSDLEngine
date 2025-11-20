@@ -32,8 +32,9 @@ in       vec2 vOutUVData;
 in flat  uint vOutTextureIndex;
 in flat  uint vOutEffectMask;
 
-layout(location = 0) out vec4 vFragColor;
 uniform sampler2D uTest;
+
+layout(location = 0) out vec4 vFragColor;
 
 void
 main()
@@ -42,7 +43,7 @@ main()
     if(vOutTextureIndex != U32_MAX)
     {
         TextureColor = texture(uTest, vOutUVData, 0);
-        if(TextureColor.a == 0.0)
+        if(TextureColor.a <= 0.05)
         {
             discard;
         }

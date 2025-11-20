@@ -172,6 +172,8 @@ typedef struct UI_state
     input_manager_t *input_manager;
     asset_manager_t *asset_manager;
 
+    render_camera_t  camera;
+
     vec2_t           mouse_pos;
     u32              current_frame;
 

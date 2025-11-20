@@ -44,6 +44,9 @@ internal inline hash_table_t c_hash_table_create_(void *memory, u32 max_entries,
 internal        void         c_hash_insert_kv_pair_(hash_table_t *table, string_t key, void *value, usize value_size);
 internal        void*        c_hash_get_value(hash_table_t *table, string_t key);
 
+// NOTE(Sleepster): This feels stupid...
+internal        void*        c_hash_get_value_from_raw_index(hash_table_t *table, s32 index);
+
 #define c_hash_table_create(memory, max_entries, data_type) c_hash_table_create_(memory, max_entries, sizeof(data_type))
 #define c_hash_insert_kv_pair(table, key, value)            c_hash_insert_kv_pair_(table, key, (void*)value, sizeof(value))
 

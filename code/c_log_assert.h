@@ -12,7 +12,7 @@
 #define AssertBreak() (*(int*)0 = 0)
 
 #ifdef ASSERT_ENABLED
-# define Assert(condition) Statement(if(!(condition)) {AssertBreak();})
+# define Assert(condition) Statement(if(!(condition)) {__builtin_debugtrap();})
 #else
 # define Assert(condition)
 #endif

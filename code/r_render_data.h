@@ -44,9 +44,10 @@ typedef struct vertex
 
 typedef enum render_quad_options
 {
-    RQO_NONE         = 0X00,
-    RQO_SHADOWCASTER = 0X01,
-    RQO_EMISIVE      = 0x02,
+    RQO_NONE         = 1 << 0,
+    RQO_SHADOWCASTER = 1 << 1,
+    RQO_EMISIVE      = 1 << 2,
+    RQO_UNTEXTURED   = 1 << 3,
     RQO_COUNT,
 }render_quad_options_t;
 
@@ -93,19 +94,6 @@ typedef struct render_camera
     mat4 view_matrix;
     mat4 projection_matrix;
 }render_camera_t;
-
-// NOTE(Sleepster): This is a collection of data used to help with identifying certain render_groups
-typedef struct texture2D texture2D_t;
-typedef struct render_material
-{
-    // NOTE(Sleepster): name is optional 
-    string_t        name;
-    u32             material_ID;
-    u32             render_effect_mask;
-
-    texture_view_t *texture;
-    GPU_shader_t   *shader;
-}render_material_t;
 
 typedef enum render_group_primitive_type
 {
@@ -247,8 +235,11 @@ typedef struct render_state
     GPU_shader_t            font_shader;
     GPU_shader_t            lighting_shader;
     GPU_shader_t            test_shader;
+
+    u32                     render_group_counter;
 }render_state_t;
 
+// NOTE(Sleepster): These change depending on the backend 
 internal void r_init_renderer_data(SDL_Window *window, render_state_t *render_state);
 internal void r_render_single_frame(render_state_t *render_state, asset_manager_t *asset_manager);
 

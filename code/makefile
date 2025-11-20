@@ -13,6 +13,7 @@ PROFILER_ENABLED ?=  # set PROFILER_ENABLED=1 to enable the in-engine profiler
 RENDERER_BACKEND ?=  # set the GPU rendering backend
 DLL_RELOADING    ?=  # set DLL_RELOADING=1 to compile the file g_main.cpp and main.cpp as seperate builds
 BUILD_TESTS      ?=  # set BUILD_TESTS=1 to compile the files in ../code/tests/
+MEMORY_DEBUGGING ?=  # set MEMORY_DEBUGGING=1 to compile with memory allocation information
 
 # -------------------------------------------------------------------------
 # Platform detection
@@ -61,7 +62,7 @@ endif
 COMMON_INCLUDE_PATHS = -I../code/ -I../run_tree/deps/ -I../run_tree/deps/stb/ -I../run_tree/deps/sokol/ -I../run_tree/deps/glad/include/ -I../run_tree/deps/SDL3/include/ -I../run_tree/deps/Freetype/include/
 COMMON_C_FLAGS       = -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -Wno-pointer-sign -Wno-incompatible-pointer-types-discards-qualifiers -Wno-null-dereference -Wno-missing-field-initializers -Wno-switch -Wno-incompatible-pointer-types -Wno-deprecated-declarations -Wno-null-pointer-subtraction -Wno-typedef-redefinition -Wno-pointer-integer-compare -Wno-writable-strings -Wno-deprecated
 
-ENGINE_CONFIGS = -DASSERT_ENABLED=$(ASSERT_ENABLED) -DINTERNAL_BUILD=$(INTERNAL_BUILD) -DPROFILER_ENABLED=$(PROFILER_ENABLED) -DRENDERER_BACKEND=RENDERER_BACKEND_$(RENDERER_BACKEND) -DDLL_RELOADING=$(DLL_RELOADING)
+ENGINE_CONFIGS = -DASSERT_ENABLED=$(ASSERT_ENABLED) -DINTERNAL_BUILD=$(INTERNAL_BUILD) -DPROFILER_ENABLED=$(PROFILER_ENABLED) -DRENDERER_BACKEND=RENDERER_BACKEND_$(RENDERER_BACKEND) -DDLL_RELOADING=$(DLL_RELOADING) -DMEMORY_DEBUGGING=$(MEMORY_DEBUGGING)
 
 # Build type 
 BUILD_TYPE ?= debug

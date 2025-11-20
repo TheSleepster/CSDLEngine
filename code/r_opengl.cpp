@@ -196,8 +196,8 @@ s32   lengths[2];
 }
 
 internal void
-r_gl_debug_callback(GLenum Source, GLenum Type, GLuint ID, GLenum Severity,
-                    GLsizei Length, const GLchar *Message, const void *UserParam)
+gl_debug_callback(GLenum Source, GLenum Type, GLuint ID, GLenum Severity,
+                  GLsizei Length, const GLchar *Message, const void *UserParam)
 {
     if(Severity == GL_DEBUG_SEVERITY_LOW)
     {
@@ -211,6 +211,53 @@ r_gl_debug_callback(GLenum Source, GLenum Type, GLuint ID, GLenum Severity,
     {
         log_error("OPENGL MESSAGE:\n\t%s\n", Message);
     }
+}
+
+internal void
+r_renderer_check_error_(const char *file, s32 line_number)
+{
+    GLenum error_code;
+    do {
+        error_code = glGetError();
+
+        char *error_string = {};
+        switch(error_code)
+        {
+            case GL_INVALID_ENUM:
+            {
+                error_string = "GL_INVALID_ENUM";
+            }break;
+            case GL_INVALID_VALUE:
+            {
+                error_string = "GL_INVALID_VALUE";
+            }break;
+            case GL_INVALID_OPERATION:
+            {
+                error_string = "GL_INVALID_OPERATION";
+            }break;
+            case GL_STACK_OVERFLOW:
+            {
+                error_string = "GL_STACK_OVERFLOW";
+            }break;
+            case GL_STACK_UNDERFLOW:
+            {
+                error_string = "GL_STACK_UNDERFLOW";
+            }break;
+            case GL_OUT_OF_MEMORY:
+            {
+                error_string = "GL_OUT_OF_MEMORY";
+            }break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:
+            {
+                error_string = "GL_INVALID_FRAMEBUFFER_OPERATION";
+            }break;
+        }
+
+        if(error_string != null)
+        {
+            log_error("OPENGL_ERROR: '%s' | Filename: '%s', line number: '%d'", error_string, file, line_number);
+        }
+    }while(error_code != GL_NO_ERROR);
 }
 
 internal void
@@ -441,8 +488,9 @@ r_texture_make_gpu_(texture2D_t *texture, bool8 has_AA, filter_type_t filter_typ
                  GL_RGBA, GL_UNSIGNED_BYTE, texture->bitmap.data.data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    texture->has_AA      = has_AA;
-    texture->filter_type = filter_type;
+    texture->has_AA        = has_AA;
+    texture->filter_type   = filter_type;
+    texture->GPU_textureID = texture->view->GPU_textureID;
 
     // NOTE(Sleepster): This is in pixels... 
     texture->uv_min      = vec2_create(0.0);
@@ -512,19 +560,24 @@ r_update_shader_gpu_data(render_group_t *working_group, GPU_shader_t *shader, bo
             }
             else
             {
+#if 0
                 log_error("shader uniform '%s' has an 'update' pointer of '%ull' and a 'data' pointer of '%ull'... cannot update...\n",
                           uniform_data->name.data,
                           uniform_data->update,
                           uniform_data->data);
+#endif
             }
         }
         else
         {
             if(working_group != null && uniform_data->type == SUT_TEXTURE_BINDING && update_texture_bindings)
             {
-                u32 texture_id = working_group->render_desc.render_material.texture->GPU_textureID;
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, texture_id);
+                if(working_group->render_desc.render_material.texture)
+                {
+                    u32 texture_id = working_group->render_desc.render_material.texture->GPU_textureID;
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, texture_id);
+                }
             }
             else
             {
@@ -609,9 +662,9 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
     SDL_GL_SetSwapInterval(1);
     //SDL_GL_SetSwapInterval(0);
 
-    glDebugMessageCallback(&r_gl_debug_callback, null);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glEnable(GL_DEBUG_OUTPUT);
+    // glDebugMessageCallback(&gl_debug_callback, null);
+    // glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    // glEnable(GL_DEBUG_OUTPUT);
 
     u32 index_buffer[MAX_INDICES];
     u32 index_offset = 0;
@@ -763,11 +816,11 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 #endif
-    render_state->preblit_phase.opaque.group_hash       = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
-    render_state->preblit_phase.transparent.group_hash  = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
-
-    render_state->postblit_phase.opaque.group_hash      = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
-    render_state->postblit_phase.transparent.group_hash = c_hash_table_create_ma(&render_state->persistant_arena, sizeof(render_group_t), RENDER_GROUP_HASH_COUNT);
+    render_state->preblit_phase.opaque.group_hash       = c_hash_table_create_ma(&render_state->persistant_arena, RENDER_GROUP_HASH_COUNT, sizeof(render_group_t));
+    render_state->preblit_phase.transparent.group_hash  = c_hash_table_create_ma(&render_state->persistant_arena, RENDER_GROUP_HASH_COUNT, sizeof(render_group_t));
+                                                                                                                                                                
+    render_state->postblit_phase.opaque.group_hash      = c_hash_table_create_ma(&render_state->persistant_arena, RENDER_GROUP_HASH_COUNT, sizeof(render_group_t));
+    render_state->postblit_phase.transparent.group_hash = c_hash_table_create_ma(&render_state->persistant_arena, RENDER_GROUP_HASH_COUNT, sizeof(render_group_t));
 } 
 
 internal void
@@ -777,6 +830,7 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
     Assert(group);
 
     glUseProgram(group->render_desc.render_material.shader->program_id);
+    r_renderer_check_error();
     //r_update_shader_uniform_data(group->render_desc.render_material.shader, STR("uEffectMask"),       &group->render_desc.desired_effects);
 
     GLenum src_color_blend_mode = 0;
@@ -929,38 +983,54 @@ r_issue_render_group_draw(render_state *render_state, render_group_t *group)
         buffer;
         buffer = buffer->next_buffer)
     {
+        if(!buffer->is_valid) 
+        {
+            Assert(buffer->quad_count == 0);
+            Assert(buffer->quad_vertex_count == 0);
+            Assert(buffer->line_count == 0);
+            Assert(buffer->line_vertex_count == 0);
+
+            continue;
+        }
+
         r_update_shader_uniform_data(group->render_desc.render_material.shader, 
                                      STR("uProjectionMatrix"), 
-                                     &buffer->render_camera->projection_matrix.values);
+                                    &buffer->render_camera->projection_matrix.values);
 
         r_update_shader_uniform_data(group->render_desc.render_material.shader, 
                                      STR("uViewMatrix"),       
-                                     &buffer->render_camera->view_matrix.values);
+                                    &buffer->render_camera->view_matrix.values);
 
         r_update_shader_gpu_data(group, group->render_desc.render_material.shader, true);
         if(buffer->quad_count > 0)
         {
             glBindBuffer(GL_ARRAY_BUFFER, render_state->backend->primary_vbo_id);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * buffer->quad_vertex_count, buffer->quad_vertex_buffer);
+            r_renderer_check_error();
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, render_state->backend->primary_ebo_id);
+            r_renderer_check_error();
+
             glDrawElements(GL_TRIANGLES, buffer->quad_count * 6, GL_UNSIGNED_INT, null);
+            r_renderer_check_error();
+
+            buffer->quad_count = 0;
+            buffer->quad_vertex_count = 0;
         }
 
         if(buffer->line_count > 0)
         {
             glBindBuffer(GL_ARRAY_BUFFER, render_state->backend->primary_vbo_id);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_t) * buffer->line_vertex_count, buffer->line_vertex_buffer);
+            r_renderer_check_error();
 
             glLineWidth(1.0f);
             glDrawArrays(GL_LINES, 0, buffer->line_count * 2);
+            r_renderer_check_error();
+
+            buffer->line_count = 0;
+            buffer->line_vertex_count = 0;
         }
-
-        buffer->quad_count = 0;
-        buffer->line_count = 0;
-
-        buffer->quad_vertex_count = 0;
-        buffer->line_vertex_count = 0;
     }
 }
 
@@ -970,7 +1040,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     DEBUG_TIMED_BLOCK();
 
     glEnable(GL_BLEND);
-
 #if 0
     r_handle_lighting_data(render_state);
     // LIGHTING
@@ -1001,12 +1070,16 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glViewport(0, 0, render_state->framebuffer_width, render_state->framebuffer_height);
 
         glEnable(GL_DEPTH_TEST);
+        r_renderer_check_error();
+
         glClearDepth(0.0f);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        r_renderer_check_error();
 
         r_renderpass_handle_data(render_state, asset_manager);
         glBindVertexArray(render_state->backend->primary_vao_id);
+        r_renderer_check_error();
 
         if(render_state->preblit_phase.opaque.used_render_group_counter > 0)
         {
@@ -1018,8 +1091,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
                 render_group_t *render_group = (render_group_t*)render_state->preblit_phase.opaque.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
-
-                render_state->preblit_phase.opaque.used_render_group_counter = 0;
             }
         }
 
@@ -1033,8 +1104,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
                 render_group_t *render_group = (render_group_t*)render_state->preblit_phase.transparent.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
-
-                render_state->preblit_phase.transparent.used_render_group_counter = 0;
             }
         }
 
@@ -1046,6 +1115,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->backend->primary_framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, render_state->framebuffer_width, render_state->framebuffer_height, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        r_renderer_check_error();
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -1063,8 +1133,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
                 render_group_t *render_group = (render_group_t*)render_state->postblit_phase.opaque.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
-
-                render_state->postblit_phase.opaque.used_render_group_counter = 0;
             }
         }
 
@@ -1078,8 +1146,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
                 render_group_t *render_group = (render_group_t*)render_state->postblit_phase.transparent.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
-
-                render_state->postblit_phase.transparent.used_render_group_counter = 0;
             }
         }
     }

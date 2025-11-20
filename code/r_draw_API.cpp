@@ -27,8 +27,8 @@ r_set_active_render_camera(render_state_t *render_state, render_camera_t *render
 internal inline void
 r_set_active_render_layer(render_state_t *render_state, u32 layer)
 {
-    Assert(layer > 0);
-    Assert(layer < MAX_RENDER_LAYERS);
+    Assert(layer >= 0);
+    Assert(layer <= MAX_RENDER_LAYERS);
 
     render_state->draw_frame.active_render_layer = layer;
 }
@@ -65,12 +65,6 @@ r_set_active_blending_eqs(render_state_t *render_state,
 }
 
 internal inline void
-r_set_active_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func)
-{
-    render_state->pipeline_state.depth_func = depth_func;
-}
-
-internal inline void
 r_set_active_blending_state(render_state_t *render_state, bool32 blending)
 {
     render_state->pipeline_state.blending = blending;
@@ -81,6 +75,12 @@ r_set_active_depth_state(render_state_t *render_state, bool32 depth_test, bool32
 {
     render_state->pipeline_state.depth_testing = depth_test;
     render_state->pipeline_state.depth_writing = depth_mask;
+}
+
+internal inline void
+r_set_active_depth_func(render_state_t *render_state, render_group_depth_function_t depth_func)
+{
+    render_state->pipeline_state.depth_func = depth_func;
 }
 
 internal void
@@ -114,19 +114,19 @@ r_pipeline_state_reset(render_state_t *render_state)
 //////////////////////////
 
 internal render_quad_t
-r_create_render_quad(render_state_t       *render_state,
-                     vec2_t                position,
-                     vec2_t                render_size,
-                     vec4_t                color,
-                     float32               rotation,
-                     vec2_t                texture_offset,
-                     vec2_t                texture_size,
-                     render_quad_options_t render_options)
+r_create_render_quad(render_state_t *render_state,
+                     vec2_t          position,
+                     vec2_t          render_size,
+                     vec4_t          color,
+                     float32         rotation,
+                     vec2_t          texture_offset,
+                     vec2_t          texture_size,
+                     u32             render_options)
 {
     DEBUG_TIMED_BLOCK();
 
     render_quad_t result = {};
-    result.options = render_options;
+    result.options = (render_quad_options_t)render_options;
 
     float32 top    = position.y;
     float32 left   = position.x;
@@ -178,7 +178,8 @@ r_create_render_quad(render_state_t       *render_state,
             result.bottom_left.vUVData  = vec2(uv_min.x, uv_max.y);
             result.bottom_right.vUVData = uv_max;
         }
-        else
+
+        if(render_options & RQO_UNTEXTURED)
         {
             for(u32 index = 0;
                 index < 4;
@@ -200,14 +201,14 @@ r_create_render_quad(render_state_t       *render_state,
 }
 
 internal render_quad_t*
-r_draw_texture_ex(render_state_t       *render_state,
-                  vec2_t                position,
-                  vec2_t                render_size,
-                  vec4_t                color,
-                  float32               rotation,
-                  vec2_t                texture_offset,
-                  vec2_t                texture_size,
-                  render_quad_options_t render_options)
+r_draw_texture_ex(render_state_t *render_state,
+                  vec2_t          position,
+                  vec2_t          render_size,
+                  vec4_t          color,
+                  float32         rotation,
+                  vec2_t          texture_offset,
+                  vec2_t          texture_size,
+                  u32             render_options)
 {
     DEBUG_TIMED_BLOCK();
     Assert(render_state->draw_frame.active_render_group != null);
@@ -223,41 +224,45 @@ r_draw_texture_ex(render_state_t       *render_state,
                                                    render_options);
     if(!quad_init.culled)
     {
-        geometry_buffer_t *g_buffer = r_render_group_get_buffer(render_state, render_state->draw_frame.active_render_group, RGPT_Quads);
-        g_buffer->quad_buffer[g_buffer->quad_count] = quad_init;
-
-        result = g_buffer->quad_buffer + g_buffer->quad_count;
-#if 0
-        if(render_options & RQO_SHADOWCASTER)
+        geometry_buffer_t *g_buffer = r_render_group_get_buffer(render_state, 
+                                                                render_state->draw_frame.active_render_group, 
+                                                                RGPT_Quads);
+        if(g_buffer->is_valid)
         {
-            // TODO(Sleepster): Why is this here? 
-            if(!render_state->draw_frame.shadow_casters)
+            g_buffer->quad_buffer[g_buffer->quad_count] = quad_init;
+            result = g_buffer->quad_buffer + g_buffer->quad_count;
+#if 0
+            if(render_options & RQO_SHADOWCASTER)
             {
-                render_state->draw_frame.shadow_casters = c_arena_push_array(&render_state->draw_frame_arena, shadow_caster2D_t, MAX_QUADS);
+                // TODO(Sleepster): Why is this here? 
+                if(!render_state->draw_frame.shadow_casters)
+                {
+                    render_state->draw_frame.shadow_casters = c_arena_push_array(&render_state->draw_frame_arena, shadow_caster2D_t, MAX_QUADS);
+                }
+
+                shadow_caster2D_t caster = {};
+                caster.quad_data = *(g_buffer->quad_buffer + g_buffer->quad_count);
+
+                render_state->draw_frame.shadow_casters[render_state->draw_frame.shadow_caster_counter] = caster; 
+                render_state->draw_frame.shadow_caster_counter += 1;
             }
-
-            shadow_caster2D_t caster = {};
-            caster.quad_data = *(g_buffer->quad_buffer + g_buffer->quad_count);
-
-            render_state->draw_frame.shadow_casters[render_state->draw_frame.shadow_caster_counter] = caster; 
-            render_state->draw_frame.shadow_caster_counter += 1;
-        }
 #endif
 
-        g_buffer->quad_count += 1;
+            g_buffer->quad_count += 1;
+        }
     }
 
     return(result);
 }
 
 internal render_quad_t*
-r_draw_texture(render_state_t       *render_state,
-               vec2_t                position,
-               vec2_t                render_size,
-               vec4_t                color,
-               float32               rotation,
-               asset_handle_t        texture_handle,
-               render_quad_options_t render_options)
+r_draw_texture(render_state_t *render_state,
+               vec2_t          position,
+               vec2_t          render_size,
+               vec4_t          color,
+               float32         rotation,
+               asset_handle_t  texture_handle,
+               u32             render_options)
 {
     DEBUG_TIMED_BLOCK();
     render_quad_t *result = null;
@@ -268,6 +273,10 @@ r_draw_texture(render_state_t       *render_state,
     {
         uv_min     = *texture_handle.texture->uv_min;
         uv_max     = *texture_handle.texture->uv_max;
+    }
+    else
+    {
+        render_options |= RQO_UNTEXTURED;
     }
     result = r_draw_texture_ex(render_state,
                                   position,
@@ -281,12 +290,12 @@ r_draw_texture(render_state_t       *render_state,
 }
 
 internal render_quad_t*
-r_draw_rect(render_state_t       *render_state,
-            vec2_t                position,
-            vec2_t                render_size,
-            vec4_t                color,
-            float32               rotation,
-            render_quad_options_t render_options)
+r_draw_rect(render_state_t *render_state,
+            vec2_t          position,
+            vec2_t          render_size,
+            vec4_t          color,
+            float32         rotation,
+            u32             render_options)
 {
     DEBUG_TIMED_BLOCK();
     asset_handle_t invalid_handle = {};
@@ -378,18 +387,17 @@ r_prepare_string_for_rendering(asset_manager_t *asset_manager, dynamic_render_fo
 }
 
 internal vec2_t 
-r_draw_string(asset_manager_t       *asset_manager,
-              render_state_t        *render_state,
-              string_t               output,
-              asset_handle_t         font,
-              u32                    pixel_size,
-              vec2_t                 position,
-              vec4_t                 color,
-              render_quad_options_t  render_options)
+r_draw_string(asset_manager_t *asset_manager,
+              render_state_t  *render_state,
+              string_t         output,
+              asset_handle_t   font,
+              u32              pixel_size,
+              vec2_t           position,
+              vec4_t           color,
+              u32              render_options)
 {
     DEBUG_TIMED_BLOCK();
     vec2_t result = {};
-
     dynamic_render_font_varient_t *varient = s_asset_font_get_at_size(asset_manager, font, pixel_size);
     if(varient)
     {
@@ -418,6 +426,16 @@ r_draw_string(asset_manager_t       *asset_manager,
             }
             else
             {
+                if(render_state->draw_frame.active_material.texture != &glyph->owner_page->font_atlas)
+                {
+                    r_renderpass_end(render_state);
+                    render_material_t material = r_render_material_create(&glyph->owner_page->font_atlas, 
+                                                                           render_state->draw_frame.active_material.shader);
+
+                    r_set_active_render_material(render_state, material);
+                    r_renderpass_begin(render_state);
+                }
+
                 r_draw_texture_ex(render_state,
                                   vec2(floorf(draw_position.x + glyph->offset_x),
                                        floorf(draw_position.y - glyph->offset_y)),

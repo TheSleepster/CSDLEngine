@@ -23,5 +23,13 @@ typedef struct render_backend_data
     }primary_framebuffer;
 }render_backend_data_t;
 
+internal void r_renderer_check_error_(const char *file, s32 line_number);
+
+#if ASSERT_ENABLED 
+    #define r_renderer_check_error() r_renderer_check_error_(__FILE__, __LINE__)
+#else
+    #define r_renderer_check_error()
+#endif
+
 #endif // R_OPENGL_H
 

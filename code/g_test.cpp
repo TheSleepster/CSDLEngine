@@ -19,11 +19,10 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
 
     asset_handle_t player_texture = s_asset_texture_get(asset_manager, STR("player"));
 
-    render_material_t material = {};
-    material.shader  = &render_state->test_shader;
-    material.texture =  player_texture.texture;
-
+    render_material_t material = r_render_material_create(&player_texture.asset_slot->texture, &render_state->test_shader);
     r_pipeline_state_reset(render_state);
+
+    r_set_active_render_phase(render_state, RGP_Preblit);
     r_set_active_render_camera(render_state, &global_game_state.game_camera);
     r_set_active_render_material(render_state, material);
     r_set_active_render_layer(render_state, 16);

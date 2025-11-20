@@ -48,9 +48,9 @@ ui_init_state(render_state_t  *render_state,
     state->input_manager  = input_manager;
     state->asset_manager  = asset_manager;
 
-    mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
-    mat4_t font_view_matrix       = mat4_identity();
-
+    state->camera.view_matrix       = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
+    state->camera.projection_matrix = mat4_identity();
+#if 0
     r_reset_draw_frame_pipeline_state(render_state);
     r_set_active_blending_state(render_state, false);
     state->widget_desc = r_renderpass_build_pass_desc(render_state,
@@ -84,6 +84,7 @@ ui_init_state(render_state_t  *render_state,
     state->background_layer = r_renderpass_get_or_create(render_state, &state->background_desc);
     state->widget_layer     = r_renderpass_get_or_create(render_state, &state->widget_desc);
     state->text_layer       = r_renderpass_get_or_create(render_state, &state->text_desc);
+#endif
 
     state->DEBUG_font = s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     state->is_valid   = true;
@@ -143,10 +144,14 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 internal void
 ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget)
 {
+    r_set_active_blending_state(render_state, true);
+
     vec2_t render_pos = widget->widget_rect.min;
     if((widget->widget_flags & UIWF_DrawInBackground) != 0)
     {
-        r_renderpass_begin(render_state, state->background_layer);
+        r_set_active_render_layer(render_state, 2);
+
+        r_renderpass_begin(render_state);
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
         r_renderpass_end(render_state);
     }
@@ -169,14 +174,18 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     {
     }
 
-    r_renderpass_begin(render_state, state->widget_layer);
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
-        r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
-    }
-    r_renderpass_end(render_state);
+        r_set_active_render_layer(render_state, 1);
+        r_renderpass_begin(render_state);
 
-    r_renderpass_begin(render_state, state->text_layer);
+        r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
+
+        r_renderpass_end(render_state);
+    }
+
+    r_set_active_render_layer(render_state, 0);
+    r_renderpass_begin(render_state);
     if((widget->widget_flags & UIWF_DrawText) != 0)
     {
         r_draw_string(asset_manager, 
@@ -203,10 +212,16 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
 internal void
 ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state)
 {
+    r_set_active_render_phase(render_state, RGP_Postblit);
+    r_set_active_render_camera(render_state, &state->camera);
+    
+    render_material_t material = r_render_material_create(null, &render_state->font_shader);
+    r_set_active_render_material(render_state, material);
+
     input_controller_t *primary_controller = s_input_manager_get_primary_controller(state->input_manager);
     state->mouse_pos = s_input_manager_transform_mouse_data(primary_controller, 
-                                                            state->widget_desc.view_matrix, 
-                                                            state->widget_desc.projection_matrix); 
+                                                            state->camera.view_matrix, 
+                                                            state->camera.projection_matrix); 
     for(UI_layout_t *this_layout = state->first_layout;
         this_layout;
         this_layout = this_layout->next_layout)
@@ -221,6 +236,7 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
         this_layout->layout_pane->first_attached_widget  = null;
         this_layout->layout_pane->prev_attached_widget   = null;
     }
+    r_pipeline_state_reset(render_state);
 
     state->current_frame++;
 }

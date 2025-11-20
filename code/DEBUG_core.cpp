@@ -25,12 +25,11 @@ DEBUG_create_debug_state(render_state_t  *render_state,
     DEBUG_global_state->is_collecting          = false;
     DEBUG_global_state->next_debug_event_index = 0;
     DEBUG_global_state->UI_data                = {};
-    //ui_init_state(render_state, input_manager, asset_manager, &DEBUG_global_state->UI_data);
+
+    DEBUG_global_state->DEBUG_camera.view_matrix       = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
+    DEBUG_global_state->DEBUG_camera.projection_matrix = mat4_identity(); 
     
 #if 0
-    mat4_t font_projection_matrix = mat4_RHGL_ortho(-960, 960, -540, 540, -1, 1);
-    mat4_t font_view_matrix = mat4_identity();
-
     r_reset_draw_frame_pipeline_state(render_state);
     render_group_desc_t DEBUG_background_desc = r_renderpass_build_pass_desc(render_state,
                                                                             &render_state->font_shader,
@@ -57,7 +56,7 @@ DEBUG_create_debug_state(render_state_t  *render_state,
 
     r_set_active_blending_state(render_state, true);
     r_set_active_depth_state(render_state, true, false);
-    r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
+r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
     render_group_desc_t DEBUG_group_desc_transparent = r_renderpass_build_pass_desc(render_state,
                                                                                    &render_state->font_shader,
                                                                                     6,
@@ -573,7 +572,6 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                            vec2_t             starting_pos,
                            input_controller_t *controller)
 {
-#if 0
     const vec4_t colors[] =
     {
         {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f},
@@ -596,6 +594,9 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
     u64 frame_cycles = max_t - min_t;
     float32 cycle_to_pixel_scale = (frame_cycles > 0) ? lane_width / (float32)frame_cycles : 0.0f;
 
+    render_material_t font_material = r_render_material_create(null, &render_state->font_shader);
+    r_set_active_render_material(render_state, font_material);
+
     vec2_t current_pos = vec2_add(starting_pos, {0.0f, 60.0f});
     for(u32 thread_index = 0; 
         thread_index < DEBUG_global_state->thread_count; 
@@ -609,7 +610,9 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         float32 lane_height  = (float32)depth_to_advance * lane_height_per_depth; 
 
         // NOTE(Sleepster): Thread label
-        r_renderpass_begin(render_state, DEBUG_global_state->background_render_group);
+        r_set_active_render_layer(render_state, 1);
+        r_set_active_render_camera(render_state, &DEBUG_global_state->DEBUG_camera);
+        r_renderpass_begin(render_state);
 
         char label[256];
         snprintf(label, 
@@ -645,7 +648,11 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 float32 height = lane_height_per_depth;
 
                 // NOTE(Sleepster): Draw scope bar
-                r_renderpass_begin(render_state, DEBUG_global_state->transparent_group);
+                r_set_active_blending_state(render_state, true);
+                r_set_active_depth_state(render_state, true, false);
+                r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
+
+                r_renderpass_begin(render_state);
                 u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
                 r_draw_rect(render_state,
                             vec2(x, y),
@@ -686,7 +693,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 rectangle2_t bar_rect = rect2_create(vec2(x, y), vec2(width, height));
                 if(rect2_vec2_SAT(bar_rect, mouse))
                 {
-                    r_renderpass_begin(render_state, DEBUG_global_state->transparent_group);
+                    r_renderpass_begin(render_state);
                     DEBUG_record_t *record = DEBUG_global_state->record_array + region->record_index;
                     char buffer[4096];
                     snprintf(buffer,
@@ -702,7 +709,9 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                     r_draw_rect(render_state, vec2_subtract(tooltip_pos, {0.0f, 50.0f}), vec2(500.0f, 100.0f), background_color, 0, RQO_NONE);
                     r_renderpass_end(render_state);
 
-                    r_renderpass_begin(render_state, DEBUG_global_state->label_render_group);
+                    r_pipeline_state_reset(render_state);
+                    r_set_active_render_layer(render_state, 4);
+                    r_renderpass_begin(render_state);
                     r_draw_string(asset_manager,
                                   render_state,
                                   STR(buffer),
@@ -742,7 +751,6 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         current_pos.y += lane_height + 10.0f;
         thread->region_count = 1;
     }
-#endif
 }
 
 internal vec2_t  
@@ -751,7 +759,6 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                           asset_handle_t   font,
                           float32          delta_time)
 {
-#if 0
     vec2_t starting_pos  = vec2(-960, 500);
     for(u32 record_index = 0;
         record_index < DEBUG_global_state->next_debug_record_entry_index;
@@ -799,8 +806,6 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
                   RQO_NONE);
 
     return(starting_pos);
-#endif
-    return(vec2(0, 0));
 }
 
 internal void
@@ -854,6 +859,13 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
 
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
         ui_render_all_widgets(render_state, asset_manager, &DEBUG_global_state->UI_data);
+
+        r_set_active_render_phase(render_state, RGP_Postblit);
+        r_set_active_render_camera(render_state, &DEBUG_global_state->DEBUG_camera);
+        r_set_active_blending_state(render_state, true);
+
+        render_material_t material = r_render_material_create(null, &render_state->font_shader);
+        r_set_active_render_material(render_state, material);
 
         r_renderpass_begin(render_state);
         vec2_t ending_pos = {-900, -400};

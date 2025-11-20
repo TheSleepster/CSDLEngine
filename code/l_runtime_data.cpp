@@ -48,6 +48,7 @@
 #include "r_render_group.h"
 #include "r_asset_shader.h"
 #include "r_asset_texture.h"
+#include "r_render_material.h"
 #include "r_asset_dynamic_render_font.h"
 #include "a_asset_loaded_sound.h"
 
@@ -69,15 +70,13 @@
 #include "a_asset_loaded_sound.cpp"
 #include "r_asset_shader.cpp"
 #include "r_asset_texture.cpp"
+#include "r_render_material.cpp"
 #include "r_asset_dynamic_render_font.cpp"
 
 #include "r_render_group.cpp"
 #include "r_draw_API.cpp"
 
-#if 0
-#include "r_render_API.cpp"
 #include "s_user_interface_core.cpp"
-#endif
 
 #if RENDERER_BACKEND == RENDERER_BACKEND_OPENGL
 #include "r_opengl.h"

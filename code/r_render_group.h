@@ -9,6 +9,8 @@
 #define RENDER_GROUP_H
 #define MAX_RENDER_GROUPS_TO_OUTPUT 64
 
+#include "r_render_material.h"
+
 typedef struct render_state render_state_t;
 
 typedef struct geometry_buffer

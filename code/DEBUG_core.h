@@ -123,6 +123,7 @@ typedef struct DEBUG_state_data
     memory_arena_t      DEBUG_arena;
     u64                 cpu_freq;
 
+    render_camera_t     DEBUG_camera;
     UI_state_t          UI_data;
     
     volatile u32        next_debug_record_entry_index;

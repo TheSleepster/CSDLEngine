@@ -138,10 +138,11 @@ s_font_copy_glyph_data_to_page_bitmap(asset_manager_t            *asset_manager,
 }
 
 internal font_glyph_t*
-s_asset_font_get_utf8_glyph(asset_manager_t *asset_manager, dynamic_render_font_varient_t *varient, u8 *character)
+s_asset_font_get_utf8_glyph(asset_manager_t               *asset_manager, 
+                            dynamic_render_font_varient_t *varient, 
+                            u8                            *character)
 {
     DEBUG_TIMED_BLOCK();
-
     font_glyph_t *result = null;
 
     dynamic_render_font_page_t *valid_page = 0;

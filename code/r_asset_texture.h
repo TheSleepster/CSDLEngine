@@ -75,6 +75,7 @@ typedef struct texture2D
 
     bool8           has_AA;
     filter_type_t   filter_type;
+    u32             GPU_textureID;
 }texture2D_t;
 
 /*=============================================

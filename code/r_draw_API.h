@@ -29,10 +29,21 @@ internal void r_pipeline_state_reset(render_state_t *render_state);
 /*===========================================
   =========== PRIMITIVE RENDERING ===========
   ===========================================*/
-internal render_quad_t  r_create_render_quad(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, vec2_t texture_offset, vec2_t texture_size, render_quad_options_t render_options);
-internal render_quad_t* r_draw_texture_ex(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, vec2_t texture_offset, vec2_t texture_size, render_quad_options_t render_options);
-internal render_quad_t* r_draw_texture(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, asset_handle_t texture_handle, render_quad_options_t render_options);
-internal render_quad_t* r_draw_rect(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, render_quad_options_t render_options);
+internal render_quad_t  r_create_render_quad(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, vec2_t texture_offset, vec2_t texture_size, u32 render_options);
+internal render_quad_t* r_draw_texture_ex(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, vec2_t texture_offset, vec2_t texture_size, u32 render_options);
+internal render_quad_t* r_draw_texture(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, asset_handle_t texture_handle, u32 render_options);
+internal render_quad_t* r_draw_rect(render_state_t *render_state, vec2_t position, vec2_t render_size, vec4_t color, float32 rotation, u32 render_options);
+
+internal vec2_t 
+r_draw_string(asset_manager_t       *asset_manager,
+              render_state_t        *render_state,
+              string_t               output,
+              asset_handle_t         font,
+              u32                    pixel_size,
+              vec2_t                 position,
+              vec4_t                 color,
+              u32                    render_options);
+
 
 #endif // R_DRAW_API_H
 

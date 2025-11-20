@@ -110,6 +110,14 @@ c_hash_get_value(hash_table_t *table, string_t key)
     return(result);
 }
 
+internal void*
+c_hash_get_value_from_raw_index(hash_table_t *table, s32 index)
+{
+    hash_table_entry_t *entry = &table->entries[index];
+
+    return(entry->value);
+}
+
 internal void
 c_hash_clear_value_at_index(hash_table_t *table, s32 index)
 {

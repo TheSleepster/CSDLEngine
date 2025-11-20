@@ -229,7 +229,6 @@ main(int argc, char **argv)
 #if defined(PROFILER_ENABLED) || defined(DLL_RELOADING)
         DEBUG_create_debug_state(&render_state, &input_manager, &asset_manager);
 #endif
-
         s_asset_manager_init(&asset_manager, STR("asset_file.wad"));
         asset_manager.queue_manager = &work_manager;
 
@@ -245,7 +244,7 @@ main(int argc, char **argv)
         u64 current_tsc                   = 0;
         u64 delta_tsc                     = 0;
         float64 delta_time                = 0.0;
-        //float64 frame_time_in_ms          = 0.0;
+        float64 frame_time_in_ms          = 0.0;
 
         file_watcher_t watcher = c_file_watcher_create(FWC_EVENT_ALL, true, test_callback, &asset_manager, false);
         c_file_watcher_add_path(&watcher, STR("../res/"));
@@ -279,7 +278,7 @@ main(int argc, char **argv)
             last_tsc    = current_tsc;
 
             delta_time       = (float32)(((float64)delta_tsc) / (float64)performance_counter_frequency);
-            //frame_time_in_ms = delta_time * 1000; 
+            frame_time_in_ms = delta_time * 1000; 
             //log_info("Delta time in seconds: '%.03f'...\n", delta_time);
 
 #if PROFILER_ENABLED 

@@ -131,6 +131,7 @@ at_atlas_handler_build_atlas(asset_manager_t *asset_manager, atlas_handler_t *ha
 
             r_texture_delete(texture->view);
             texture->view->GPU_textureID = handler->atlas.view->GPU_textureID;
+            texture->GPU_textureID       = handler->atlas.view->GPU_textureID;
             texture->uv_min = vec2((float32)handler->bitmap_cursor_x,
                                                 (float32)handler->bitmap_cursor_y);
             texture->uv_max = vec2((float32)handler->bitmap_cursor_x + texture->bitmap.width,

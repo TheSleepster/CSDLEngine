@@ -48,7 +48,7 @@ typedef struct scratch_arena
 
 //////////// MEMORY ARENA API DEFINITIONS //////////////
 internal inline memory_arena_t         c_arena_create(u64 block_size);
-internal        byte*                  c_arena_push_size(memory_arena_t *arena, u64 size);
+internal        byte*                  c_arena_push_size_(memory_arena_t *arena, u64 size);
 internal inline scratch_arena_t        c_begin_scratch_arena(memory_arena_t *arena);
 internal inline void                   c_end_scratch_arena(scratch_arena_t *scratch);
 internal inline memory_arena_footer_t* c_arena_get_footer(memory_arena_t *arena);
@@ -58,9 +58,17 @@ internal inline void                   c_arena_reset(memory_arena_t *arena);
 internal inline byte*                  bootstrap_allocate_struct_(u64 struct_size, u64 offset_to_arena, u64 base_allocation);
 
 // MACROS
-#define c_arena_push_struct(arena, type)                                 (type*)c_arena_push_size(arena,   sizeof(type))
-#define c_arena_push_array(arena, type, count)                           (type*)c_arena_push_size(arena,  (sizeof(type)) * count)
-#define c_arena_bootstrap_allocate_struct(type, member, allocation_size) (type*)bootstrap_allocate_struct_(sizeof(type), IntFromPtr(OffsetOf(type, member)), allocation_size)
+#if MEMORY_DEBUGGING 
+    #define c_arena_push_size(arena, size)                                          c_arena_push_size_(arena, size);                                                               log_info("Arena Allocation of: '%ull' bytes from file: '%s', line: '%d'...\n", size, __FILE__, __LINE__)
+    #define c_arena_push_struct(arena, type)                                 (type*)c_arena_push_size_(arena,   sizeof(type));                                                     log_info("Arena Allocation of: '%ull' bytes from file: '%s', line: '%d'...\n", sizeof(type), __FILE__, __LINE__)
+    #define c_arena_push_array(arena, type, count)                           (type*)c_arena_push_size_(arena,  (sizeof(type)) * count);                                            log_info("Arena Allocation of: '%ull' bytes from file: '%s', line: '%d'...\n", sizeof(type) * count, __FILE__, __LINE__)
+    #define c_arena_bootstrap_allocate_struct(type, member, allocation_size) (type*)bootstrap_allocate_struct_(sizeof(type), IntFromPtr(OffsetOf(type, member)), allocation_size); log_info("Arena Allocation of: '%ull' bytes from file: '%s', line: '%d'...\n", allocation_size, __FILE__, __LINE__)
+#else
+    #define c_arena_push_size(arena, size)                                          c_arena_push_size_(arena, size) 
+    #define c_arena_push_struct(arena, type)                                 (type*)c_arena_push_size_(arena,   sizeof(type))
+    #define c_arena_push_array(arena, type, count)                           (type*)c_arena_push_size_(arena,  (sizeof(type)) * count)
+    #define c_arena_bootstrap_allocate_struct(type, member, allocation_size) (type*)bootstrap_allocate_struct_(sizeof(type), IntFromPtr(OffsetOf(type, member)), allocation_size)
+#endif
 ////////////////////////////////////////////////////////
 
 #endif

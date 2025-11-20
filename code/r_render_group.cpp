@@ -62,8 +62,13 @@ r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_g
                 {
                     if(buffer->quad_count < MAX_QUADS)
                     {
-                        buffer->quad_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
-                        buffer->quad_buffer        = c_arena_push_array(&render_state->persistant_arena, render_quad_t, MAX_QUADS);
+                        if(!buffer->quad_vertex_buffer && !buffer->quad_buffer)
+                        {
+                            buffer->quad_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
+                            buffer->quad_buffer        = c_arena_push_array(&render_state->persistant_arena, render_quad_t, MAX_QUADS);
+                        }
+                        Assert(buffer->quad_vertex_buffer != null);
+                        Assert(buffer->quad_buffer != null);
 
                         result = buffer;
                         goto r_geometry_buffer_found;
@@ -73,8 +78,13 @@ r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_g
                 {
                     if(buffer->line_count < MAX_LINES)
                     {
-                        buffer->line_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
-                        buffer->line_buffer        = c_arena_push_array(&render_state->persistant_arena, render_line_t, MAX_LINES);
+                        if(!buffer->line_vertex_buffer && !buffer->line_buffer)
+                        {
+                            buffer->line_vertex_buffer = c_arena_push_array(&render_state->persistant_arena, vertex_t,      MAX_VERTICES);
+                            buffer->line_buffer        = c_arena_push_array(&render_state->persistant_arena, render_line_t, MAX_LINES);
+                        }
+                        Assert(buffer->line_vertex_buffer);
+                        Assert(buffer->line_buffer);
 
                         result = buffer;
                         goto r_geometry_buffer_found;
@@ -90,8 +100,6 @@ r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_g
     if(!result)
     {
         result = c_arena_push_struct(&render_state->persistant_arena, geometry_buffer_t);
-        r_render_group_init_geometry_buffer(render_state, result);
-
         last_buffer->next_buffer = result;
     }
 r_geometry_buffer_found:
@@ -102,6 +110,9 @@ r_geometry_buffer_found:
 internal void
 r_render_group_process_quad_geometry(geometry_buffer_t *buffer)
 {
+    Assert(buffer->is_valid);
+    Assert(buffer->quad_count < MAX_QUADS);
+
     for(u32 quad_index = 0;
         quad_index < buffer->quad_count;
         ++quad_index)
@@ -116,16 +127,20 @@ r_render_group_process_quad_geometry(geometry_buffer_t *buffer)
 
         *top_left     = quad->top_left;
         *top_right    = quad->top_right;
-        *bottom_left  = quad->bottom_left;
         *bottom_right = quad->bottom_right;
+        *bottom_left  = quad->bottom_left;
 
         buffer->quad_vertex_count += 4;
+        Assert(buffer->quad_vertex_count < MAX_VERTICES);
     }
 }
 
 internal void
 r_render_group_process_line_geometry(geometry_buffer_t *buffer)
 {
+    Assert(buffer->is_valid);
+    Assert(buffer->line_count < MAX_LINES);
+
     for(u32 line_index = 0;
         line_index < buffer->line_count;
         ++line_index)
@@ -147,22 +162,29 @@ internal void
 r_render_group_handle_geometry_buffers(multithreading_work_queue_t *queue, render_group_t *render_group)
 {
     DEBUG_TIMED_BLOCK();
-    for(geometry_buffer_t *buffer  = &render_group->first_buffer;
+    for(geometry_buffer_t *buffer = &render_group->first_buffer;
         buffer;
         buffer = buffer->next_buffer)
     {
+        buffer->line_vertex_count = 0;
+        buffer->quad_vertex_count = 0;
+
         if(buffer->quad_count > 0)
         {
-            s_work_queue_add_entry(queue,
-                                   (work_queue_callback_t*)r_render_group_process_quad_geometry,
-                                   (void*)buffer);
+            // s_work_queue_add_entry(queue,
+            //                        (work_queue_callback_t*)r_render_group_process_quad_geometry,
+            //                        (void*)buffer);
+
+            r_render_group_process_quad_geometry(buffer);
         }
 
         if(buffer->line_count > 0)
         {
-            s_work_queue_add_entry(queue,
-                                   (work_queue_callback_t*)r_render_group_process_line_geometry,
-                                   (void*)buffer);
+            // s_work_queue_add_entry(queue,
+            //                        (work_queue_callback_t*)r_render_group_process_line_geometry,
+            //                        (void*)buffer);
+
+            r_render_group_process_line_geometry(buffer);
         }
     }
 }
@@ -170,6 +192,8 @@ r_render_group_handle_geometry_buffers(multithreading_work_queue_t *queue, rende
 internal render_group_t* 
 r_render_group_create_new(render_state_t *render_state, hash_table_t *hash_table, u64 combo_id)
 {
+    render_state->render_group_counter++;
+
     render_group_t *result = c_arena_push_struct(&render_state->persistant_arena, render_group_t);
     result->group_ID    = combo_id;
     result->render_desc = (render_group_desc_t){
@@ -178,15 +202,15 @@ r_render_group_create_new(render_state_t *render_state, hash_table_t *hash_table
         .pipeline_state  = render_state->pipeline_state,
     };
 
-    u64 index = c_hash_create_key_index(hash_table, &combo_id, sizeof(u64));
-    Assert(index > 0);
+    u64 index = combo_id;
+    Assert(index >= 0);
 
     result->phase_idx = index;
 
     hash_table_entry *entry = hash_table->entries + index;
     entry->value = result;
-    entry->key   = STR((const char*)&combo_id);
 
+    hash_table->entry_counter++;
     return(result);
 }
 
@@ -194,13 +218,13 @@ internal inline void
 r_renderpass_begin(render_state_t *render_state)
 {
     draw_frame_data_t *draw_frame = &render_state->draw_frame;
-    
+
+    // TODO(Sleepster): Right now, this is wrong. Material ID is always 0
     u32 material_id  = draw_frame->active_material.material_ID;
     u32 render_phase = draw_frame->active_render_phase;
-    u64 combo_id     = ((u64)render_phase << 32) | (u64)material_id;
-
+    
     render_phase_data_t *render_phase_data = null;
-    if(render_phase == RGP_Preblit) render_phase_data  = &render_state->preblit_phase;
+    if(render_phase == RGP_Preblit)  render_phase_data  = &render_state->preblit_phase;
     if(render_phase == RGP_Postblit) render_phase_data = &render_state->postblit_phase;
     Assert(render_phase_data != null);
 
@@ -209,17 +233,23 @@ r_renderpass_begin(render_state_t *render_state)
     else                                      container = &render_phase_data->opaque;
     Assert(container != null);
 
-    render_group_t *render_group = (render_group_t*)c_hash_get_value(&container->group_hash, STR((const char*)&combo_id));
+    u64 hash = default_fnv_hash_value;
+    hash = c_fnv_hash_value((byte*)&material_id,    sizeof(u32), hash);
+    hash = c_fnv_hash_value((byte*)&render_phase,   sizeof(u32), hash);
+    hash = c_fnv_hash_value((byte*)&render_state->pipeline_state, sizeof(render_pipeline_state_t), hash);
+
+    u64 combo_id = hash % container->group_hash.max_entries;
+    render_group_t *render_group = (render_group_t*)c_hash_get_value_from_raw_index(&container->group_hash, combo_id);
     if(!render_group)
     {
         render_group = r_render_group_create_new(render_state, &container->group_hash, combo_id);
+
+        u32 render_group_index = container->used_render_group_counter++;
+        container->render_group_ids[render_group_index] = render_group->phase_idx;
     }
 
     Assert(render_group != null);
     draw_frame->active_render_group = render_group;
-
-    u32 render_group_index = container->used_render_group_counter++;
-    container->render_group_ids[render_group_index] = render_group->phase_idx;
 }
 
 internal inline void
@@ -283,4 +313,6 @@ r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_ma
 
         r_render_group_handle_geometry_buffers(&asset_manager->queue_manager->high_priority_queue, render_group);
     }
+
+    s_work_queue_finish_all_work(&asset_manager->queue_manager->high_priority_queue);
 }

@@ -30,7 +30,7 @@ c_arena_get_footer(memory_arena_t *arena)
 }
 
 internal byte*
-c_arena_push_size(memory_arena_t *arena, u64 size_init)
+c_arena_push_size_(memory_arena_t *arena, u64 size_init)
 {
     Assert(arena->is_initialized == true);
     

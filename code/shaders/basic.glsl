@@ -13,7 +13,6 @@ uniform uint uEffectMask;
 
 out      vec4 vOutColor;
 out      vec2 vOutUVData;
-out flat uint vOutTextureIndex;
 out flat uint vOutEffectMask;
 
 void
@@ -21,7 +20,6 @@ main()
 {
     vOutColor        = vColor;
     vOutUVData       = vUVData;
-    vOutTextureIndex = vTextureIndex;
     vOutEffectMask   = uEffectMask;
     gl_Position      = uProjectionMatrix * uViewMatrix * vec4(vPosition, 1);
 }
