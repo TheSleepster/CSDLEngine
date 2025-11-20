@@ -26,9 +26,12 @@ r_DEBUG_test_render(render_state_t *render_state, audio_manager_t *audio_manager
     r_set_active_render_camera(render_state, &global_game_state.game_camera);
     r_set_active_render_material(render_state, material);
     r_set_active_render_layer(render_state, 16);
-    r_set_active_render_phase(render_state, RGP_Preblit);
+    r_set_active_depth_state(render_state, true, true);
+    r_set_active_blending_state(render_state, false);
 
     r_renderpass_begin(render_state);
     r_draw_texture(render_state, {0, 0}, {10, 10}, COLOR_WHITE, 0, player_texture, RQO_NONE);
     r_renderpass_end(render_state);
+
+    r_pipeline_state_reset(render_state);
 }

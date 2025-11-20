@@ -657,9 +657,11 @@ r_init_renderer_data(SDL_Window *window, render_state_t *render_state)
         log_fatal("Failed to apply the GL context...\n");
     }
 
+    SDL_GL_SetSwapInterval(1);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_LINE_SMOOTH);
-    SDL_GL_SetSwapInterval(1);
+    glDisable(GL_MULTISAMPLE);
+
     //SDL_GL_SetSwapInterval(0);
 
     // glDebugMessageCallback(&gl_debug_callback, null);

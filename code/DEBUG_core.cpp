@@ -610,7 +610,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         float32 lane_height  = (float32)depth_to_advance * lane_height_per_depth; 
 
         // NOTE(Sleepster): Thread label
-        r_set_active_render_layer(render_state, 1);
+        r_set_active_render_layer(render_state, 16);
         r_set_active_render_camera(render_state, &DEBUG_global_state->DEBUG_camera);
         r_renderpass_begin(render_state);
 
@@ -710,7 +710,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                     r_renderpass_end(render_state);
 
                     r_pipeline_state_reset(render_state);
-                    r_set_active_render_layer(render_state, 4);
+                    r_set_active_render_layer(render_state, 16);
                     r_renderpass_begin(render_state);
                     r_draw_string(asset_manager,
                                   render_state,
@@ -875,17 +875,23 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
         }
         r_renderpass_end(render_state);
 
+        r_set_active_blending_state(render_state, false);
+        r_set_active_depth_state(render_state, true, false);
+        r_set_active_render_layer(render_state, 20);
+
         r_renderpass_begin(render_state);
-        if(DEBUG_global_state->display_cycle_counters || DEBUG_global_state->display_call_graph)
+        if(DEBUG_global_state->display_cycle_counters || 
+           DEBUG_global_state->display_call_graph)
         {
             r_draw_rect(render_state,
                         vec2(-960, -600),
                         vec2(1500, 2000),
-                        vec4(0.003f, 0.003f, 0.003f, 0.99f),
+                        vec4(0.003f, 0.003f, 0.003f, 0.9f),
                         0,
                         RQO_NONE);
         }
         r_renderpass_end(render_state);
+        r_pipeline_state_reset(render_state);
 
         if(DEBUG_global_state->display_call_graph)
         {

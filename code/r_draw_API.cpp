@@ -107,6 +107,8 @@ r_pipeline_state_reset(render_state_t *render_state)
     pipeline_state->scissor_h       = 0;
 
     pipeline_state->render_line_width = 1.0f;
+
+    render_state->draw_frame.active_render_layer = 16;
 }
 
 //////////////////////////

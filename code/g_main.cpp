@@ -576,6 +576,9 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
 
     // NOTE(Sleepster): Entity Render Loop 
     {
+        r_set_active_render_layer(render_state, 16);
+        r_set_active_depth_state(render_state, false, true);
+        r_set_active_blending_state(render_state, true);
         r_renderpass_begin(render_state, global_game_state.entity_render_group);
         for(u32 entity_index = 0;
             entity_index < global_game_state.entity_manager.active_entity_count;
@@ -588,6 +591,7 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
             //r_draw_rect(render_state, entity->hit_box.rect.min, entity->render_size, COLOR_BLUE, 0, RQO_NONE);
         }
         r_renderpass_end(render_state);
+        r_pipeline_state_reset(render_state);
     }
 #endif
 }

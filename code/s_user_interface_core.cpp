@@ -149,7 +149,9 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     vec2_t render_pos = widget->widget_rect.min;
     if((widget->widget_flags & UIWF_DrawInBackground) != 0)
     {
-        r_set_active_render_layer(render_state, 2);
+        r_set_active_render_layer(render_state, 19);
+        r_set_active_blending_state(render_state, true);
+        r_set_active_depth_state(render_state, false, false);
 
         r_renderpass_begin(render_state);
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
@@ -176,15 +178,16 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
 
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
-        r_set_active_render_layer(render_state, 1);
+        r_set_active_blending_state(render_state, true);
+        r_set_active_depth_state(render_state, false, false);
+        r_set_active_render_layer(render_state, 18);
+
         r_renderpass_begin(render_state);
-
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
-
         r_renderpass_end(render_state);
     }
 
-    r_set_active_render_layer(render_state, 0);
+    r_set_active_render_layer(render_state, 17);
     r_renderpass_begin(render_state);
     if((widget->widget_flags & UIWF_DrawText) != 0)
     {
