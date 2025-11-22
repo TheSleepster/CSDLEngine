@@ -391,8 +391,8 @@ ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_p
                                                       slider_name,
                                                       UIWF_FilledBox);
     float32 slider_value = (*value_ptr - min) / (max - min);
-    //float32 slider_width  = slider_background->widget_rect.max.x - slider_background->widget_rect.min.x;
-    //float32 slider_height = slider_background->widget_rect.max.y - slider_background->widget_rect.min.y;
+    float32 slider_width  = slider_background->widget_rect.max.x - slider_background->widget_rect.min.x;
+    float32 slider_height = slider_background->widget_rect.max.y - slider_background->widget_rect.min.y;
 
     ui_widget_push_parent(state->active_layout, slider_background);
 
@@ -404,10 +404,34 @@ ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_p
 
         *value_ptr = min + slider_x_normalized * (max - min); 
     }
-    //float32 filled_slider_width = slider_width * slider_value;
+    float32 filled_slider_width = slider_width * slider_value;
+
+    UI_widget_t *filled_slider_overlay = ui_widget_rect(state, STR("SLIDER OVERLAY RECTANGLE"), vec2(filled_slider_width, slider_height), vec4(0.3f, 0.3f, 0.3f, 0.3f));
+    filled_slider_overlay->panel_offset.y = slider_background->panel_offset.y;
 
     UI_widget_t *button = ui_layout_get_widget(state->active_layout, STR("SLIDER BUTTON"));
-    ui_widget_set_size(slider_background, button->panel_size);
+    if(button)
+    {
+        ui_widget_set_pane_offset(button, vec2(filled_slider_overlay->panel_offset.x + filled_slider_width, filled_slider_overlay->panel_offset.y));
+        ui_widget_set_size(slider_background, button->panel_size);
+    }
+    else
+    {
+        InvalidCodePath;
+    }
+
+    float32 fill_width = slider_width * slider_value;
+    vec2_t fill_pos    = slider_background->panel_offset;
+    UI_widget_t *fill = ui_widget_rect(state,
+                                       STR("SLIDER FILL"), 
+                                       vec2(fill_width, slider_height),
+                                       vec4(0.3f, 0.3f, 0.3f, 0.3f));
+    ui_widget_set_pane_offset(fill, fill_pos);
+
+    // position the button at end of fill
+    ui_widget_set_pane_offset(button,
+                              vec2(slider_background->panel_offset.x + fill_width,
+                                   slider_background->panel_offset.y));
 
     ui_widget_pop_parent(state->active_layout);
 }
