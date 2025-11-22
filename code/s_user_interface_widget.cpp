@@ -58,27 +58,30 @@ ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget)
     widget->parent_widget = parent;
     if(!parent->first_attached_widget)
     {
-        // NOTE(Sleepster): First 
-        parent->first_attached_widget  = widget;
-        parent->oldest_attached_widget = widget;
-        parent->next_attached_widget   = null;
-        parent->prev_attached_widget   = null;
+        // NOTE(Sleepster): First widget attached to this parent
 
-        widget->next_attached_widget   = null;
-        widget->prev_attached_widget   = null;
-        widget->first_attached_widget  = null;
-        widget->oldest_attached_widget = null;
+
+        // TODO(Sleepster): This might be a problem, but we are now not clearing
+        // the parent's prev_attached_widget and the parent's next_attached_widget because of 
+        // parenting issues.
+        parent->first_attached_widget    = widget;
+        parent->youngest_attached_widget = widget;
+
+        widget->next_attached_widget     = null;
+        widget->prev_attached_widget     = null;
+        widget->first_attached_widget    = null;
+        widget->youngest_attached_widget = null;
     }
     else
     {
         // NOTE(Sleepster): Append 
-        UI_widget_t *last_widget = parent->oldest_attached_widget;
+        UI_widget_t *last_widget = parent->youngest_attached_widget;
         last_widget->next_attached_widget = widget;
 
         widget->prev_attached_widget      = last_widget;
         widget->next_attached_widget      = null;
 
-        parent->oldest_attached_widget = widget;
+        parent->youngest_attached_widget = widget;
     }
 }
 
@@ -114,7 +117,7 @@ ui_widget_create(UI_state_t *state,
     widget->next_attached_widget   = null;
     widget->prev_attached_widget   = null;
     widget->first_attached_widget  = null;
-    widget->oldest_attached_widget = null;
+    widget->youngest_attached_widget = null;
     if((widget_flags & UIWF_DrawText) != 0)
     {
         widget->render_font = s_asset_font_get_at_size(state->asset_manager, 
@@ -332,6 +335,7 @@ ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *
     return(result);
 }
 
+#if 0
 internal void
 ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_ptr, float32 min, float32 max)
 {
@@ -377,6 +381,35 @@ ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_p
     ui_widget_set_pane_offset(button,
                               vec2(slider_background->panel_offset.x + fill_width,
                                    slider_background->panel_offset.y));
+}
+#endif
+
+internal void
+ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_ptr, float32 min, float32 max)
+{
+    UI_widget_t *slider_background = ui_widget_create(state,
+                                                      slider_name,
+                                                      UIWF_FilledBox);
+    float32 slider_value = (*value_ptr - min) / (max - min);
+    //float32 slider_width  = slider_background->widget_rect.max.x - slider_background->widget_rect.min.x;
+    //float32 slider_height = slider_background->widget_rect.max.y - slider_background->widget_rect.min.y;
+
+    ui_widget_push_parent(state->active_layout, slider_background);
+
+    slider_value = Clamp(slider_value, 0.0f, 1.0f);
+    if(ui_widget_button(state, STR("SLIDER BUTTON"), false))
+    {    
+        float32 current_slider_x    = state->mouse_pos.x - slider_background->widget_rect.min.x;
+        float32 slider_x_normalized = Clamp(current_slider_x / 1.0f, 0.0f, 1.0f);
+
+        *value_ptr = min + slider_x_normalized * (max - min); 
+    }
+    //float32 filled_slider_width = slider_width * slider_value;
+
+    UI_widget_t *button = ui_layout_get_widget(state->active_layout, STR("SLIDER BUTTON"));
+    ui_widget_set_size(slider_background, button->panel_size);
+
+    ui_widget_pop_parent(state->active_layout);
 }
 
 internal true_inline void

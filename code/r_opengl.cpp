@@ -1042,6 +1042,10 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
     DEBUG_TIMED_BLOCK();
 
     glEnable(GL_BLEND);
+
+    glClearDepth(0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 #if 0
     r_handle_lighting_data(render_state);
     // LIGHTING

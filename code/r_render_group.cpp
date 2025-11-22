@@ -41,6 +41,8 @@ r_render_group_init_geometry_buffer(render_state_t *render_state, geometry_buffe
 internal geometry_buffer_t*
 r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_group, u32 primitive_type)
 {
+    DEBUG_TIMED_BLOCK();
+
     geometry_buffer_t *result      = null;
     geometry_buffer_t *last_buffer = null;
 
@@ -110,6 +112,8 @@ r_geometry_buffer_found:
 internal void
 r_render_group_process_quad_geometry(geometry_buffer_t *buffer)
 {
+    DEBUG_TIMED_BLOCK();
+
     Assert(buffer->is_valid);
     Assert(buffer->quad_count < MAX_QUADS);
 
@@ -138,6 +142,8 @@ r_render_group_process_quad_geometry(geometry_buffer_t *buffer)
 internal void
 r_render_group_process_line_geometry(geometry_buffer_t *buffer)
 {
+    DEBUG_TIMED_BLOCK();
+
     Assert(buffer->is_valid);
     Assert(buffer->line_count < MAX_LINES);
 
@@ -192,6 +198,8 @@ r_render_group_handle_geometry_buffers(multithreading_work_queue_t *queue, rende
 internal render_group_t* 
 r_render_group_create_new(render_state_t *render_state, hash_table_t *hash_table, u64 combo_id)
 {
+    DEBUG_TIMED_BLOCK();
+
     render_state->render_group_counter++;
 
     render_group_t *result = c_arena_push_struct(&render_state->persistant_arena, render_group_t);
@@ -217,6 +225,8 @@ r_render_group_create_new(render_state_t *render_state, hash_table_t *hash_table
 internal inline void
 r_renderpass_begin(render_state_t *render_state)
 {
+    DEBUG_TIMED_BLOCK();
+
     draw_frame_data_t *draw_frame = &render_state->draw_frame;
 
     // TODO(Sleepster): Right now, this is wrong. Material ID is always 0

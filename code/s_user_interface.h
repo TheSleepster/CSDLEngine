@@ -74,38 +74,43 @@ typedef struct UI_slider_value
 // TODO(Sleepster): Allow the user to control the widget depth
 typedef struct UI_widget
 {
-    u32        ID;
-    u32        widget_flags;
+    u32          ID;
+    u32          widget_flags;
 
-    bool8      is_hot;
-    bool8      is_active;
+    bool8        is_hot;
+    bool8        is_active;
 
-    bool8      started_inside;
-    bool8      is_expanded;
+    bool8        started_inside;
+    bool8        is_expanded;
 
-    vec2_t     panel_offset;
-    vec2_t     panel_size;
-    rectangle2 widget_rect;
+    char         text_buffer[256];
+    u32          used_buffer_count;
 
-    string_t   name;
-    vec2_t     string_offset;
-    vec2_t     string_size; 
-    vec4_t     color;
+    vec2_t       panel_offset;
+    vec2_t       panel_size;
+    rectangle2_t widget_rect;
 
-    u32        font_size;
-    u32        widget_icon;
+    string_t     name;
+    vec2_t       string_offset;
+    vec2_t       string_size; 
+    vec4_t       color;
 
-    vec4_t     render_color;
-    vec4_t     font_color;
-    vec4_t     idle_color;
-    vec4_t     hot_color;
-    vec4_t     active_color;
+    u32          font_size;
+    u32          widget_icon;
 
-    UI_widget *parent_widget;
-    UI_widget *first_attached_widget;
-    UI_widget *oldest_attached_widget;
-    UI_widget *next_attached_widget;
-    UI_widget *prev_attached_widget;
+    vec4_t       render_color;
+    vec4_t       font_color;
+    vec4_t       idle_color;
+    vec4_t       hot_color;
+    vec4_t       active_color;
+
+    UI_widget   *parent_widget;
+    UI_widget   *first_attached_widget;
+
+    // NOTE(Sleepster): "youngest" simply means that last widget attached to this hierarchy
+    UI_widget   *youngest_attached_widget;
+    UI_widget   *next_attached_widget;
+    UI_widget   *prev_attached_widget;
 
     dynamic_render_font_varient_t *render_font;
 }UI_widget_t;

@@ -103,11 +103,16 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
         this_layout;
         this_layout = this_layout->next_layout)
     {
+        if(this_layout->layout_toggle)
+        {
+            this_layout->layout_toggle = this_layout->layout_toggle;
+        }
+
         UI_widget_t *root_widget = this_layout->layout_pane;
         root_widget->panel_size  = vec2(0, 0);
 
         this_layout->next_widget_cursor = this_layout->panel_position;
-        for(UI_widget_t *child = root_widget->oldest_attached_widget;
+        for(UI_widget_t *child = root_widget->youngest_attached_widget;
             child;
             child = child->prev_attached_widget)
         {
@@ -122,6 +127,10 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 
                 child->panel_size.x = child->string_size.x + state->widget_padding_x * 2.0f;
                 child->panel_size.y = child->string_size.y + state->widget_padding_y * 2.0f;
+            }
+            else if(child->panel_size.x == 0.0f && child->panel_size.y == 0.0f)
+            {
+                child->panel_size = vec2(40, 20);
             }
 
             child->widget_rect = rect2_create(child_panel_position, child->panel_size);
@@ -203,7 +212,7 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     r_renderpass_end(render_state);
 
     // NOTE(Sleepster): recurse for children 
-    for(UI_widget_t *child = widget->oldest_attached_widget;
+    for(UI_widget_t *child = widget->youngest_attached_widget;
         child;
         child = child->prev_attached_widget)
     {
@@ -234,10 +243,10 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
 
         ui_render_widget(render_state, asset_manager, state, root_widget);
 
-        this_layout->layout_pane->next_attached_widget   = null;
-        this_layout->layout_pane->oldest_attached_widget = null;
-        this_layout->layout_pane->first_attached_widget  = null;
-        this_layout->layout_pane->prev_attached_widget   = null;
+        this_layout->layout_pane->next_attached_widget     = null;
+        this_layout->layout_pane->youngest_attached_widget = null;
+        this_layout->layout_pane->first_attached_widget    = null;
+        this_layout->layout_pane->prev_attached_widget     = null;
     }
     r_pipeline_state_reset(render_state);
 

@@ -14,6 +14,7 @@ uniform uint uEffectMask;
 out      vec4 vOutColor;
 out      vec2 vOutUVData;
 out flat uint vOutEffectMask;
+out flat uint vOutTextureIndex;
 
 void
 main()
@@ -21,16 +22,17 @@ main()
     vOutColor        = vColor;
     vOutUVData       = vUVData;
     vOutEffectMask   = uEffectMask;
+    vOutTextureIndex = vTextureIndex;
     gl_Position      = uProjectionMatrix * uViewMatrix * vec4(vPosition, 1);
 }
 #endif
 
 #ifdef FRAGMENT_SHADER
 
-in       vec4 vOutColor;
-in       vec2 vOutUVData;
-in  flat uint vOutTextureIndex;
-in  flat uint vOutEffectMask;
+in      vec4 vOutColor;
+in      vec2 vOutUVData;
+in flat uint vOutTextureIndex;
+in flat uint vOutEffectMask;
 
 layout(location = 0) out vec4 vFragColor;
 layout(location = 1) out vec4 vTestColor;

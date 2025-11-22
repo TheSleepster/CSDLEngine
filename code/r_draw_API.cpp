@@ -138,6 +138,9 @@ r_create_render_quad(render_state_t *render_state,
     /* NOTE(Sleepster): We are using an Orthographic projection matrix.
      * In OpenGL and Vulkan, the depth values are always normalized between -1 and 1
      */
+
+    Assert(render_state->draw_frame.active_render_layer < MAX_RENDER_LAYERS);
+
     float32 near_value = -1;
     float32 far_value  =  1;
 

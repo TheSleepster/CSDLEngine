@@ -67,6 +67,7 @@ typedef struct DEBUG_event
     u32   core_index;
     u64   thread_id;
     u64   cycle_counter;
+    u64   memory_allocated;
 }DEBUG_event_t;
 
 typedef struct DEBUG_region

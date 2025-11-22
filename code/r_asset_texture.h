@@ -89,4 +89,6 @@ internal        asset_handle_t  s_asset_texture_get(asset_manager_t *asset_manag
 internal inline void            s_asset_texture_destroy_data(asset_manager_t *asset_manager, asset_handle_t handle);
 internal inline void            s_asset_texture_view_destroy(asset_manager_t *asset_manager, asset_handle_t handle);
 
+internal inline texture2D_t    *s_asset_texture_get_from_handle(asset_handle_t handle);
+
 #endif

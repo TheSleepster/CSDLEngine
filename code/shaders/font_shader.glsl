@@ -27,10 +27,10 @@ main()
 
 #ifdef FRAGMENT_SHADER
 
-in       vec4 vOutColor;
-in       vec2 vOutUVData;
-in flat  uint vOutTextureIndex;
-in flat  uint vOutEffectMask;
+in      vec4 vOutColor;
+in      vec2 vOutUVData;
+in flat uint vOutTextureIndex;
+in flat uint vOutEffectMask;
 
 uniform sampler2D uTest;
 

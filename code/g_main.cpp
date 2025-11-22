@@ -113,6 +113,9 @@ struct entity_manager_t
     u32      active_entity_count;
 };
 
+//#include "g_test.cpp"
+#include "g_editor.cpp"
+
 struct game_state_t 
 {
     bool8               is_initialized;
@@ -120,7 +123,7 @@ struct game_state_t
     render_group_t     *entity_render_group;
 
     entity_manager_t    entity_manager;
-    //game_map_editor_t   map_editor;
+    game_map_editor_t   map_editor;
 
     render_camera_t     game_camera;
     render_camera_t     ui_camera;
@@ -141,10 +144,6 @@ struct game_state_t
 };
 global game_state_t global_game_state;
 
-#include "g_test.cpp"
-#include "g_editor.cpp"
-
-#if 0
 internal entity_t* 
 entity_create(entity_manager_t *entity_manager)
 {
@@ -345,26 +344,20 @@ entity_update_player(entity_t *entity, vec2_t input_axis, float32 delta_time)
 internal void
 initialize_gamestate(render_state_t *render_state, input_manager_t *input_manager, asset_manager_t *asset_manager)
 {
-    r_reset_draw_frame_pipeline_state(render_state);
     global_game_state.controller = s_input_manager_get_primary_controller(input_manager);
     global_game_state.input_data_file = c_file_open(STR("InputData.idf"), true);
-
-    mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
-    mat4_t view_matrix       = mat4_identity();
-    render_group_desc_t test_group_desc = r_renderpass_build_pass_desc(render_state,
-                                                                      &render_state->test_shader,
-                                                                       16,
-                                                                       view_matrix,
-                                                                       projection_matrix,
-                                                                       RGE_None);
-    global_game_state.entity_render_group = r_renderpass_get_or_create(render_state, &test_group_desc);
-    r_renderpass_end(render_state);
     log_info("Input Manager is size: '%d'\n", sizeof(input_manager_t));
 
     global_game_state.entity_manager.active_entity_count = 0;
     global_game_state.player = entity_create_player(&global_game_state.entity_manager, asset_manager, vec2_zero());
 
     entity_create_test_tile(&global_game_state.entity_manager, asset_manager, vec2(-16, 0));
+
+    mat4_t projection_matrix = mat4_RHGL_ortho(-160, 160, -90, 90, -1, 1);
+    mat4_t view_matrix       = mat4_identity();
+
+    global_game_state.game_camera.view_matrix       = view_matrix;
+    global_game_state.game_camera.projection_matrix = projection_matrix;
 }
 
 
@@ -487,8 +480,6 @@ game_simulate(vec2_t input_axis, float32 delta_time)
     }
 }
 
-#endif
-
 GAME_API external
 GAME_UPDATE_AND_RENDER(game_update_and_render)
 {
@@ -505,15 +496,11 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
     // NOTE(Sleepster): Initialize Gamestate
     if(!global_game_state.is_initialized) 
     {
-#if 0
         initialize_gamestate(render_state, input_manager, asset_manager);
-#endif
         global_game_state.is_initialized = true;
     }
-    r_DEBUG_test_render(render_state, audio_manager, asset_manager, UPDATE_RATE);
+    //r_DEBUG_test_render(render_state, audio_manager, asset_manager, UPDATE_RATE);
     
-#if 0
-
     // NOTE(Sleepster): Input Processing
     global_game_state.input_axis = {};
     {
@@ -576,22 +563,41 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
 
     // NOTE(Sleepster): Entity Render Loop 
     {
+        r_pipeline_state_reset(render_state);
+
+        // TODO(Sleepster): Make an easier way to access the global game texture atlas 
+        render_material_t material = r_render_material_create(&global_game_state.player->sprite.texture.asset_slot->texture, 
+                                                              &render_state->test_shader);
+
+        r_set_active_render_material(render_state, material);
+        r_set_active_render_phase(render_state, RGP_Preblit);
         r_set_active_render_layer(render_state, 16);
         r_set_active_depth_state(render_state, false, true);
         r_set_active_blending_state(render_state, true);
-        r_renderpass_begin(render_state, global_game_state.entity_render_group);
+        r_set_active_render_camera(render_state, &global_game_state.game_camera);
+
+        r_renderpass_begin(render_state);
         for(u32 entity_index = 0;
             entity_index < global_game_state.entity_manager.active_entity_count;
             ++entity_index)
         {
             entity_t *entity = global_game_state.entity_manager.entities + entity_index;
-            entity_render(render_state, asset_manager, entity, alpha);
+            if(&entity->sprite.texture.asset_slot->texture != 
+                render_state->draw_frame.active_material.texture)
+            {
+                r_renderpass_end(render_state);
 
+                render_material_t entity_material = r_render_material_create(&entity->sprite.texture.asset_slot->texture, 
+                                                                             &render_state->test_shader);
+                r_set_active_render_material(render_state, entity_material);
+                r_renderpass_begin(render_state);
+            }
+
+            entity_render(render_state, asset_manager, entity, alpha);
             // NOTE(Sleepster): Draws colliders 
             //r_draw_rect(render_state, entity->hit_box.rect.min, entity->render_size, COLOR_BLUE, 0, RQO_NONE);
         }
         r_renderpass_end(render_state);
         r_pipeline_state_reset(render_state);
     }
-#endif
 }

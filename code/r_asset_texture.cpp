@@ -181,6 +181,15 @@ s_asset_texture_get(asset_manager_t *asset_manager, string_t asset_key)
     return(result);
 }
 
+internal inline texture2D_t* 
+s_asset_texture_get_from_handle(asset_handle_t handle)
+{
+    texture2D_t *result;
+    result = &handle.asset_slot->texture;
+
+    return(result);
+}
+
 internal inline void
 s_asset_texture_destroy_data(asset_manager_t *asset_manager, asset_handle_t handle)
 {
