@@ -1041,7 +1041,7 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 {
     DEBUG_TIMED_BLOCK();
 
-    glEnable(GL_BLEND);
+    glDepthMask(GL_TRUE);
 
     glClearDepth(0.0f);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1075,9 +1075,6 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBindFramebuffer(GL_FRAMEBUFFER, render_state->backend->primary_framebuffer.ID);
         glViewport(0, 0, render_state->framebuffer_width, render_state->framebuffer_height);
 
-        glEnable(GL_DEPTH_TEST);
-        r_renderer_check_error();
-
         glClearDepth(0.0f);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1087,30 +1084,39 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         glBindVertexArray(render_state->backend->primary_vao_id);
         r_renderer_check_error();
 
-        if(render_state->preblit_phase.opaque.used_render_group_counter > 0)
+        if(render_state->preblit_phase.opaque.render_groups_used_this_frame > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->preblit_phase.opaque.used_render_group_counter;
+                group_index < render_state->preblit_phase.opaque.render_groups_used_this_frame;
                 ++group_index)
             {
-                u32 hash_index = render_state->preblit_phase.opaque.render_group_ids[group_index];
+                u32 hash_index = render_state->preblit_phase.opaque.ids_used_this_frame[group_index];
 
                 render_group_t *render_group = (render_group_t*)render_state->preblit_phase.opaque.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
             }
+
+            ZeroMemory(render_state->preblit_phase.opaque.ids_used_this_frame, 
+                       sizeof(u32) * render_state->preblit_phase.opaque.render_groups_used_this_frame);
+
+            render_state->preblit_phase.opaque.render_groups_used_this_frame = 0;
         }
 
-        if(render_state->preblit_phase.transparent.used_render_group_counter > 0)
+        if(render_state->preblit_phase.transparent.render_groups_used_this_frame > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->preblit_phase.transparent.used_render_group_counter;
+                group_index < render_state->preblit_phase.transparent.render_group_id_counter;
                 ++group_index)
             {
-                u32 hash_index = render_state->preblit_phase.transparent.render_group_ids[group_index];
+                u32 hash_index = render_state->preblit_phase.transparent.ids_used_this_frame[group_index];
 
                 render_group_t *render_group = (render_group_t*)render_state->preblit_phase.transparent.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
             }
+            ZeroMemory(render_state->preblit_phase.transparent.ids_used_this_frame, 
+                       sizeof(u32) * render_state->preblit_phase.transparent.render_groups_used_this_frame);
+
+            render_state->preblit_phase.transparent.render_groups_used_this_frame = 0;
         }
 
         // NOTE(Sleepster): PERFORM EFFECT APPLICATION 
@@ -1128,31 +1134,40 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
 
     // NOTE(Sleepster): POST BLIT RENDERING 
     {
-        glViewport(0, 0, 1920, 1080);
-        if(render_state->postblit_phase.opaque.used_render_group_counter > 0)
+        glViewport(0, 0, global_context->window_size.x, global_context->window_size.y);
+        if(render_state->postblit_phase.opaque.render_groups_used_this_frame > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->postblit_phase.opaque.used_render_group_counter;
+                group_index < render_state->postblit_phase.opaque.render_groups_used_this_frame;
                 ++group_index)
             {
-                u32 hash_index = render_state->postblit_phase.opaque.render_group_ids[group_index];
+                u32 hash_index = render_state->postblit_phase.opaque.ids_used_this_frame[group_index];
 
                 render_group_t *render_group = (render_group_t*)render_state->postblit_phase.opaque.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
             }
+
+            ZeroMemory(render_state->postblit_phase.opaque.ids_used_this_frame, 
+                       sizeof(u32) * render_state->postblit_phase.opaque.render_groups_used_this_frame);
+
+            render_state->postblit_phase.opaque.render_groups_used_this_frame = 0;
         }
 
-        if(render_state->postblit_phase.transparent.used_render_group_counter > 0)
+        if(render_state->postblit_phase.transparent.render_groups_used_this_frame > 0)
         {
             for(u32 group_index = 0;
-                group_index < render_state->postblit_phase.transparent.used_render_group_counter;
+                group_index < render_state->postblit_phase.transparent.render_groups_used_this_frame;
                 ++group_index)
             {
-                u32 hash_index = render_state->postblit_phase.transparent.render_group_ids[group_index];
+                u32 hash_index = render_state->postblit_phase.transparent.ids_used_this_frame[group_index];
 
                 render_group_t *render_group = (render_group_t*)render_state->postblit_phase.transparent.group_hash.entries[hash_index].value; 
                 r_issue_render_group_draw(render_state, render_group);
             }
+            ZeroMemory(render_state->postblit_phase.transparent.ids_used_this_frame, 
+                       sizeof(u32) * render_state->postblit_phase.transparent.render_groups_used_this_frame);
+
+            render_state->postblit_phase.transparent.render_groups_used_this_frame = 0;
         }
     }
 }

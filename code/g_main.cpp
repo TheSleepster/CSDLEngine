@@ -569,11 +569,11 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
         render_material_t material = r_render_material_create(&global_game_state.player->sprite.texture.asset_slot->texture, 
                                                               &render_state->test_shader);
 
+        r_set_active_blending_state(render_state, true);
         r_set_active_render_material(render_state, material);
         r_set_active_render_phase(render_state, RGP_Preblit);
         r_set_active_render_layer(render_state, 16);
-        r_set_active_depth_state(render_state, false, true);
-        r_set_active_blending_state(render_state, true);
+        r_set_active_depth_state(render_state, true, true);
         r_set_active_render_camera(render_state, &global_game_state.game_camera);
 
         r_renderpass_begin(render_state);
@@ -582,6 +582,8 @@ GAME_UPDATE_AND_RENDER(game_update_and_render)
             ++entity_index)
         {
             entity_t *entity = global_game_state.entity_manager.entities + entity_index;
+
+            // TODO(Sleepster): This doesn't do what you think it does. We need to compare ATLAS IDS not the texture IDs. 
             if(&entity->sprite.texture.asset_slot->texture != 
                 render_state->draw_frame.active_material.texture)
             {

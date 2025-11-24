@@ -254,11 +254,30 @@ r_renderpass_begin(render_state_t *render_state)
     {
         render_group = r_render_group_create_new(render_state, &container->group_hash, combo_id);
 
-        u32 render_group_index = container->used_render_group_counter++;
+        u32 render_group_index = container->render_group_id_counter++;
         container->render_group_ids[render_group_index] = render_group->phase_idx;
     }
-
     Assert(render_group != null);
+
+    bool8 is_found = false;
+    for(u32 id_index = 0;
+        id_index < container->render_groups_used_this_frame;
+        ++id_index)
+    {
+        u32 id = container->ids_used_this_frame[id_index];
+        if(id == render_group->group_ID)
+        {
+            is_found = true;
+            break;
+        }
+    }
+
+    if(!is_found)
+    {
+        container->ids_used_this_frame[container->render_groups_used_this_frame] = render_group->group_ID;
+        container->render_groups_used_this_frame += 1;
+    }
+
     draw_frame->active_render_group = render_group;
 }
 
@@ -277,10 +296,10 @@ r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_ma
     at_atlas_handler_build_atlas(asset_manager, &asset_manager->texture_catalog.primary_handler);
 
     for(u32 group_index = 0;
-        group_index < render_state->preblit_phase.opaque.used_render_group_counter;
+        group_index < render_state->preblit_phase.opaque.render_groups_used_this_frame;
         ++group_index)
     {
-        u32 hash_index = render_state->preblit_phase.opaque.render_group_ids[group_index];
+        u32 hash_index = render_state->preblit_phase.opaque.ids_used_this_frame[group_index];
 
         render_group_t *render_group = (render_group_t*)render_state->preblit_phase.opaque.group_hash.entries[hash_index].value; 
         Assert(render_group);
@@ -289,10 +308,10 @@ r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_ma
     }
 
     for(u32 group_index = 0;
-        group_index < render_state->preblit_phase.transparent.used_render_group_counter;
+        group_index < render_state->preblit_phase.transparent.render_groups_used_this_frame;
         ++group_index)
     {
-        u32 hash_index = render_state->preblit_phase.transparent.render_group_ids[group_index];
+        u32 hash_index = render_state->preblit_phase.transparent.ids_used_this_frame[group_index];
 
         render_group_t *render_group = (render_group_t*)render_state->preblit_phase.transparent.group_hash.entries[hash_index].value; 
         Assert(render_group);
@@ -301,10 +320,10 @@ r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_ma
     }
 
     for(u32 group_index = 0;
-        group_index < render_state->postblit_phase.opaque.used_render_group_counter;
+        group_index < render_state->postblit_phase.opaque.render_groups_used_this_frame;
         ++group_index)
     {
-        u32 hash_index = render_state->postblit_phase.opaque.render_group_ids[group_index];
+        u32 hash_index = render_state->postblit_phase.opaque.ids_used_this_frame[group_index];
 
         render_group_t *render_group = (render_group_t*)render_state->postblit_phase.opaque.group_hash.entries[hash_index].value; 
         Assert(render_group);
@@ -313,10 +332,10 @@ r_renderpass_handle_data(render_state_t *render_state, asset_manager_t *asset_ma
     }
 
     for(u32 group_index = 0;
-        group_index < render_state->postblit_phase.transparent.used_render_group_counter;
+        group_index < render_state->postblit_phase.transparent.render_groups_used_this_frame;
         ++group_index)
     {
-        u32 hash_index = render_state->postblit_phase.transparent.render_group_ids[group_index];
+        u32 hash_index = render_state->postblit_phase.transparent.ids_used_this_frame[group_index];
 
         render_group_t *render_group = (render_group_t*)render_state->postblit_phase.transparent.group_hash.entries[hash_index].value; 
         Assert(render_group);

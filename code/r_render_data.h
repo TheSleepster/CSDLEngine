@@ -192,7 +192,10 @@ typedef struct render_group_container
 {
     hash_table_t group_hash;
     u32          render_group_ids[MAX_RENDER_GROUPS_TO_OUTPUT];
-    u32          used_render_group_counter;
+    u32          render_group_id_counter;
+
+    u32          ids_used_this_frame[MAX_RENDER_GROUPS_TO_OUTPUT];
+    u32          render_groups_used_this_frame;
 }render_group_container_t;
 
 typedef struct render_phase_data

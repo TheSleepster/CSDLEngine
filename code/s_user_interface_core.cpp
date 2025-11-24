@@ -112,9 +112,9 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
         root_widget->panel_size  = vec2(0, 0);
 
         this_layout->next_widget_cursor = this_layout->panel_position;
-        for(UI_widget_t *child = root_widget->youngest_attached_widget;
+        for(UI_widget_t *child = root_widget->first_attached_widget;
             child;
-            child = child->prev_attached_widget)
+            child = child->next_attached_widget)
         {
             dynamic_render_font_varient_t *child_font = s_asset_font_get_at_size(asset_manager, 
                                                                                  state->DEBUG_font,
@@ -153,14 +153,12 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 internal void
 ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, UI_state_t *state, UI_widget_t *widget)
 {
-    r_set_active_blending_state(render_state, true);
-
     vec2_t render_pos = widget->widget_rect.min;
     if((widget->widget_flags & UIWF_DrawInBackground) != 0)
     {
-        r_set_active_render_layer(render_state, 19);
+        r_set_active_render_layer(render_state, 2);
         r_set_active_blending_state(render_state, true);
-        r_set_active_depth_state(render_state, false, false);
+        r_set_active_depth_state(render_state, true, false);
 
         r_renderpass_begin(render_state);
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
@@ -188,15 +186,17 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     if((widget->widget_flags & UIWF_FilledBox) != 0)
     {
         r_set_active_blending_state(render_state, true);
-        r_set_active_depth_state(render_state, false, false);
-        r_set_active_render_layer(render_state, 18);
+        r_set_active_depth_state(render_state, true, true);
+        r_set_active_render_layer(render_state, 1);
 
         r_renderpass_begin(render_state);
         r_draw_rect(render_state, render_pos, widget->panel_size, widget->render_color, 0, RQO_NONE);
         r_renderpass_end(render_state);
     }
 
-    r_set_active_render_layer(render_state, 17);
+    r_set_active_render_layer(render_state, 0);
+    r_set_active_blending_state(render_state, true);
+    r_set_active_depth_state(render_state, true, true);
     r_renderpass_begin(render_state);
     if((widget->widget_flags & UIWF_DrawText) != 0)
     {
@@ -211,10 +211,10 @@ ui_render_widget(render_state_t *render_state, asset_manager_t *asset_manager, U
     }
     r_renderpass_end(render_state);
 
-    // NOTE(Sleepster): recurse for children 
-    for(UI_widget_t *child = widget->youngest_attached_widget;
+    // NOTE(Sleepster): recurse for children, backwards this time 
+    for(UI_widget_t *child = widget->first_attached_widget;
         child;
-        child = child->prev_attached_widget)
+        child = child->next_attached_widget)
     {
         child->color = COLOR_BLUE;
         ui_render_widget(render_state, asset_manager, state, child);
@@ -239,7 +239,7 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
         this_layout = this_layout->next_layout)
     {
         UI_widget_t *root_widget = this_layout->layout_pane;
-        root_widget->color       = {0.03, 0.03, 0.03, 0.05};
+        root_widget->color       = {0.03, 0.03, 0.03, 0.5};
 
         ui_render_widget(render_state, asset_manager, state, root_widget);
 

@@ -104,10 +104,9 @@ typedef struct UI_widget
     vec4_t       hot_color;
     vec4_t       active_color;
 
+    // NOTE(Sleepster): "youngest" simply means that last widget attached to this hierarchy
     UI_widget   *parent_widget;
     UI_widget   *first_attached_widget;
-
-    // NOTE(Sleepster): "youngest" simply means that last widget attached to this hierarchy
     UI_widget   *youngest_attached_widget;
     UI_widget   *next_attached_widget;
     UI_widget   *prev_attached_widget;

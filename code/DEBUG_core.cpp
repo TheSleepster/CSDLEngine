@@ -610,7 +610,7 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
         float32 lane_height  = (float32)depth_to_advance * lane_height_per_depth; 
 
         // NOTE(Sleepster): Thread label
-        r_set_active_render_layer(render_state, 16);
+        r_set_active_render_layer(render_state, 3);
         r_set_active_render_camera(render_state, &DEBUG_global_state->DEBUG_camera);
         r_renderpass_begin(render_state);
 
@@ -648,9 +648,8 @@ DEBUG_render_section_graph(asset_manager_t    *asset_manager,
                 float32 height = lane_height_per_depth;
 
                 // NOTE(Sleepster): Draw scope bar
-                r_set_active_blending_state(render_state, true);
-                r_set_active_depth_state(render_state, true, false);
-                r_set_active_blend_mode(render_state, RGBM_One, RGBM_OneMinusSrcAlpha, RGBM_One, RGBM_OneMinusSrcAlpha);
+                r_set_active_blending_state(render_state, false);
+                r_set_active_depth_state(render_state, false, false);
 
                 r_renderpass_begin(render_state);
                 u32 color_idx = (region->record_index * 31) % ArrayCount(colors);
@@ -844,7 +843,6 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
             ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
             {
                 ui_widget_push_parent(this_layout, this_layout->layout_pane);
-#if 0
                 if(ui_widget_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"), true))
                 {
                     DEBUG_global_state->display_cycle_counters = !DEBUG_global_state->display_cycle_counters;
@@ -854,11 +852,11 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
                 {
                     DEBUG_global_state->display_call_graph = !DEBUG_global_state->display_call_graph;
                 }
-#endif
             }
     
             local_persist float32 test_val = 0.0f;
             ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("SLDIER test slider"), &test_val, 0.0f, 1.0f);
+            ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
         }
 
         ui_layout_end(&DEBUG_global_state->UI_data);
@@ -866,13 +864,17 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
         ui_resolve_layouts(asset_manager, &DEBUG_global_state->UI_data);
         ui_render_all_widgets(render_state, asset_manager, &DEBUG_global_state->UI_data);
 
+        r_pipeline_state_reset(render_state);
+
         r_set_active_render_phase(render_state, RGP_Postblit);
         r_set_active_render_camera(render_state, &DEBUG_global_state->DEBUG_camera);
         r_set_active_blending_state(render_state, true);
+        r_set_active_depth_state(render_state, true, true);
 
         render_material_t material = r_render_material_create(null, &render_state->font_shader);
         r_set_active_render_material(render_state, material);
 
+        r_set_active_render_layer(render_state, 3);
         r_renderpass_begin(render_state);
         vec2_t ending_pos = {-900, -400};
         if(DEBUG_global_state->display_cycle_counters)
@@ -881,9 +883,10 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
         }
         r_renderpass_end(render_state);
 
-        r_set_active_blending_state(render_state, false);
+        r_pipeline_state_reset(render_state);
+        r_set_active_blending_state(render_state, true);
         r_set_active_depth_state(render_state, true, false);
-        r_set_active_render_layer(render_state, 20);
+        r_set_active_render_layer(render_state, 3);
 
         r_renderpass_begin(render_state);
         if(DEBUG_global_state->display_cycle_counters || 
@@ -892,7 +895,7 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
             r_draw_rect(render_state,
                         vec2(-960, -600),
                         vec2(1500, 2000),
-                        vec4(0.003f, 0.003f, 0.003f, 0.9f),
+                        vec4(0.003f, 0.003f, 0.003f, 0.8f),
                         0,
                         RQO_NONE);
         }

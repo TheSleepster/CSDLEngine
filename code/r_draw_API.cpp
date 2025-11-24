@@ -89,10 +89,10 @@ r_pipeline_state_reset(render_state_t *render_state)
     DEBUG_TIMED_BLOCK();
 
     render_pipeline_state_t *pipeline_state = &render_state->pipeline_state;
-    pipeline_state->src_color_blend_mode = RGBM_One;
-    pipeline_state->dst_color_blend_mode = RGBM_Zero;
+    pipeline_state->src_color_blend_mode = RGBM_SrcAlpha;
+    pipeline_state->dst_color_blend_mode = RGBM_OneMinusSrcAlpha;
     pipeline_state->src_alpha_blend_mode = RGBM_One;
-    pipeline_state->dst_alpha_blend_mode = RGBM_Zero;
+    pipeline_state->dst_alpha_blend_mode = RGBM_OneMinusSrcAlpha;
     pipeline_state->color_blend_eq       = RGBE_Add;
     pipeline_state->alpha_blend_eq       = RGBE_Add;
     pipeline_state->depth_func           = RGDF_Greater;
