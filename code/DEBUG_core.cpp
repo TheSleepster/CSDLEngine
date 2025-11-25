@@ -467,28 +467,31 @@ DEBUG_find_or_create_region(DEBUG_thread_data_t *thread,
                             u64                  end_clock)
 {
     DEBUG_region_t *result = null;
-    DEBUG_region_t *child  = parent->first_child;
-    while(child)
+    if(parent->first_child)
     {
-        if(child->record_index == record_array_index) 
+        DEBUG_region_t *child  = parent->first_child;
+        while(child)
         {
-            result = child;            
-            break;
+            if(child->record_index == record_array_index) 
+            {
+                result = child;            
+                break;
+            }
+            child = child->next_sibling;
         }
-        child = child->next_sibling;
-    }
 
-    if(!result)
-    {
-        result = thread->region_data + thread->region_count++;
-        result->record_index        = record_array_index;
-        result->region_cycle_count  = 0;
-        result->region_hit_count    = 0;
-        result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
-        result->first_child         = null;
-        result->next_sibling        = parent->first_child;
-        
-        parent->first_child = result;
+        if(!result)
+        {
+            result = thread->region_data + thread->region_count++;
+            result->record_index        = record_array_index;
+            result->region_cycle_count  = 0;
+            result->region_hit_count    = 0;
+            result->region_thread_index = DEBUG_get_thread_index(thread->thread_id);
+            result->first_child         = null;
+            result->next_sibling        = parent->first_child;
+
+            parent->first_child = result;
+        }
     }
 
     return(result);
@@ -523,13 +526,16 @@ DEBUG_build_thread_call_tree(DEBUG_thread_data_t *thread, u32 thread_index)
 
             DEBUG_region_t *new_region = DEBUG_find_or_create_region(thread, parent_region, scope->record_array_index, 
                                                                      scope->begin_clock, scope->end_clock);
-            new_region->region_cycle_count += scope_delta_cycles;
-            new_region->parent_scope_index  = scope->parent_scope_index;
-            new_region->region_hit_count   += 1;
-            new_region->frame_index         = scope->frame_index;
+            if(new_region)
+            {
+                new_region->region_cycle_count += scope_delta_cycles;
+                new_region->parent_scope_index  = scope->parent_scope_index;
+                new_region->region_hit_count   += 1;
+                new_region->frame_index         = scope->frame_index;
 
-            scope->region_tree_node = new_region;
-            thread_node->region_cycle_count += scope_delta_cycles;
+                scope->region_tree_node = new_region;
+                thread_node->region_cycle_count += scope_delta_cycles;
+            }
         }
     }
 }
@@ -810,6 +816,14 @@ DEBUG_display_record_data(asset_manager_t *asset_manager,
 internal void
 DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *asset_manager, render_state_t *render_state, float32 delta_time)
 {
+    DEBUG_global_state->DEBUG_camera.view_matrix = mat4_RHGL_ortho(-(global_context->window_size.x * 0.5f), 
+                                                                    (global_context->window_size.x * 0.5f), 
+                                                                   -(global_context->window_size.y * 0.5f), 
+                                                                    (global_context->window_size.y * 0.5f), 
+                                                                   -1, 
+                                                                    1);
+    DEBUG_global_state->DEBUG_camera.projection_matrix = mat4_identity(); 
+
     input_controller_t *controller = s_input_manager_get_primary_controller(input_manager);
     asset_handle_t font_handle =  s_asset_font_get(asset_manager, STR("LiberationMono_Regular"));
     if(DEBUG_global_state->overlay_active)

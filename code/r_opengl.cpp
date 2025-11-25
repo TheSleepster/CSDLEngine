@@ -533,7 +533,7 @@ r_texture_update_from_bitmap_(asset_manager_t *asset_manager, texture2D_t *textu
     }
     if(texture->has_AA)
     {
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4);
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, 
@@ -1124,9 +1124,18 @@ r_render_single_frame(asset_manager_t *asset_manager, render_state_t *render_sta
         }
 
         // TODO(Sleepster): Check if there needs to be a blit. If there doesn't need to be a blit, don't blit...  
-        glBindFramebuffer(GL_READ_FRAMEBUFFER,  render_state->backend->primary_framebuffer.ID);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, render_state->backend->primary_framebuffer.ID);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, render_state->framebuffer_width, render_state->framebuffer_height, 0, 0, 1920, 1080, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBlitFramebuffer(0, 
+                          0, 
+                          render_state->framebuffer_width, 
+                          render_state->framebuffer_height, 
+                          0, 
+                          0, 
+                          global_context->window_size.x, 
+                          global_context->window_size.y, 
+                          GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, 
+                          GL_NEAREST);
         r_renderer_check_error();
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
