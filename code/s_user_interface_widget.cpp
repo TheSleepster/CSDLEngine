@@ -206,6 +206,10 @@ ui_widget_titled_window(UI_state_t  *state,
     if((layout_flags & UILF_Movable) != 0 && 
        s_input_manager_is_alt_key_down(s_input_manager_get_primary_controller(state->input_manager))) 
     {
+        if(s_input_manager_is_keyboard_key_down(s_input_manager_get_primary_controller(state->input_manager), SDL_LEFT_MOUSE))
+        {
+            Assert(false);
+        }
         UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, window_pane);
         ui_widget_do_interactable(state, window_pane, interaction_info);
 

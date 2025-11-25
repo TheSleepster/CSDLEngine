@@ -38,6 +38,9 @@ r_render_group_init_geometry_buffer(render_state_t *render_state, geometry_buffe
     buffer->is_valid = true;
 }
 
+// TODO(Sleepster): Add a "active_buffer" to the render_group_t structure
+// so that we don't have to query this EVERY SINGLE TIME. We can just set it once
+// and check the primitive count too see if the active_buffer needs to be changed.
 internal geometry_buffer_t*
 r_render_group_get_buffer(render_state_t *render_state, render_group_t *render_group, u32 primitive_type)
 {

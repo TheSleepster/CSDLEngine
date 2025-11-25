@@ -97,17 +97,64 @@ ui_deinit_state(UI_state_t *state)
 }
 
 internal void
+ui_resolve_widget_hierarchy(asset_manager_t *asset_manager, 
+                            UI_state_t      *state, 
+                            UI_layout_t     *layout,
+                            UI_widget_t     *widget)
+{
+    for(UI_widget_t *next_child = widget->first_attached_widget;
+        next_child;
+        next_child = next_child->first_attached_widget)
+    {
+        ui_resolve_widget_hierarchy(asset_manager, state, layout, next_child);
+    }
+
+    dynamic_render_font_varient_t *widget_font = s_asset_font_get_at_size(asset_manager, 
+                                                                         state->DEBUG_font,
+                                                                         widget->font_size);
+
+    vec2_t widget_panel_position = vec2_add(layout->panel_position, widget->panel_offset);
+    if((widget->widget_flags & UIWF_DrawText) != 0)
+    {
+        widget->string_size = r_prepare_string_for_rendering(asset_manager, widget_font, widget->name);
+
+        widget->panel_size.x = widget->string_size.x + state->widget_padding_x * 2.0f;
+        widget->panel_size.y = widget->string_size.y + state->widget_padding_y * 2.0f;
+    }
+    else if(widget->panel_size.x == 0.0f && widget->panel_size.y == 0.0f)
+    {
+        widget->panel_size = vec2(40, 20);
+    }
+
+    widget->widget_rect = rect2_create(widget_panel_position, widget->panel_size);
+
+    widget->string_offset = { 
+        widget_panel_position.x + (widget->panel_size.x - widget->string_size.x) * 0.5f,
+        widget_panel_position.y + (widget->panel_size.y - widget->string_size.y) * 0.5f
+    };
+
+    // NOTE(Sleepster): recursively build the parent widgets 
+    for(UI_widget_t *child = widget->first_attached_widget;
+        child;
+        child = child->next_attached_widget)
+    {
+        widget->panel_size.y += child->panel_size.y + state->widget_padding_y;
+        if(child->panel_size.x > widget->panel_size.x)
+        {
+            widget->panel_size.x = child->panel_size.x + (state->widget_padding_x * 2);
+        }
+
+        widget->widget_rect = rect2_create(layout->panel_position, vec2_add(widget->panel_size, vec2(state->widget_padding_x, state->widget_padding_y)));
+    }
+}
+
+internal void
 ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
 {
     for(UI_layout_t *this_layout = state->first_layout;
         this_layout;
         this_layout = this_layout->next_layout)
     {
-        if(this_layout->layout_toggle)
-        {
-            this_layout->layout_toggle = this_layout->layout_toggle;
-        }
-
         UI_widget_t *root_widget = this_layout->layout_pane;
         root_widget->panel_size  = vec2(0, 0);
 
@@ -116,37 +163,8 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
             child;
             child = child->next_attached_widget)
         {
-            dynamic_render_font_varient_t *child_font = s_asset_font_get_at_size(asset_manager, 
-                                                                                 state->DEBUG_font,
-                                                                                 child->font_size);
-
-            vec2_t child_panel_position = vec2_add(this_layout->panel_position, child->panel_offset);
-            if((child->widget_flags & UIWF_DrawText) != 0)
-            {
-                child->string_size = r_prepare_string_for_rendering(asset_manager, child_font, child->name);
-
-                child->panel_size.x = child->string_size.x + state->widget_padding_x * 2.0f;
-                child->panel_size.y = child->string_size.y + state->widget_padding_y * 2.0f;
-            }
-            else if(child->panel_size.x == 0.0f && child->panel_size.y == 0.0f)
-            {
-                child->panel_size = vec2(40, 20);
-            }
-
-            child->widget_rect = rect2_create(child_panel_position, child->panel_size);
-
-            child->string_offset = { 
-                child_panel_position.x + (child->panel_size.x - child->string_size.x) * 0.5f,
-                child_panel_position.y + (child->panel_size.y - child->string_size.y) * 0.5f
-            };
-
-            root_widget->panel_size.y += child->panel_size.y + state->widget_padding_y;
-            if(child->panel_size.x > root_widget->panel_size.x) 
-            {
-                root_widget->panel_size.x = child->panel_size.x + (state->widget_padding_x * 2);
-            }
+            ui_resolve_widget_hierarchy(asset_manager, state, this_layout, child);
         }
-        root_widget->widget_rect = rect2_create(this_layout->panel_position, vec2_add(root_widget->panel_size, vec2(state->widget_padding_x, state->widget_padding_y)));
     }
 }
 
