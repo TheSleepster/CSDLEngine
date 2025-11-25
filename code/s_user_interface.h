@@ -9,11 +9,12 @@
 
  /* TODO: What widgets do we want?
   *
-  *  - [x] UI Text. No box.
-  *  - [x] Add titled windows.
-  *  - [x] Different button types.
+  *  - [x] UI Text. No box
+  *  - [x] Add titled windows
+  *  - [x] Different button types
   *  - [x] Support dropdown menus
   *  - [x] Checkboxes
+  *  - [ ] Held Button
   *  - [ ] Value sliders
   *  - [ ] Scroll bars
   *  - [ ] Resizable widgets
@@ -79,6 +80,7 @@ typedef struct UI_widget
 
     bool8        is_hot;
     bool8        is_active;
+    bool8        row_pushed; 
 
     bool8        started_inside;
     bool8        is_expanded;
@@ -179,6 +181,8 @@ typedef struct UI_state
     render_camera_t  camera;
 
     vec2_t           mouse_pos;
+    vec2_t           last_mouse_pos;
+    vec2_t           mouse_delta;
     u32              current_frame;
 
     UI_layout_t     *first_layout;
@@ -259,6 +263,7 @@ internal true_inline void       ui_widget_set_default_text_color(UI_state_t *sta
 
 // I.M WIDGETS
 internal        bool8           ui_widget_button(UI_state_t *state, string_t name, bool8 has_label);
+internal        bool8           ui_widget_held_button(UI_state_t *state, string_t name, bool8 has_label);
 internal        bool8           ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *condition);
 internal inline UI_widget_t*    ui_widget_pane(UI_state_t *state, string_t name);
 internal inline UI_widget_t*    ui_widget_text(UI_state_t *state, string_t display_text);

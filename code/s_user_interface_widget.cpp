@@ -5,11 +5,11 @@
    $Creator: Justin Lewis $
    ======================================================================== */
 
-// TODO(Sleepster): The adding of widgets to a hierarchy is broken. The parent is storing itself as a parent, causing an endless loop. 
-
 internal inline void
 ui_widget_push_parent(UI_layout_t *layout, UI_widget *widget)
 {
+    Assert(layout->active_parent_widget == layout->layout_pane || 
+           layout->active_parent_widget == null);
     layout->active_parent_widget = widget;
 }
 
@@ -59,8 +59,7 @@ ui_widget_attach(UI_layout_t *layout, UI_widget_t *widget)
     if(!parent->first_attached_widget)
     {
         // NOTE(Sleepster): First widget attached to this parent
-
-
+ 
         // TODO(Sleepster): This might be a problem, but we are now not clearing
         // the parent's prev_attached_widget and the parent's next_attached_widget because of 
         // parenting issues.
@@ -113,21 +112,27 @@ ui_widget_create(UI_state_t *state,
     }
     Assert(widget);
     widget->render_color = widget->idle_color;
+    widget->row_pushed   = layout->row_pushed;
 
-    widget->next_attached_widget   = null;
-    widget->prev_attached_widget   = null;
-    widget->first_attached_widget  = null;
+    widget->next_attached_widget     = null;
+    widget->prev_attached_widget     = null;
+    widget->first_attached_widget    = null;
     widget->youngest_attached_widget = null;
+
     if((widget_flags & UIWF_DrawText) != 0)
     {
         widget->render_font = s_asset_font_get_at_size(state->asset_manager, 
                                                        state->DEBUG_font,
                                                        widget->font_size);
     }
-    widget->panel_offset = vec2_subtract(layout->next_widget_cursor, layout->panel_position);
+    widget->panel_offset.y     = layout->next_widget_cursor.y - layout->panel_position.y;
     layout->last_widget_height = widget->panel_size.y;
 
-    if(!layout->row_pushed) layout->next_widget_cursor.y -= (widget->panel_size.y + (state->widget_padding_y * 2.0f));
+    if(!layout->row_pushed) 
+    {
+        layout->next_widget_cursor.y -= (widget->panel_size.y + (state->widget_padding_y * 2.0f));
+    }
+
     if(layout->active_parent_widget)
     {
         ui_widget_attach(layout, widget);
@@ -169,6 +174,28 @@ ui_widget_do_interactable(UI_state_t *state, UI_widget_t *widget, UI_interaction
     }
 }
 
+// TODO(Sleepster): Combine the "button" functionality for all the "button" type widgets
+// IE. Checkboxes, clicked buttons, held buttons, etc.
+internal bool8
+ui_widget_held_button(UI_state_t *state, string_t name, bool8 has_label)
+{
+    bool8 result = false;
+
+    u32 widget_flags = UIWF_Clickable|UIWF_DrawBorder|UIWF_FilledBox|UIWF_HotAnimation|UIWF_ActiveAnimation;
+    if(has_label)
+    {
+        widget_flags |= UIWF_DrawText;
+    }
+
+    UI_widget_t *widget = ui_widget_create(state, name, widget_flags);
+
+    UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, widget);
+    ui_widget_do_interactable(state, widget, interaction_info);
+
+    result = interaction_info->clicked;
+    return(result);
+}
+
 internal bool8
 ui_widget_button(UI_state_t *state, string_t name, bool8 has_label)
 {
@@ -199,17 +226,13 @@ ui_widget_titled_window(UI_state_t  *state,
     // NOTE(Sleepster): UIWF_DrawInBackground doesn't mean "draw a rect" it just 
     // means that the layer is of that of the background 
 
-    ui_widget_set_default_idle_color(state, {0.01, 0.01, 0.01, 0.03});
+    ui_widget_set_default_idle_color(state, {0.8, 0.8, 0.8, 0.03});
     UI_widget_t *window_pane = ui_widget_create(state, 
                                                 STR("LAYOUT WINDOW"), 
                                                 UIWF_DrawInBackground);
     if((layout_flags & UILF_Movable) != 0 && 
        s_input_manager_is_alt_key_down(s_input_manager_get_primary_controller(state->input_manager))) 
     {
-        if(s_input_manager_is_keyboard_key_down(s_input_manager_get_primary_controller(state->input_manager), SDL_LEFT_MOUSE))
-        {
-            Assert(false);
-        }
         UI_interaction_data_t *interaction_info = ui_widget_get_interaction_data(state, window_pane);
         ui_widget_do_interactable(state, window_pane, interaction_info);
 
@@ -226,7 +249,7 @@ ui_widget_titled_window(UI_state_t  *state,
     layout->panel_position = *position;
 
     // NOTE(Sleepster): This '5.0f' is just there to solidify alignment
-    layout->next_widget_cursor.x  = layout->panel_position.x + state->widget_padding_x;
+    layout->next_widget_cursor.x  =  layout->panel_position.x + state->widget_padding_x;
     layout->next_widget_cursor.y  = (layout->panel_position.y - (state->widget_padding_y * 5.0f)) + window_pane->panel_size.y;
 
     ui_widget_set_default_idle_color(state, COLOR_WHITE);
@@ -258,8 +281,8 @@ ui_widget_titled_window(UI_state_t  *state,
     ui_widget_set_default_text_color(state, COLOR_WHITE);
     if((layout_flags & UILF_HasTitlebar) != 0)
     {
-        layout->next_widget_cursor.x += state->widget_padding_x * 4;
         UI_widget_t *title_text = ui_widget_text(state, title); 
+        title_text->panel_offset.x = (layout->next_widget_cursor.x + (state->widget_padding_x * 4)) - layout->panel_position.x;
         ui_widget_rect(state, STR("TITLED_WINDOW TITLEBAR"), title_text->panel_size, {0, 0, 0, 1});
     }
     layout->next_widget_cursor.x -= state->widget_padding_x * 4;
@@ -339,105 +362,51 @@ ui_widget_toggle_box(UI_state_t *state, string_t hash_name, vec2_t size, bool8 *
     return(result);
 }
 
-#if 0
 internal void
 ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_ptr, float32 min, float32 max)
 {
+    ui_layout_row_push(state, state->active_layout);
     UI_widget_t *slider_background = ui_widget_create(state,
                                                       slider_name,
                                                       UIWF_FilledBox|
                                                       UIWF_DrawInBackground);
+    float32 pixel_width = 10.0f;
+
     float32 slider_value = (*value_ptr - min) / (max - min);
-    float32 slider_width  = slider_background->widget_rect.max.x - slider_background->widget_rect.min.x;
-    float32 slider_height = slider_background->widget_rect.max.y - slider_background->widget_rect.min.y;
+    float32 slider_width  = (slider_background->widget_rect.max.x - slider_background->widget_rect.min.x) * pixel_width;
+    float32 slider_height =  slider_background->widget_rect.max.y - slider_background->widget_rect.min.y;
 
     slider_value = Clamp(slider_value, 0.0f, 1.0f);
-    if(ui_widget_button(state, STR("SLIDER BUTTON"), false))
+    if(ui_widget_held_button(state, STR("SLIDER BUTTON"), false))
     {    
-        float32 current_slider_x    = state->mouse_pos.x - slider_background->widget_rect.min.x;
-        float32 slider_x_normalized = Clamp(current_slider_x / 1.0f, 0.0f, 1.0f);
+        UI_widget_t *button = ui_layout_get_widget(state->active_layout, STR("SLIDER BUTTON"));
+        if(button)
+        {
+            float min_x = slider_background->panel_offset.x;
+            float max_x = slider_background->panel_offset.x + slider_width;
+            button->panel_offset.x += state->mouse_delta.x;
+            button->panel_offset.x = Clamp(button->panel_offset.x, min_x, max_x);
 
-        *value_ptr = min + slider_x_normalized * (max - min); 
+            float32 current_slider_x = button->panel_offset.x - slider_background->panel_offset.x;
+            float32 slider_x_normalized = current_slider_x / slider_width;
+
+            *value_ptr = min + slider_x_normalized * (max - min);
+        }
+        else InvalidCodePath;
     }
-    float32 filled_slider_width = slider_width * slider_value;
-    UI_widget_t *filled_slider_overlay = ui_widget_rect(state, STR("SLIDER OVERLAY RECTANGLE"), vec2(filled_slider_width, slider_height), vec4(0.3f, 0.3f, 0.3f, 0.3f));
+
+    float32 filled_slider_width = (slider_width * slider_value);
+    UI_widget_t *filled_slider_overlay = ui_widget_rect(state, STR("SLIDER OVERLAY RECTANGLE"), 
+                                                        vec2(filled_slider_width, slider_height), 
+                                                        vec4(0.3f, 0.3f, 0.3f, 0.3f));
     filled_slider_overlay->panel_offset.y = slider_background->panel_offset.y;
 
-    UI_widget_t *button = ui_layout_get_widget(state->active_layout, STR("SLIDER BUTTON"));
-    if(button)
-    {
-        ui_widget_set_pane_offset(button, vec2(filled_slider_overlay->panel_offset.x + filled_slider_width, filled_slider_overlay->panel_offset.y));
-    }
-    else
-    {
-        InvalidCodePath;
-    }
+    ui_widget_rect(state,
+                   STR("SLIDER FILL"), 
+                   vec2(filled_slider_width, slider_height),
+                   vec4(0.3f, 0.3f, 0.3f, 0.3f));
 
-    float32 fill_width = slider_width * slider_value;
-    vec2_t fill_pos    = slider_background->panel_offset;
-    UI_widget_t *fill = ui_widget_rect(state,
-                                       STR("SLIDER FILL"), 
-                                       vec2(fill_width, slider_height),
-                                       vec4(0.3f, 0.3f, 0.3f, 0.3f));
-    ui_widget_set_pane_offset(fill, fill_pos);
-
-    // position the button at end of fill
-    ui_widget_set_pane_offset(button,
-                              vec2(slider_background->panel_offset.x + fill_width,
-                                   slider_background->panel_offset.y));
-}
-#endif
-
-internal void
-ui_widget_float_slider(UI_state_t *state, string_t slider_name, float32 *value_ptr, float32 min, float32 max)
-{
-    UI_widget_t *slider_background = ui_widget_create(state,
-                                                      slider_name,
-                                                      UIWF_FilledBox);
-    float32 slider_value = (*value_ptr - min) / (max - min);
-    float32 slider_width  = slider_background->widget_rect.max.x - slider_background->widget_rect.min.x;
-    float32 slider_height = slider_background->widget_rect.max.y - slider_background->widget_rect.min.y;
-
-    ui_widget_push_parent(state->active_layout, slider_background);
-
-    slider_value = Clamp(slider_value, 0.0f, 1.0f);
-    if(ui_widget_button(state, STR("SLIDER BUTTON"), false))
-    {    
-        float32 current_slider_x    = state->mouse_pos.x - slider_background->widget_rect.min.x;
-        float32 slider_x_normalized = Clamp(current_slider_x / 1.0f, 0.0f, 1.0f);
-
-        *value_ptr = min + slider_x_normalized * (max - min); 
-    }
-    float32 filled_slider_width = slider_width * slider_value;
-
-    UI_widget_t *filled_slider_overlay = ui_widget_rect(state, STR("SLIDER OVERLAY RECTANGLE"), vec2(filled_slider_width, slider_height), vec4(0.3f, 0.3f, 0.3f, 0.3f));
-    filled_slider_overlay->panel_offset.y = slider_background->panel_offset.y;
-
-    UI_widget_t *button = ui_layout_get_widget(state->active_layout, STR("SLIDER BUTTON"));
-    if(button)
-    {
-        ui_widget_set_pane_offset(button, vec2(filled_slider_overlay->panel_offset.x + filled_slider_width, filled_slider_overlay->panel_offset.y));
-        ui_widget_set_size(slider_background, button->panel_size);
-    }
-    else
-    {
-        InvalidCodePath;
-    }
-
-    float32 fill_width = slider_width * slider_value;
-    vec2_t fill_pos    = slider_background->panel_offset;
-    UI_widget_t *fill = ui_widget_rect(state,
-                                       STR("SLIDER FILL"), 
-                                       vec2(fill_width, slider_height),
-                                       vec4(0.3f, 0.3f, 0.3f, 0.3f));
-    ui_widget_set_pane_offset(fill, fill_pos);
-
-    // position the button at end of fill
-    ui_widget_set_pane_offset(button,
-                              vec2(slider_background->panel_offset.x + fill_width,
-                                   slider_background->panel_offset.y));
-
-    ui_widget_pop_parent(state->active_layout);
+    ui_layout_row_pop(state, state->active_layout);
 }
 
 internal true_inline void

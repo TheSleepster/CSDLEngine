@@ -104,7 +104,7 @@ ui_resolve_widget_hierarchy(asset_manager_t *asset_manager,
 {
     for(UI_widget_t *next_child = widget->first_attached_widget;
         next_child;
-        next_child = next_child->first_attached_widget)
+        next_child = next_child->next_attached_widget)
     {
         ui_resolve_widget_hierarchy(asset_manager, state, layout, next_child);
     }
@@ -156,14 +156,12 @@ ui_resolve_layouts(asset_manager_t *asset_manager, UI_state_t *state)
         this_layout = this_layout->next_layout)
     {
         UI_widget_t *root_widget = this_layout->layout_pane;
-        root_widget->panel_size  = vec2(0, 0);
-
-        this_layout->next_widget_cursor = this_layout->panel_position;
-        for(UI_widget_t *child = root_widget->first_attached_widget;
-            child;
-            child = child->next_attached_widget)
+        if(root_widget)
         {
-            ui_resolve_widget_hierarchy(asset_manager, state, this_layout, child);
+            this_layout->next_widget_cursor = this_layout->panel_position;
+
+            root_widget->panel_size = {};
+            ui_resolve_widget_hierarchy(asset_manager, state, this_layout, root_widget);
         }
     }
 }
@@ -249,9 +247,14 @@ ui_render_all_widgets(render_state_t *render_state, asset_manager_t *asset_manag
     r_set_active_render_material(render_state, material);
 
     input_controller_t *primary_controller = s_input_manager_get_primary_controller(state->input_manager);
+
+    vec2_t old_mouse_pos = state->mouse_pos;
     state->mouse_pos = s_input_manager_transform_mouse_data(primary_controller, 
                                                             state->camera.view_matrix, 
                                                             state->camera.projection_matrix); 
+    state->last_mouse_pos = old_mouse_pos;
+    state->mouse_delta    = vec2_subtract(state->mouse_pos, old_mouse_pos);
+
     for(UI_layout_t *this_layout = state->first_layout;
         this_layout;
         this_layout = this_layout->next_layout)

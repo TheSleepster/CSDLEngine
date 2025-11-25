@@ -842,7 +842,6 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
         {
             ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
             {
-                ui_widget_push_parent(this_layout, this_layout->layout_pane);
                 if(ui_widget_button(&DEBUG_global_state->UI_data, STR("Show Debug Record Cycle Data"), true))
                 {
                     DEBUG_global_state->display_cycle_counters = !DEBUG_global_state->display_cycle_counters;
@@ -855,7 +854,7 @@ DEBUG_render_group_to_output(input_manager_t *input_manager, asset_manager_t *as
             }
     
             local_persist float32 test_val = 0.0f;
-            ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("SLDIER test slider"), &test_val, 0.0f, 1.0f);
+            ui_widget_float_slider(&DEBUG_global_state->UI_data, STR("SLDIER test slider"), &test_val, 0.0f, 100.0f);
             ui_widget_set_default_text_color(&DEBUG_global_state->UI_data, COLOR_BLACK);
         }
 
